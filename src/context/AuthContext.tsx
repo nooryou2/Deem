@@ -1,6 +1,6 @@
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { onAuthStateChanged, getRedirectResult, type User } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import {
   loginUser,
@@ -82,6 +82,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setCompanyName(null);
     }
   }
+
+  // Completes a redirect sign-in that was already in flight before the app
+  // switched to popup-only. Harmless when there's nothing pending.
+  useEffect(() => {
+    getRedirectResult(auth).catch((e) => console.log('No pending redirect:', e?.code));
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {

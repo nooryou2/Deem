@@ -7,7 +7,6 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
   browserPopupRedirectResolver,
   type User,
 } from 'firebase/auth';
@@ -34,22 +33,13 @@ export async function signInWithGoogle(): Promise<User> {
   // Always show the account chooser rather than silently reusing a session.
   provider.setCustomParameters({ prompt: 'select_account' });
 
-  try {
-    const credential = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
-    return credential.user;
-  } catch (err) {
-    const code = (err as { code?: string })?.code ?? '';
-    // Popup couldn't be used — fall back to redirecting the whole page.
-    if (
-      code === 'auth/popup-blocked' ||
-      code === 'auth/operation-not-supported-in-this-environment'
-    ) {
-      await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
-      // The page navigates away; this line is not reached.
-      return Promise.reject(new Error('REDIRECTING'));
-    }
-    throw err;
-  }
+  // Popup only, deliberately. The redirect fallback cannot work here: it relies
+  // on a cross-origin iframe between this app's domain and the Firebase auth
+  // domain, and since June 2024 browsers that partition third-party storage
+  // (every current mobile browser) silently return the user unauthenticated.
+  // Firebase's own guidance is to use signInWithPopup instead.
+  const credential = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+  return credential.user;
 }
 
 export async function registerUser(
@@ -98,9 +88,6 @@ export function getAuthErrorMessage(error: unknown, context: AuthContext = 'logi
   if (message === 'GOOGLE_NATIVE_UNSUPPORTED') {
     return 'Google sign-in is currently available on the web version only.';
   }
-  if (message === 'REDIRECTING') {
-    return ''; // page is navigating to Google; nothing to show
-  }
   switch (code) {
     case 'auth/argument-error':
       return 'Google sign-in could not start. Please refresh the page and try again.';
@@ -108,7 +95,8 @@ export function getAuthErrorMessage(error: unknown, context: AuthContext = 'logi
     case 'auth/cancelled-popup-request':
       return 'Google sign-in was cancelled.';
     case 'auth/popup-blocked':
-      return 'Your browser blocked the sign-in popup. Please allow popups and try again.';
+    case 'auth/operation-not-supported-in-this-environment':
+      return 'Your browser blocked the sign-in window. Allow pop-ups for this site, then try again — or sign in with your email and password.';
     case 'auth/account-exists-with-different-credential':
       return 'An account with this email already exists using a different sign-in method. Try logging in with your email and password.';
     case 'auth/operation-not-allowed':

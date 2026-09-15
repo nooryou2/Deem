@@ -31,6 +31,10 @@ interface Props {
   radiusKm?: number;
   /** Areas to shade on the map — e.g. the areas a provider has selected. */
   highlightedAreas?: HighlightArea[];
+  /** Extra pins to plot, e.g. every saved location at once. */
+  markers?: { id: string; label: string; lat: number; lng: number }[];
+  /** Fired when one of those pins is tapped. */
+  onMarkerPress?: (id: string) => void;
   height?: number;
   /** View-only: the pin can't be moved and the location controls are hidden. */
   readonly?: boolean;
@@ -46,6 +50,9 @@ function buildMapHtml(
   readonly = false
 ): string {
   const m = marker ?? center;
+  // Pin-only maps (e.g. "see all my locations") have no single selected point,
+  // so the draggable marker is left off.
+  const showMarker = marker !== null;
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -67,7 +74,28 @@ function buildMapHtml(
     attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
-  var marker = L.marker([${m.lat}, ${m.lng}], { draggable: ${!readonly} }).addTo(map);
+  var marker = L.marker([${m.lat}, ${m.lng}], { draggable: ${!readonly} });
+  ${showMarker ? 'marker.addTo(map);' : ''}
+
+  // Layer holding extra location pins, each labelled and tappable.
+  var pinLayer = L.layerGroup().addTo(map);
+  function renderPins(pins) {
+    pinLayer.clearLayers();
+    if (!pins || !pins.length) return;
+    var bounds = [];
+    pins.forEach(function (p) {
+      var pin = L.marker([p.lat, p.lng]).addTo(pinLayer);
+      pin.bindTooltip(p.label, { permanent: true, direction: 'top', offset: [-15, -12] });
+      pin.on('click', function () {
+        var payload = JSON.stringify({ type: 'markerPress', id: p.id });
+        if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(payload);
+        else if (window.parent) window.parent.postMessage(payload, '*');
+      });
+      bounds.push([p.lat, p.lng]);
+    });
+    if (bounds.length > 1) map.fitBounds(L.latLngBounds(bounds).pad(0.3));
+    else if (bounds.length === 1) map.setView(bounds[0], 14);
+  }
 
   // Layer holding the shaded "areas I cover" circles.
   var areaLayer = L.layerGroup().addTo(map);
@@ -135,6 +163,9 @@ function buildMapHtml(
       if (data.type === 'setAreas') {
         renderAreas(data.areas);
       }
+      if (data.type === 'setPins') {
+        renderPins(data.pins);
+      }
     } catch (err) {}
   });
 </script>
@@ -147,6 +178,8 @@ export default function MapPicker({
   onChange,
   radiusKm,
   highlightedAreas,
+  markers,
+  onMarkerPress,
   height = 260,
   readonly = false,
 }: Props) {
@@ -163,11 +196,12 @@ export default function MapPicker({
       try {
         const data = JSON.parse(typeof event.data === 'string' ? event.data : '{}');
         if (data.type === 'location') onChange({ lat: data.lat, lng: data.lng });
+        if (data.type === 'markerPress') onMarkerPress?.(data.id);
       } catch {}
     }
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [onChange]);
+  }, [onChange, onMarkerPress]);
 
   // Push updates into the map without rebuilding it.
   const postToMap = useCallback((msg: object) => {
@@ -182,6 +216,17 @@ export default function MapPicker({
   useEffect(() => {
     if (radiusKm) postToMap({ type: 'setRadius', km: radiusKm });
   }, [radiusKm, postToMap]);
+
+  // Re-plot pins when they change. The delayed repeat covers the first render,
+  // before the iframe has finished loading Leaflet.
+  const pinsKey = (markers ?? []).map((m) => m.id).join(',');
+  useEffect(() => {
+    const send = () => postToMap({ type: 'setPins', pins: markers ?? [] });
+    send();
+    const t = setTimeout(send, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinsKey, postToMap]);
 
   // Re-draw the shaded coverage whenever the selection changes. The small
   // delay on first run gives the iframe time to finish loading Leaflet.

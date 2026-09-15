@@ -220,7 +220,7 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
           </Text>
         </View>
 
-        <Text style={styles.locationLabel}>Where is it?</Text>
+        <Text style={styles.locationLabel}>Service Location</Text>
         <Text style={styles.locationHint}>
           Pick which of your saved places this appliance is at.
         </Text>
