@@ -1,4 +1,4 @@
-// src/screens/provider/ProviderDashboardScreen.tsx
+git add .// src/screens/provider/ProviderDashboardScreen.tsx
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -135,7 +135,9 @@ export default function ProviderDashboardScreen({ navigation }: Props) {
             <TouchableOpacity
               key={req.id}
               activeOpacity={0.8}
-              onPress={() => navigation.navigate('ProviderRequests')}
+              // Opens this job rather than the list, so the tap lands where
+              // the user pointed.
+              onPress={() => navigation.navigate('RequestDetail', { request: req })}
               style={styles.apptCard}
             >
               <View style={styles.apptIcon}>
