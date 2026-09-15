@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /maintenanceItems/{itemId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    match /maintenanceHistory/{entryId} {
+      // Ownership is verified through the parent maintenance item, since
+      // history entries don't store userId directly.
+      allow read: if request.auth != null &&
+        get(/databases/$(database)/documents/maintenanceItems/$(resource.data.maintenanceItemId)).data.userId == request.auth.uid;
+      allow create: if request.auth != null &&
+        get(/databases/$(database)/documents/maintenanceItems/$(request.resource.data.maintenanceItemId)).data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}
