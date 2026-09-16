@@ -12,8 +12,8 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React,{ useCallback,useState } from 'react';
-import { ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<ProviderStackParamList, 'ProviderDashboard'>,
@@ -140,7 +140,9 @@ export default function ProviderDashboardScreen({ navigation }: Props) {
             <TouchableOpacity
               key={req.id}
               activeOpacity={0.8}
-              onPress={() => navigation.navigate('ProviderRequests')}
+              // Opens this job rather than the list, so the tap lands where
+              // the user pointed.
+              onPress={() => navigation.navigate('RequestDetail', { request: req })}
               style={styles.apptCard}
             >
               <View style={styles.apptIcon}>

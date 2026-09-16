@@ -12,18 +12,18 @@ import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
 import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
-import { createMaintenanceItem,updateMaintenanceItem } from '@/services/maintenanceService';
-import { colors,spacing,typography } from '@/theme/theme';
-import { MaintenanceCategory,ServiceFrequency } from '@/types';
+import { createMaintenanceItem, updateMaintenanceItem } from '@/services/maintenanceService';
+import { colors, spacing, typography } from '@/theme/theme';
+import { MaintenanceCategory, ServiceFrequency } from '@/types';
 import {
-CATEGORY_ICONS,
-CATEGORY_LABELS,
-FREQUENCY_LABELS,
-MAINTENANCE_TEMPLATES,
+  CATEGORY_ICONS,
+  CATEGORY_LABELS,
+  FREQUENCY_LABELS,
+  MAINTENANCE_TEMPLATES,
 } from '@/utils/maintenanceTemplates';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React,{ useEffect,useState } from 'react';
-import { Alert,KeyboardAvoidingView,Platform,ScrollView,StyleSheet,View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AddEditMaintenance'>;
 
@@ -249,7 +249,7 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
           </Text>
         </View>
 
-        <Text style={styles.locationLabel}>{t('Where is it?')}</Text>
+        <Text style={styles.locationLabel}>{t('Service Location')}</Text>
         <Text style={styles.locationHint}>
           {t('Pick which of your saved places this appliance is at.')}
         </Text>

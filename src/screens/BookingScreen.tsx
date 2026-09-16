@@ -1,3 +1,4 @@
+import LocationPicker from '@/components/LocationPicker';
 import AttachmentPicker from '@/components/attachment-picker';
 import { useLanguage } from '@/i18n/LanguageContext';
 import type { Attachment } from '@/types';
@@ -21,25 +22,24 @@ import { useAuth } from '@/context/AuthContext';
 import { useAreaFilteredProviders } from '@/hooks/useAreaFilteredProviders';
 import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
-import { createBooking,getAvailableSlots } from '@/services/bookingService';
-import { getSavedLocations } from '@/services/roleService';
-import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
-import { MaintenanceCategory,SavedLocation } from '@/types';
+import { createBooking, getAvailableSlots } from '@/services/bookingService';
+import { colors, radius, shadow, spacing, typography } from '@/theme/theme';
+import { MaintenanceCategory, SavedLocation } from '@/types';
 import { applianceLabel } from '@/utils/appliances';
-import { areaLabel,providerCoversAny } from '@/utils/areas';
+import { areaLabel, providerCoversAny } from '@/utils/areas';
 import { CATEGORY_LABELS } from '@/utils/maintenanceTemplates';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React,{ useEffect,useMemo,useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-ActivityIndicator,
-Alert,
-Platform,
-ScrollView,
-StyleSheet,
-TextInput,
-TouchableOpacity,
-View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Booking'>;
@@ -56,8 +56,6 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   water_heater: 'thermometer-outline',
   custom: 'construct-outline',
 };
-
-
 
 export default function BookingScreen({ navigation, route }: Props) {
   const { t } = useLanguage();
@@ -104,19 +102,6 @@ export default function BookingScreen({ navigation, route }: Props) {
     slot: string;
     name: string;
   } | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    getSavedLocations(user.uid)
-      .then((list) => {
-        setLocations(list);
-        if (!locationId && list.length > 0) {
-          setLocationId((list.find((l) => l.isDefault) ?? list[0]).id);
-        }
-      })
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   // Load the chosen provider's free slots whenever provider or date changes.
   useEffect(() => {
@@ -449,41 +434,7 @@ export default function BookingScreen({ navigation, route }: Props) {
             )}
 
             <Text style={styles.sectionTitle}>{t('Service Location')}</Text>
-            {locations.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Ionicons name="location-outline" size={18} color={colors.textMuted} />
-                <Text style={styles.emptyBoxText}>
-                  {t('No saved locations. Add one from Profile → My Locations.')}
-                </Text>
-              </View>
-            ) : (
-              locations.map((loc) => {
-                const on = locationId === loc.id;
-                return (
-                  <TouchableOpacity
-                    key={loc.id}
-                    style={[styles.locRow, on && styles.locRowOn]}
-                    onPress={() => setLocationId(loc.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons
-                      name={on ? 'radio-button-on' : 'radio-button-off'}
-                      size={20}
-                      color={on ? colors.primary : colors.border}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.locLabel, on && styles.locLabelOn]}>{t(loc.label)}</Text>
-                      {loc.address ? (
-                        <Text style={styles.locAddress} numberOfLines={1}>
-                          {loc.address}
-                        </Text>
-                      ) : null}
-                      {loc.area ? <Text style={styles.locArea}>{areaLabel(loc.area)}</Text> : null}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
-            )}
+            <LocationPicker value={locationId} onChange={setLocationId} onLoaded={setLocations} />
           </>
         )}
 
@@ -916,23 +867,6 @@ const styles = StyleSheet.create({
   tileOn: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
   tileLabel: { fontSize: 12, fontWeight: '600', color: colors.textSecondary, textAlign: 'center' },
   tileLabelOn: { color: colors.primary },
-
-  locRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    backgroundColor: colors.surface,
-  },
-  locRowOn: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  locLabel: { ...typography.body, fontWeight: '600' },
-  locLabelOn: { color: colors.primary },
-  locAddress: { ...typography.caption, marginTop: 1 },
-  locArea: { ...typography.caption, marginTop: 1 },
 
   searchBoxOpen: { borderColor: colors.primary, marginBottom: spacing.sm },
   selectedCard: {

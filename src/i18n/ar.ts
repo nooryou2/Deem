@@ -645,3 +645,14 @@ Object.assign(ar, {
   'First recorded service': 'أول صيانة مسجّلة',
   'Could not submit your review. Please try again.': 'تعذر إرسال التقييم. حاول مجددًا.',
 });
+Object.assign(ar, {
+  'See on map': 'عرض على الخريطة',
+  'No saved locations yet': 'لا توجد مواقع محفوظة بعد',
+  'Add the place you need service so the technician knows where to come.':
+    'أضف موقع الخدمة ليعرف الفني مكان الزيارة.',
+  'Manage all': 'إدارة المواقع',
+  'Your locations': 'مواقعك',
+  'Tap a pin to choose that location.': 'اضغط على العلامة لاختيار الموقع.',
+  'New Location': 'موقع جديد',
+  'Saved locations': 'المواقع المحفوظة',
+});
