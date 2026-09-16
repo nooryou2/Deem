@@ -1,8 +1,10 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/StatusBadge.tsx
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { colors, radius, spacing } from '@/theme/theme';
+import Text from '@/components/app-text';
+import { colors,radius,spacing } from '@/theme/theme';
 import { MaintenanceStatus } from '@/types';
+import React from 'react';
+import { StyleSheet,View } from 'react-native';
 
 const STATUS_CONFIG: Record<MaintenanceStatus, { label: string; fg: string; bg: string }> = {
   upcoming: { label: 'Upcoming', fg: colors.upcoming, bg: colors.upcomingBg },
@@ -12,11 +14,12 @@ const STATUS_CONFIG: Record<MaintenanceStatus, { label: string; fg: string; bg: 
 };
 
 export default function StatusBadge({ status }: { status: MaintenanceStatus }) {
+  const { t } = useLanguage();
   const config = STATUS_CONFIG[status];
   return (
     <View style={[styles.badge, { backgroundColor: config.bg }]}>
       <View style={[styles.dot, { backgroundColor: config.fg }]} />
-      <Text style={[styles.label, { color: config.fg }]}>{config.label}</Text>
+      <Text style={[styles.label, { color: config.fg }]}>{t(config.label)}</Text>
     </View>
   );
 }

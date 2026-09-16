@@ -1,16 +1,13 @@
 // src/hooks/useMaintenanceItems.ts
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/context/AuthContext';
-import {
-  subscribeToMaintenanceItems,
-  fetchMaintenanceItems,
-} from '@/services/maintenanceService';
-import { fetchRequestsForHomeowner } from '@/services/requestService';
 import { fetchCustomerBookings } from '@/services/bookingService';
-import { MaintenanceItem, DashboardSummary, ServiceRequestStatus } from '@/types';
+import { fetchMaintenanceItems,subscribeToMaintenanceItems } from '@/services/maintenanceService';
+import { fetchRequestsForHomeowner } from '@/services/requestService';
+import { DashboardSummary,MaintenanceItem,ServiceRequestStatus } from '@/types';
 import { getMaintenanceStatus } from '@/utils/dateCalculations';
-import { isSameMonth, parseISO } from 'date-fns';
+import { useFocusEffect } from '@react-navigation/native';
+import { isSameMonth,parseISO } from 'date-fns';
+import { useCallback,useEffect,useMemo,useState } from 'react';
 
 // Priority so the "latest meaningful" request wins when a task has several.
 const STATUS_PRIORITY: Record<ServiceRequestStatus, number> = {
@@ -50,7 +47,7 @@ export function useMaintenanceItems() {
       (err) => {
         setError(err.message);
         setLoading(false);
-      }
+      },
     );
 
     return unsubscribe;
@@ -73,7 +70,8 @@ export function useMaintenanceItems() {
         .then((list) => {
           const map: Record<string, string> = {};
           list.forEach((b) => {
-            if (b.maintenanceItemId) map[b.maintenanceItemId] = b.status;
+            if (b.maintenanceItemId && !map[b.maintenanceItemId])
+              map[b.maintenanceItemId] = b.status;
           });
           setBookingByItem(map);
         })
@@ -92,7 +90,7 @@ export function useMaintenanceItems() {
           setRequestByItem(map);
         })
         .catch(() => {});
-    }, [user])
+    }, [user]),
   );
 
   const itemsWithStatus = useMemo(
@@ -104,7 +102,7 @@ export function useMaintenanceItems() {
         // Prefer the live booking status over the mirrored copy on the item.
         bookingStatus: (bookingByItem[item.id] as any) ?? item.bookingStatus ?? null,
       })),
-    [items, requestByItem, bookingByItem]
+    [items, requestByItem, bookingByItem],
   );
 
   const summary: DashboardSummary = useMemo(() => {
@@ -113,7 +111,7 @@ export function useMaintenanceItems() {
     // scheduled service yet, so it shouldn't count towards the date-based
     // Overdue / Due Soon / Upcoming tallies.
     const scheduled = itemsWithStatus.filter(
-      (i) => i.bookingStatus !== 'pending' && i.bookingStatus !== 'declined'
+      (i) => i.bookingStatus !== 'pending' && i.bookingStatus !== 'declined',
     );
     return {
       total: itemsWithStatus.length,
@@ -121,13 +119,21 @@ export function useMaintenanceItems() {
       dueSoon: scheduled.filter((i) => i.status === 'due_soon').length,
       overdue: scheduled.filter((i) => i.status === 'overdue').length,
       completedThisMonth: itemsWithStatus.filter(
-        (i) => i.lastServiceDate && isSameMonth(parseISO(i.lastServiceDate), now)
+        (i) => i.lastServiceDate && isSameMonth(parseISO(i.lastServiceDate), now),
       ).length,
-      onTrack: itemsWithStatus.filter(
-        (i) => i.lastServiceDate && i.status === 'upcoming'
-      ).length,
+      onTrack: itemsWithStatus.filter((i) => i.lastServiceDate && i.status === 'upcoming').length,
     };
   }, [itemsWithStatus]);
 
-  return { items: itemsWithStatus, summary, loading, error };
+  const refresh = useCallback(async () => {
+    if (!user) return;
+    try {
+      const fresh = await fetchMaintenanceItems(user.uid);
+      setItems(fresh);
+      setError(null);
+    } catch {
+      setError('Could not load. Please try again.');
+    }
+  }, [user?.uid]);
+  return { items: itemsWithStatus, summary, loading, error, refresh };
 }

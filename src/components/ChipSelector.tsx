@@ -1,7 +1,9 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/ChipSelector.tsx
+import Text from '@/components/app-text';
+import { colors,radius,spacing } from '@/theme/theme';
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { colors, radius, spacing } from '@/theme/theme';
+import { ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 interface Option {
   value: string;
@@ -21,6 +23,7 @@ interface Props {
 }
 
 export default function ChipSelector({ options, selectedValue, onSelect }: Props) {
+  const { t } = useLanguage();
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       <View style={styles.row}>
@@ -43,12 +46,13 @@ export default function ChipSelector({ options, selectedValue, onSelect }: Props
               <Text
                 style={[
                   styles.label,
-                  isSelected && (option.textColor
-                    ? { color: option.textColor, fontWeight: '700' }
-                    : styles.labelSelected),
+                  isSelected &&
+                    (option.textColor
+                      ? { color: option.textColor, fontWeight: '700' }
+                      : styles.labelSelected),
                 ]}
               >
-                {option.label}
+                {t(option.label)}
               </Text>
             </TouchableOpacity>
           );

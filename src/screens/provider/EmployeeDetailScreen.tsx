@@ -1,25 +1,20 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/provider/EmployeeDetailScreen.tsx
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Platform,
-  Alert,
-} from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { updateEmployee, removeEmployee } from '@/services/employeeService';
-import InputField from '@/components/InputField';
 import Button from '@/components/Button';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { EmployeePrivilege } from '@/types';
+import InputField from '@/components/InputField';
+import Text from '@/components/app-text';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
+import { removeEmployee,updateEmployee } from '@/services/employeeService';
+import { colors,radius,spacing,typography } from '@/theme/theme';
+import { EmployeePrivilege } from '@/types';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useState } from 'react';
+import { Alert,Platform,ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'EmployeeDetail'>;
 
 export default function EmployeeDetailScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const emp = route.params.employee;
   const [name, setName] = useState(emp.name);
   const [privilege, setPrivilege] = useState<EmployeePrivilege>(emp.privilege);
@@ -85,9 +80,9 @@ export default function EmployeeDetailScreen({ navigation, route }: Props) {
         <Text style={styles.email}>{emp.email}</Text>
       </View>
 
-      <InputField label="Full Name" value={name} onChangeText={setName} />
+      <InputField label={t('Full Name')} value={name} onChangeText={setName} />
 
-      <Text style={styles.label}>Privilege</Text>
+      <Text style={styles.label}>{t('Privilege')}</Text>
       <View style={styles.privRow}>
         {(['worker', 'manager'] as EmployeePrivilege[]).map((p) => {
           const on = privilege === p;
@@ -99,10 +94,10 @@ export default function EmployeeDetailScreen({ navigation, route }: Props) {
               activeOpacity={0.8}
             >
               <Text style={[styles.privTitle, on && styles.privTitleOn]}>
-                {p === 'worker' ? 'Worker' : 'Manager'}
+                {p === 'worker' ? t('Worker') : t('Manager')}
               </Text>
               <Text style={[styles.privSub, on && styles.privSubOn]}>
-                {p === 'worker' ? 'View & update assigned jobs' : 'View all jobs & assign'}
+                {p === 'worker' ? t('View & update assigned jobs') : t('View all jobs & assign')}
               </Text>
             </TouchableOpacity>
           );
@@ -110,14 +105,19 @@ export default function EmployeeDetailScreen({ navigation, route }: Props) {
       </View>
 
       <Text style={styles.readonlyNote}>
-        Email can't be changed here — it's tied to the login account.
+        {t("Email can't be changed here — it's tied to the login account.")}
       </Text>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={styles.error}>{t(error)}</Text> : null}
 
-      <Button label="Save Changes" onPress={handleSave} loading={saving} style={{ marginTop: spacing.lg }} />
       <Button
-        label="Remove from Team"
+        label={t('Save Changes')}
+        onPress={handleSave}
+        loading={saving}
+        style={{ marginTop: spacing.lg }}
+      />
+      <Button
+        label={t('Remove from Team')}
         variant="danger"
         onPress={confirmRemove}
         style={{ marginTop: spacing.md }}
@@ -128,7 +128,13 @@ export default function EmployeeDetailScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  container: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
   header: { alignItems: 'center', marginBottom: spacing.lg },
   avatar: {
     width: 72,

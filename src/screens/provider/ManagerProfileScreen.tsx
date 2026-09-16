@@ -1,11 +1,14 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/provider/ManagerProfileScreen.tsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
-import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/Button';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import React,{ useState } from 'react';
+import { Alert,Platform,StyleSheet,View } from 'react-native';
 
 export default function ManagerProfileScreen() {
+  const { t } = useLanguage();
   const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -40,16 +43,17 @@ export default function ManagerProfileScreen() {
         <Text style={typography.h3}>{user?.displayName || 'Manager'}</Text>
         <Text style={styles.email}>{user?.email}</Text>
         <View style={styles.roleBadge}>
-          <Text style={styles.roleText}>Manager</Text>
+          <Text style={styles.roleText}>{t('Manager')}</Text>
         </View>
       </View>
 
       <Text style={styles.note}>
-        As a manager you can view and manage the company's requests, schedule, and team. Company
-        profile and services are managed by the account owner.
+        {t(
+          "As a manager you can view and manage the company's requests, schedule, and team. Company profile and services are managed by the account owner.",
+        )}
       </Text>
 
-      <Button label="Log Out" variant="danger" onPress={confirmLogout} loading={loggingOut} />
+      <Button label={t('Log Out')} variant="danger" onPress={confirmLogout} loading={loggingOut} />
     </View>
   );
 }

@@ -1,29 +1,30 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/provider/ProviderTeamScreen.tsx
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  Platform,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import Button from '@/components/Button';
+import InputField from '@/components/InputField';
+import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
 import { useCompanyId } from '@/hooks/useCompanyId';
-import { createEmployee, listEmployees } from '@/services/employeeService';
-import InputField from '@/components/InputField';
-import Button from '@/components/Button';
-import { getAuthErrorMessage } from '@/services/authService';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { Employee, EmployeePrivilege } from '@/types';
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
+import { getAuthErrorMessage } from '@/services/authService';
+import { createEmployee,listEmployees } from '@/services/employeeService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { Employee,EmployeePrivilege } from '@/types';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { CompositeScreenProps } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useCallback,useState } from 'react';
+import {
+ActivityIndicator,
+Alert,
+Modal,
+Platform,
+ScrollView,
+StyleSheet,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<ProviderStackParamList, 'ProviderTeam'>,
@@ -31,6 +32,7 @@ type Props = CompositeScreenProps<
 >;
 
 export default function ProviderTeamScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { user, role } = useAuth();
   const companyId = useCompanyId();
   const isManager = role === 'employee'; // a manager viewing the provider UI
@@ -108,8 +110,8 @@ export default function ProviderTeamScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.intro}>
           {isManager
-            ? 'Your team. Tap an employee to see the jobs assigned to them.'
-            : 'Your team. Tap an employee to see their jobs, or edit them from there.'}
+            ? t('Your team. Tap an employee to see the jobs assigned to them.')
+            : t('Your team. Tap an employee to see their jobs, or edit them from there.')}
         </Text>
 
         {loading ? (
@@ -117,8 +119,10 @@ export default function ProviderTeamScreen({ navigation }: Props) {
         ) : employees.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>👥</Text>
-            <Text style={styles.emptyTitle}>No employees yet</Text>
-            <Text style={styles.emptySub}>Tap "Add Employee" to create your first team member.</Text>
+            <Text style={styles.emptyTitle}>{t('No employees yet')}</Text>
+            <Text style={styles.emptySub}>
+              {t('Tap "Add Employee" to create your first team member.')}
+            </Text>
           </View>
         ) : (
           employees.map((emp) => (
@@ -147,7 +151,7 @@ export default function ProviderTeamScreen({ navigation }: Props) {
                     { color: emp.privilege === 'manager' ? '#6D28D9' : '#1D4ED8' },
                   ]}
                 >
-                  {emp.privilege === 'manager' ? 'Manager' : 'Worker'}
+                  {emp.privilege === 'manager' ? t('Manager') : t('Worker')}
                 </Text>
               </View>
               <Text style={styles.chevron}>›</Text>
@@ -166,7 +170,7 @@ export default function ProviderTeamScreen({ navigation }: Props) {
           }}
         >
           <Text style={styles.fabIcon}>＋</Text>
-          <Text style={styles.fabLabel}>Add Employee</Text>
+          <Text style={styles.fabLabel}>{t('Add Employee')}</Text>
         </TouchableOpacity>
       )}
 
@@ -174,26 +178,31 @@ export default function ProviderTeamScreen({ navigation }: Props) {
       <Modal visible={modalOpen} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Add Employee</Text>
+            <Text style={styles.modalTitle}>{t('Add Employee')}</Text>
             <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">
-              <InputField label="Full Name" placeholder="Sara Ali" value={name} onChangeText={setName} />
               <InputField
-                label="Email"
-                placeholder="employee@example.com"
+                label={t('Full Name')}
+                placeholder={t('Sara Ali')}
+                value={name}
+                onChangeText={setName}
+              />
+              <InputField
+                label={t('Email')}
+                placeholder={t('employee@example.com')}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
                 onChangeText={setEmail}
               />
               <InputField
-                label="Temporary Password"
-                placeholder="At least 6 characters"
+                label={t('Temporary Password')}
+                placeholder={t('At least 6 characters')}
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
               />
 
-              <Text style={styles.privLabel}>Privilege</Text>
+              <Text style={styles.privLabel}>{t('Privilege')}</Text>
               <View style={styles.privRow}>
                 {(['worker', 'manager'] as EmployeePrivilege[]).map((p) => {
                   const on = privilege === p;
@@ -205,29 +214,34 @@ export default function ProviderTeamScreen({ navigation }: Props) {
                       activeOpacity={0.8}
                     >
                       <Text style={[styles.privOptTitle, on && styles.privOptTitleOn]}>
-                        {p === 'worker' ? 'Worker' : 'Manager'}
+                        {p === 'worker' ? t('Worker') : t('Manager')}
                       </Text>
                       <Text style={[styles.privOptSub, on && styles.privOptSubOn]}>
                         {p === 'worker'
-                          ? 'View & update assigned jobs'
-                          : 'View all jobs & update status'}
+                          ? t('View & update assigned jobs')
+                          : t('View all jobs & update status')}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
 
-              {error ? <Text style={styles.error}>{error}</Text> : null}
+              {error ? <Text style={styles.error}>{t(error)}</Text> : null}
             </ScrollView>
 
             <View style={styles.modalActions}>
               <Button
-                label="Cancel"
+                label={t('Cancel')}
                 variant="secondary"
                 onPress={() => setModalOpen(false)}
                 style={{ flex: 1 }}
               />
-              <Button label="Add" onPress={handleAdd} loading={submitting} style={{ flex: 1 }} />
+              <Button
+                label={t('Add')}
+                onPress={handleAdd}
+                loading={submitting}
+                style={{ flex: 1 }}
+              />
             </View>
           </View>
         </View>
@@ -238,7 +252,13 @@ export default function ProviderTeamScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: 120 },
+  container: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: 120,
+  },
   intro: { ...typography.bodySecondary, marginBottom: spacing.lg },
   empCard: {
     flexDirection: 'row',

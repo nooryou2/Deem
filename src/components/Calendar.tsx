@@ -1,7 +1,9 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/Calendar.tsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import Text from '@/components/app-text';
+import { colors,radius,spacing,typography } from '@/theme/theme';
+import React,{ useState } from 'react';
+import { StyleSheet,TouchableOpacity,View } from 'react-native';
 
 interface Props {
   selectedDate: string | null; // 'YYYY-MM-DD'
@@ -24,8 +26,18 @@ interface Props {
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 function iso(y: number, m: number, d: number): string {
@@ -47,6 +59,7 @@ export default function Calendar({
   allowBlockedPress = false,
   markerColor = colors.primary,
 }: Props) {
+  const { t } = useLanguage();
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -81,7 +94,7 @@ export default function Calendar({
           <Text style={styles.navArrow}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.monthLabel}>
-          {MONTHS[viewMonth]} {viewYear}
+          {t(MONTHS[viewMonth])} {viewYear}
         </Text>
         <TouchableOpacity onPress={nextMonth} style={styles.navBtn} hitSlop={10}>
           <Text style={styles.navArrow}>›</Text>
@@ -92,7 +105,7 @@ export default function Calendar({
       <View style={styles.weekRow}>
         {WEEKDAYS.map((w) => (
           <Text key={w} style={styles.weekday}>
-            {w}
+            {t(w)}
           </Text>
         ))}
       </View>

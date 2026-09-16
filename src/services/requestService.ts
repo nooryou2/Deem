@@ -1,21 +1,18 @@
+import { changeJobStatus } from './jobStatusService';
 // src/services/requestService.ts
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  doc,
-  getDocs,
-  query,
-  where,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
 import { db } from '@/config/firebase';
+import { MaintenanceCategory,ServiceRequest,ServiceRequestStatus } from '@/types';
 import {
-  ServiceRequest,
-  ServiceRequestStatus,
-  MaintenanceCategory,
-} from '@/types';
+Timestamp,
+collection,
+doc,
+getDocs,
+query,
+runTransaction,
+serverTimestamp,
+updateDoc,
+where
+} from 'firebase/firestore';
 
 const COLLECTION = 'serviceRequests';
 
@@ -27,6 +24,8 @@ export interface CreateRequestInput {
   maintenanceItemId: string | null;
   serviceType: string;
   category: MaintenanceCategory;
+  attachments?: import('@/types').Attachment[];
+  location?: import('@/types').SavedLocation | null;
   notes?: string;
   preferredDate?: Date | null;
   isEmergency?: boolean;
@@ -34,26 +33,48 @@ export interface CreateRequestInput {
 }
 
 export async function createServiceRequest(input: CreateRequestInput): Promise<string> {
-  const ref = await addDoc(collection(db, COLLECTION), {
-    homeownerId: input.homeownerId,
-    homeownerName: input.homeownerName,
-    providerId: input.providerId,
-    providerName: input.providerName,
-    maintenanceItemId: input.maintenanceItemId,
-    serviceType: input.serviceType,
-    category: input.category,
-    status: 'pending' as ServiceRequestStatus,
-    notes: input.notes ?? '',
-    preferredDate: input.preferredDate ? Timestamp.fromDate(input.preferredDate) : null,
-    isEmergency: input.isEmergency ?? false,
-    appliances: input.appliances ?? [],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  const ref = doc(collection(db, COLLECTION));
+  await runTransaction(db, async (tx) => {
+    const itemRef = input.maintenanceItemId
+      ? doc(db, 'maintenanceItems', input.maintenanceItemId)
+      : null;
+    const item = itemRef ? await tx.get(itemRef) : null;
+    if (item && (!item.exists() || item.data().userId !== input.homeownerId))
+      throw new Error('INVALID_APPLIANCE');
+    tx.set(ref, {
+      homeownerId: input.homeownerId,
+      homeownerName: input.homeownerName,
+      providerId: input.providerId,
+      providerName: input.providerName,
+      maintenanceItemId: input.maintenanceItemId,
+      hasLinkedItem: !!itemRef,
+      serviceType: input.serviceType,
+      category: input.category,
+      status: 'pending',
+      notes: input.notes ?? '',
+      attachments: input.attachments ?? [],
+      location: input.location ?? null,
+      preferredDate: input.preferredDate ? Timestamp.fromDate(input.preferredDate) : null,
+      isEmergency: input.isEmergency ?? false,
+      appliances: input.appliances ?? [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    if (itemRef)
+      tx.update(itemRef, {
+        requestId: ref.id,
+        bookingId: null,
+        bookingStatus: 'pending',
+        updatedAt: serverTimestamp(),
+      });
   });
   return ref.id;
 }
 
-async function fetchBy(field: 'homeownerId' | 'providerId', uid: string): Promise<ServiceRequest[]> {
+async function fetchBy(
+  field: 'homeownerId' | 'providerId',
+  uid: string,
+): Promise<ServiceRequest[]> {
   const q = query(collection(db, COLLECTION), where(field, '==', uid));
   const snap = await getDocs(q);
   const list = snap.docs.map((d) => mapRequest(d.id, d.data()));
@@ -70,11 +91,8 @@ export function fetchRequestsForProvider(uid: string): Promise<ServiceRequest[]>
   return fetchBy('providerId', uid);
 }
 
-export async function updateRequestStatus(
-  id: string,
-  status: ServiceRequestStatus
-): Promise<void> {
-  await updateDoc(doc(db, COLLECTION, id), { status, updatedAt: serverTimestamp() });
+export async function updateRequestStatus(id: string, status: ServiceRequestStatus): Promise<void> {
+  await changeJobStatus('request', id, status);
 }
 
 /**
@@ -83,7 +101,7 @@ export async function updateRequestStatus(
 export async function assignEmployee(
   id: string,
   employeeId: string,
-  employeeName: string
+  employeeName: string,
 ): Promise<void> {
   await updateDoc(doc(db, COLLECTION, id), {
     assignedEmployeeId: employeeId,
@@ -115,6 +133,8 @@ function mapRequest(id: string, data: any): ServiceRequest {
     category: data.category ?? 'custom',
     status: data.status ?? 'pending',
     notes: data.notes ?? '',
+    attachments: data.attachments ?? [],
+    location: data.location ?? null,
     preferredDate: tsToISO(data.preferredDate),
     isEmergency: data.isEmergency ?? false,
     appliances: data.appliances ?? [],

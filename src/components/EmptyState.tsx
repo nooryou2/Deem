@@ -1,7 +1,9 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/EmptyState.tsx
+import Text from '@/components/app-text';
+import { spacing,typography } from '@/theme/theme';
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { colors, spacing, typography } from '@/theme/theme';
+import { StyleSheet,View } from 'react-native';
 
 interface Props {
   icon?: string;
@@ -10,11 +12,12 @@ interface Props {
 }
 
 export default function EmptyState({ icon = '🏠', title, subtitle }: Props) {
+  const { t } = useLanguage();
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>{icon}</Text>
-      <Text style={[typography.h3, styles.title]}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      <Text style={[typography.h3, styles.title]}>{t(title)}</Text>
+      {subtitle ? <Text style={styles.subtitle}>{t(subtitle)}</Text> : null}
     </View>
   );
 }

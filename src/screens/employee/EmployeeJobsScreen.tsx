@@ -1,22 +1,17 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/employee/EmployeeJobsScreen.tsx
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
+import type { EmployeeStackParamList } from '@/navigation/EmployeeNavigator';
+import { fetchBookingsForEmployee } from '@/services/bookingService';
+import { fetchRequestsForEmployee } from '@/services/requestService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { ServiceRequest,ServiceRequestStatus } from '@/types';
+import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '@/context/AuthContext';
-import { fetchRequestsForEmployee } from '@/services/requestService';
-import { fetchBookingsForEmployee } from '@/services/bookingService';
-import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { ServiceRequest, ServiceRequestStatus } from '@/types';
-import type { EmployeeStackParamList } from '@/navigation/EmployeeNavigator';
+import React,{ useCallback,useState } from 'react';
+import { ActivityIndicator,FlatList,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = NativeStackScreenProps<EmployeeStackParamList, 'EmployeeJobs'>;
 
@@ -29,6 +24,7 @@ const STATUS_META: Record<ServiceRequestStatus, { label: string; color: string; 
 };
 
 export default function EmployeeJobsScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [jobs, setJobs] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +74,7 @@ export default function EmployeeJobsScreen({ navigation }: Props) {
               </View>
               <View style={{ flex: 1 }}>
                 <View style={[styles.pill, { backgroundColor: meta.tint }]}>
-                  <Text style={[styles.pillText, { color: meta.color }]}>{meta.label}</Text>
+                  <Text style={[styles.pillText, { color: meta.color }]}>{t(meta.label)}</Text>
                 </View>
                 <Text style={styles.service}>{item.serviceType}</Text>
                 <Text style={styles.customer}>{item.homeownerName}</Text>
@@ -90,9 +86,9 @@ export default function EmployeeJobsScreen({ navigation }: Props) {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>🧰</Text>
-            <Text style={styles.emptyTitle}>No jobs assigned</Text>
+            <Text style={styles.emptyTitle}>{t('No jobs assigned')}</Text>
             <Text style={styles.emptySub}>
-              When your company assigns you a job, it will appear here.
+              {t('When your company assigns you a job, it will appear here.')}
             </Text>
           </View>
         }
@@ -103,7 +99,12 @@ export default function EmployeeJobsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
   listContent: { padding: spacing.lg },
   card: {
     flexDirection: 'row',
@@ -123,7 +124,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: spacing.md,
   },
-  pill: { alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.pill },
+  pill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
   pillText: { fontSize: 11, fontWeight: '700' },
   service: { ...typography.body, fontWeight: '700', marginTop: 4 },
   customer: { ...typography.caption, marginTop: 1 },
@@ -131,5 +137,10 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { fontSize: 40, marginBottom: spacing.sm },
   emptyTitle: { ...typography.h3 },
-  emptySub: { ...typography.bodySecondary, textAlign: 'center', marginTop: spacing.xs, paddingHorizontal: spacing.lg },
+  emptySub: {
+    ...typography.bodySecondary,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.lg,
+  },
 });

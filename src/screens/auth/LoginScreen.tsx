@@ -1,30 +1,33 @@
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/auth/LoginScreen.tsx
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-} from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '@/context/AuthContext';
-import { getAuthErrorMessage } from '@/services/authService';
-import InputField from '@/components/InputField';
 import Button from '@/components/Button';
 import GoogleButton from '@/components/GoogleButton';
+import InputField from '@/components/InputField';
 import RoleSelector from '@/components/RoleSelector';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { getEmailError } from '@/utils/validation';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
 import type { AuthStackParamList } from '@/navigation/AuthNavigator';
+import { getAuthErrorMessage } from '@/services/authService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
 import { UserRole } from '@/types';
+import { getEmailError } from '@/utils/validation';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useState } from 'react';
+import {
+Image,
+KeyboardAvoidingView,
+Platform,
+ScrollView,
+StyleSheet,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { login, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -76,6 +79,14 @@ export default function LoginScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <LanguageSwitcher />
+        <TouchableOpacity
+          accessibilityRole="button"
+          onPress={() => navigation.navigate('Landing')}
+          style={{ alignSelf: 'center', padding: 12, marginBottom: 12 }}
+        >
+          <Text style={styles.linkText}>{t('العودة إلى الرئيسية ←')}</Text>
+        </TouchableOpacity>
         <View style={styles.header}>
           <Image
             source={require('../../../assets/logo.png')}
@@ -85,16 +96,16 @@ export default function LoginScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.card}>
-          <Text style={typography.h2}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Login to your account</Text>
+          <Text style={typography.h2}>{t('Welcome Back')}</Text>
+          <Text style={styles.subtitle}>{t('Login to your account')}</Text>
 
           <View style={{ marginTop: spacing.lg }}>
-            <Text style={styles.roleLabel}>I am a</Text>
+            <Text style={styles.roleLabel}>{t('I am a')}</Text>
             <RoleSelector value={role} onChange={setRole} />
 
             <InputField
-              label="Email"
-              placeholder="you@example.com"
+              label={t('Email')}
+              placeholder={t('you@example.com')}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
@@ -106,27 +117,27 @@ export default function LoginScreen({ navigation }: Props) {
               error={emailError}
             />
             <InputField
-              label="Password"
-              placeholder="••••••••"
+              label={t('Password')}
+              placeholder={t('••••••••')}
               isPassword
               value={password}
               onChangeText={setPassword}
             />
 
-            {formError ? <Text style={styles.error}>{formError}</Text> : null}
+            {formError ? <Text style={styles.error}>{t(formError)}</Text> : null}
 
             <TouchableOpacity
               onPress={() => navigation.navigate('ForgotPassword')}
               style={styles.forgotLink}
             >
-              <Text style={styles.linkText}>Forgot password?</Text>
+              <Text style={styles.linkText}>{t('Forgot password?')}</Text>
             </TouchableOpacity>
 
-            <Button label="Login" onPress={handleLogin} loading={loading} />
+            <Button label={t('Login')} onPress={handleLogin} loading={loading} />
 
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
+              <Text style={styles.dividerText}>{t('or')}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -135,9 +146,9 @@ export default function LoginScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
+          <Text style={styles.footerText}>{t("Don't have an account?")}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.linkText}>Sign up</Text>
+            <Text style={styles.linkText}>{t('Sign up')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -147,7 +158,14 @@ export default function LoginScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  container: { flexGrow: 1, padding: spacing.lg, justifyContent: 'center' },
+  container: {
+    flexGrow: 1,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 540,
+    alignSelf: 'center',
+    justifyContent: 'center',
+  },
   header: { alignItems: 'center', marginBottom: spacing.lg },
   logo: { width: 130, height: 130 },
   card: {

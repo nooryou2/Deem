@@ -1,3 +1,7 @@
+import AttachmentPicker from '@/components/attachment-picker';
+import { useLanguage } from '@/i18n/LanguageContext';
+import type { Attachment } from '@/types';
+import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
 // src/screens/BookingScreen.tsx
 //
 // Booking runs as a three-step flow:
@@ -7,37 +11,36 @@
 //
 // Payment is intentionally not part of this flow yet.
 
-import React, { useEffect, useState, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Platform,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Button from '@/components/Button';
+import Calendar from '@/components/Calendar';
+import InputField from '@/components/InputField';
+import StarRating from '@/components/StarRating';
+import StepIndicator from '@/components/StepIndicator';
+import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
 import { useAreaFilteredProviders } from '@/hooks/useAreaFilteredProviders';
-import { getSavedLocations } from '@/services/roleService';
 import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
-import { getAvailableSlots, createBooking } from '@/services/bookingService';
-import { createMaintenanceItem } from '@/services/maintenanceService';
-import Calendar from '@/components/Calendar';
-import Button from '@/components/Button';
-import InputField from '@/components/InputField';
-import StepIndicator from '@/components/StepIndicator';
-import StarRating from '@/components/StarRating';
-import { CATEGORY_LABELS } from '@/utils/maintenanceTemplates';
-import { areaLabel } from '@/utils/areas';
-import { applianceLabel } from '@/utils/appliances';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { MaintenanceCategory, SavedLocation } from '@/types';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { createBooking,getAvailableSlots } from '@/services/bookingService';
+import { getSavedLocations } from '@/services/roleService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { MaintenanceCategory,SavedLocation } from '@/types';
+import { applianceLabel } from '@/utils/appliances';
+import { areaLabel,providerCoversAny } from '@/utils/areas';
+import { CATEGORY_LABELS } from '@/utils/maintenanceTemplates';
+import { Ionicons } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useEffect,useMemo,useState } from 'react';
+import {
+ActivityIndicator,
+Alert,
+Platform,
+ScrollView,
+StyleSheet,
+TextInput,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Booking'>;
 
@@ -54,16 +57,12 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   custom: 'construct-outline',
 };
 
-function prettyTime(slot: string): string {
-  const [h, m] = slot.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hr = h % 12 === 0 ? 12 : h % 12;
-  return `${hr}:${String(m).padStart(2, '0')} ${ampm}`;
-}
+
 
 export default function BookingScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const { user } = useAuth();
-  const { providers, loading: loadingProviders } = useAreaFilteredProviders();
+  const { allProviders, loading: loadingProviders } = useAreaFilteredProviders();
   const { items: myAppliances } = useMaintenanceItems();
 
   const [step, setStep] = useState(0);
@@ -83,7 +82,7 @@ export default function BookingScreen({ navigation, route }: Props) {
   const [providerListOpen, setProviderListOpen] = useState(false);
   const [providerId, setProviderId] = useState<string | null>(route.params?.providerId ?? null);
   const [providerName, setProviderName] = useState<string | null>(
-    route.params?.providerName ?? null
+    route.params?.providerName ?? null,
   );
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [slots, setSlots] = useState<string[]>([]);
@@ -95,37 +94,16 @@ export default function BookingScreen({ navigation, route }: Props) {
 
   // --- Step 3 ---
   const [description, setDescription] = useState('');
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [slotError, setSlotError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-  const [savingAppliance, setSavingAppliance] = useState(false);
   const [bookedSummary, setBookedSummary] = useState<{
     date: string;
     slot: string;
     name: string;
   } | null>(null);
-
-  /** Adds the just-booked appliance to the user's tracked list. */
-  async function addToTracker() {
-    if (!user || !category) return;
-    setSavingAppliance(true);
-    try {
-      await createMaintenanceItem({
-        userId: user.uid,
-        name: applianceName.trim() || CATEGORY_LABELS[category],
-        category,
-        frequency: 'every_6_months',
-        lastServiceDate: null,
-        locationId,
-      });
-      notify('Added to your appliances.');
-      navigation.goBack();
-    } catch (e) {
-      console.log('createMaintenanceItem failed:', e);
-      notify('Could not add it. You can register it from the Maintenance tab.');
-    } finally {
-      setSavingAppliance(false);
-    }
-  }
 
   useEffect(() => {
     if (!user) return;
@@ -142,17 +120,33 @@ export default function BookingScreen({ navigation, route }: Props) {
 
   // Load the chosen provider's free slots whenever provider or date changes.
   useEffect(() => {
-    if (!providerId || !selectedDate) return;
+    if (!providerId || !selectedDate) {
+      setSlots([]);
+      setSelectedSlot(null);
+      return;
+    }
+    let active = true;
     setLoadingSlots(true);
+    setSlots([]);
+    setSlotError('');
     setSelectedSlot(null);
     getAvailableSlots(providerId, selectedDate)
       .then((res) => {
+        if (!active) return;
         setSlots(res.slots);
         setBlocked(res.blocked);
         setProviderBlockedDates(res.availability.blockedDates ?? []);
         setProviderOffDays(res.availability.weeklyOffDays ?? []);
       })
-      .finally(() => setLoadingSlots(false));
+      .catch(() => {
+        if (active) setSlotError('Could not load. Please try again.');
+      })
+      .finally(() => {
+        if (active) setLoadingSlots(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [providerId, selectedDate]);
 
   /** Picking a tracked appliance carries its details into the booking. */
@@ -166,6 +160,11 @@ export default function BookingScreen({ navigation, route }: Props) {
     setAppliancePickerOpen(false);
   }
 
+  useEffect(() => {
+    if (route.params?.itemId && !applianceId && myAppliances.length)
+      chooseAppliance(route.params.itemId);
+  }, [route.params?.itemId, myAppliances.length]);
+
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
     else Alert.alert('Booking', msg);
@@ -175,19 +174,42 @@ export default function BookingScreen({ navigation, route }: Props) {
   // service category, so it's excluded here.
   const bookableCategories = useMemo(
     () => Object.entries(CATEGORY_LABELS).filter(([value]) => value !== 'custom'),
-    []
+    [],
   );
 
+  const chosenLocation = locations.find((l) => l.id === locationId) ?? null;
+  const providers = allProviders.filter((provider) =>
+    providerCoversAny(provider.serviceAreas, chosenLocation?.area ? [chosenLocation.area] : []),
+  );
   const filteredProviders = useMemo(() => {
     const q = providerQuery.trim().toLowerCase();
     return q ? providers.filter((p) => p.name.toLowerCase().includes(q)) : providers;
   }, [providers, providerQuery]);
 
-  const chosenLocation = locations.find((l) => l.id === locationId) ?? null;
   const selectedProvider = providers.find((p) => p.uid === providerId) ?? null;
+  useEffect(() => {
+    if (!loadingProviders && providerId && !selectedProvider) {
+      setProviderId(null);
+      setProviderName(null);
+      setSelectedSlot(null);
+    }
+  }, [locationId, loadingProviders, selectedProvider?.uid]);
+  useEffect(() => {
+    setAttachments([]);
+  }, [providerId]);
 
   async function handleConfirm() {
-    if (!user || !providerId || !selectedDate || !selectedSlot || !category) return;
+    if (
+      !user ||
+      !providerId ||
+      !selectedDate ||
+      !selectedSlot ||
+      !category ||
+      !description.trim() ||
+      uploading ||
+      submitting
+    )
+      return;
     setSubmitting(true);
     try {
       await createBooking({
@@ -201,9 +223,10 @@ export default function BookingScreen({ navigation, route }: Props) {
         description: description.trim(),
         applianceName: applianceName.trim(),
         locationId,
+        location: chosenLocation,
+        maintenanceItemId: useExisting ? applianceId : null,
+        attachments,
       });
-      // A new appliance is worth tracking, so confirm inline and offer to add
-      // it rather than bouncing straight back with an alert.
       setBookedSummary({
         date: selectedDate,
         slot: selectedSlot,
@@ -211,7 +234,9 @@ export default function BookingScreen({ navigation, route }: Props) {
       });
       setDone(true);
     } catch (e: any) {
-      if (e?.message === 'SLOT_TAKEN') {
+      if (e?.message === 'APPLIANCE_BUSY') {
+        notify(t('This appliance already has an active request.'));
+      } else if (e?.message === 'SLOT_TAKEN') {
         notify('Sorry, that slot was just taken. Please pick another.');
         const res = await getAvailableSlots(providerId, selectedDate);
         setSlots(res.slots);
@@ -228,13 +253,10 @@ export default function BookingScreen({ navigation, route }: Props) {
   // Each step gates the next, so the user can't skip required choices.
   const canContinue =
     step === 0
-      ? Boolean(
-          locationId &&
-            (useExisting ? applianceId : category && applianceName.trim())
-        )
+      ? Boolean(locationId && (useExisting ? applianceId : category && applianceName.trim()))
       : step === 1
-      ? Boolean(providerId && selectedSlot)
-      : true;
+        ? Boolean(providerId && selectedSlot)
+        : !uploading && Boolean(description.trim());
 
   // ---------- Success ----------
   if (done && bookedSummary) {
@@ -243,41 +265,17 @@ export default function BookingScreen({ navigation, route }: Props) {
         <View style={styles.successCircle}>
           <Ionicons name="checkmark" size={44} color={colors.white} />
         </View>
-        <Text style={styles.successTitle}>Booking Confirmed!</Text>
+        <Text style={styles.successTitle}>{t('Request sent')}</Text>
         <Text style={styles.successSub}>
-          Your service has been scheduled for {bookedSummary.date} at{' '}
-          {prettyTime(bookedSummary.slot)}.
+          {t('Your provider will confirm the appointment.')} {bookedSummary.date} ·{' '}
+          {prettyTime(bookedSummary.slot)}
         </Text>
 
-        {/* Only offered for an appliance that isn't tracked yet. */}
-        {!useExisting && (
-          <View style={styles.offerBox}>
-            <Text style={styles.offerText}>
-              Would you like to add this appliance to your maintenance tracker?
-            </Text>
-            <View style={styles.offerItem}>
-              <Ionicons
-                name={CATEGORY_ICON[category ?? 'custom'] ?? 'cube-outline'}
-                size={20}
-                color={colors.primary}
-              />
-              <Text style={styles.offerItemText}>{bookedSummary.name}</Text>
-            </View>
-          </View>
-        )}
-
         <View style={styles.successActions}>
-          {!useExisting && (
-            <Button
-              label="Add to My Appliances"
-              onPress={addToTracker}
-              loading={savingAppliance}
-            />
-          )}
           <Button
-            label={useExisting ? 'Done' : 'Not Now'}
+            label={t('My Requests')}
             variant="secondary"
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.replace('MyRequests')}
             style={{ marginTop: spacing.md }}
           />
         </View>
@@ -295,7 +293,7 @@ export default function BookingScreen({ navigation, route }: Props) {
           <>
             {/* Booking for something already tracked saves re-entering its
                 details, so it's offered first. */}
-            <Text style={styles.sectionTitle}>Service for</Text>
+            <Text style={styles.sectionTitle}>{t('Service for')}</Text>
             <TouchableOpacity
               style={[styles.choiceRow, useExisting && styles.choiceRowOn]}
               activeOpacity={0.8}
@@ -308,9 +306,9 @@ export default function BookingScreen({ navigation, route }: Props) {
               />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.choiceTitle, useExisting && styles.choiceTitleOn]}>
-                  Existing appliance
+                  {t('Existing appliance')}
                 </Text>
-                <Text style={styles.choiceSub}>Choose from your registered appliances</Text>
+                <Text style={styles.choiceSub}>{t('Choose from your registered appliances')}</Text>
               </View>
             </TouchableOpacity>
 
@@ -329,23 +327,23 @@ export default function BookingScreen({ navigation, route }: Props) {
               />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.choiceTitle, !useExisting && styles.choiceTitleOn]}>
-                  New / unregistered appliance
+                  {t('New / unregistered appliance')}
                 </Text>
-                <Text style={styles.choiceSub}>Enter the details manually</Text>
+                <Text style={styles.choiceSub}>{t('Enter the details manually')}</Text>
               </View>
             </TouchableOpacity>
 
             {useExisting && (
               <>
                 <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
-                  Select Appliance
+                  {t('Select Appliance')}
                 </Text>
                 {myAppliances.length === 0 ? (
                   <View style={styles.emptyBox}>
                     <Ionicons name="cube-outline" size={20} color={colors.textMuted} />
-                    <Text style={styles.emptyBoxTitle}>No appliances yet</Text>
+                    <Text style={styles.emptyBoxTitle}>{t('No appliances yet')}</Text>
                     <Text style={styles.emptyBoxText}>
-                      Register one from the Maintenance tab, or choose "New appliance" above.
+                      {t('Register one from the Maintenance tab, or choose "New appliance" above.')}
                     </Text>
                   </View>
                 ) : (
@@ -362,17 +360,14 @@ export default function BookingScreen({ navigation, route }: Props) {
                       />
                       <View style={{ flex: 1 }}>
                         <Text
-                          style={[
-                            styles.dropdownText,
-                            !applianceId && styles.dropdownPlaceholder,
-                          ]}
+                          style={[styles.dropdownText, !applianceId && styles.dropdownPlaceholder]}
                         >
                           {applianceId
                             ? myAppliances.find((a) => a.id === applianceId)?.name
-                            : 'Choose an appliance'}
+                            : t('Choose an appliance')}
                         </Text>
                         {applianceId && chosenLocation ? (
-                          <Text style={styles.dropdownSub}>{chosenLocation.label}</Text>
+                          <Text style={styles.dropdownSub}>{t(chosenLocation.label)}</Text>
                         ) : null}
                       </View>
                       <Ionicons
@@ -399,7 +394,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                             <View style={{ flex: 1 }}>
                               <Text style={styles.dropdownItemText}>{a.name}</Text>
                               <Text style={styles.dropdownSub}>
-                                {CATEGORY_LABELS[a.category]}
+                                {t(CATEGORY_LABELS[a.category])}
                               </Text>
                             </View>
                             {applianceId === a.id && (
@@ -415,7 +410,7 @@ export default function BookingScreen({ navigation, route }: Props) {
             )}
 
             <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
-              Service Categories
+              {t('Service Categories')}
             </Text>
             <View style={[styles.grid, useExisting && applianceId ? styles.gridLocked : null]}>
               {bookableCategories.map(([value, label]) => {
@@ -432,7 +427,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                       size={26}
                       color={on ? colors.primary : colors.textSecondary}
                     />
-                    <Text style={[styles.tileLabel, on && styles.tileLabelOn]}>{label}</Text>
+                    <Text style={[styles.tileLabel, on && styles.tileLabelOn]}>{t(label)}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -440,25 +435,25 @@ export default function BookingScreen({ navigation, route }: Props) {
 
             {!useExisting && (
               <>
-                <Text style={styles.sectionTitle}>Appliance Name</Text>
+                <Text style={styles.sectionTitle}>{t('Appliance Name')}</Text>
                 <Text style={styles.fieldHint}>
-                  Give it a name so the technician knows which unit, e.g. "Living room AC".
+                  {t('Give it a name so the technician knows which unit, e.g. "Living room AC".')}
                 </Text>
                 <InputField
                   label=""
-                  placeholder="e.g. Living room AC"
+                  placeholder={t('e.g. Living room AC')}
                   value={applianceName}
                   onChangeText={setApplianceName}
                 />
               </>
             )}
 
-            <Text style={styles.sectionTitle}>Service Location</Text>
+            <Text style={styles.sectionTitle}>{t('Service Location')}</Text>
             {locations.length === 0 ? (
               <View style={styles.emptyBox}>
                 <Ionicons name="location-outline" size={18} color={colors.textMuted} />
                 <Text style={styles.emptyBoxText}>
-                  No saved locations. Add one from Profile → My Locations.
+                  {t('No saved locations. Add one from Profile → My Locations.')}
                 </Text>
               </View>
             ) : (
@@ -477,7 +472,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                       color={on ? colors.primary : colors.border}
                     />
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.locLabel, on && styles.locLabelOn]}>{loc.label}</Text>
+                      <Text style={[styles.locLabel, on && styles.locLabelOn]}>{t(loc.label)}</Text>
                       {loc.address ? (
                         <Text style={styles.locAddress} numberOfLines={1}>
                           {loc.address}
@@ -495,7 +490,7 @@ export default function BookingScreen({ navigation, route }: Props) {
         {/* ---------- STEP 2: Provider + Date + Slot ---------- */}
         {step === 1 && (
           <>
-            <Text style={styles.sectionTitle}>Select Provider</Text>
+            <Text style={styles.sectionTitle}>{t('Select Provider')}</Text>
 
             {/* Search field. Once a provider is picked they appear as a
                 removable chip inside the field, like a token input. */}
@@ -513,7 +508,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                   setProviderListOpen(true);
                 }}
                 onFocus={() => setProviderListOpen(true)}
-                placeholder="Search provider…"
+                placeholder={t('Search provider…')}
                 placeholderTextColor={colors.textMuted}
               />
               <Ionicons
@@ -539,18 +534,16 @@ export default function BookingScreen({ navigation, route }: Props) {
                     </Text>
                     {selectedProvider.rating && selectedProvider.rating.count >= 5 ? (
                       <View style={styles.verifiedPill}>
-                        <Ionicons
-                          name="shield-checkmark"
-                          size={10}
-                          color={colors.textSecondary}
-                        />
-                        <Text style={styles.verifiedText}>verified</Text>
+                        <Ionicons name="shield-checkmark" size={10} color={colors.textSecondary} />
+                        <Text style={styles.verifiedText}>{t('5+ reviews')}</Text>
                       </View>
                     ) : null}
                   </View>
                   <Text style={styles.provSpecialty} numberOfLines={1}>
-                    {(selectedProvider.appliances ?? []).slice(0, 2).map(applianceLabel).join(' · ') ||
-                      'General Home Support'}
+                    {(selectedProvider.appliances ?? [])
+                      .slice(0, 2)
+                      .map((a) => t(applianceLabel(a)))
+                      .join(' · ') || 'General Home Support'}
                   </Text>
                   {selectedProvider.rating && selectedProvider.rating.count > 0 ? (
                     <View style={styles.provRating}>
@@ -561,7 +554,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                       </Text>
                     </View>
                   ) : (
-                    <Text style={styles.provNoRating}>No reviews yet</Text>
+                    <Text style={styles.provNoRating}>{t('No reviews yet')}</Text>
                   )}
                 </View>
                 <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
@@ -571,16 +564,19 @@ export default function BookingScreen({ navigation, route }: Props) {
             {providerListOpen && (
               <View style={styles.dropdown}>
                 <Text style={styles.dropdownHeader}>
-                  {providerQuery ? 'Search results' : 'Recommended'}
+                  {providerQuery ? t('Search results') : t('Recommended')}
                 </Text>
 
                 {loadingProviders ? (
-                  <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />
+                  <ActivityIndicator
+                    color={colors.primary}
+                    style={{ marginVertical: spacing.md }}
+                  />
                 ) : filteredProviders.length === 0 ? (
                   <Text style={styles.emptyNote}>
                     {providerQuery
                       ? `No providers match "${providerQuery}".`
-                      : 'No providers cover your area yet.'}
+                      : t('No providers cover your area yet.')}
                   </Text>
                 ) : (
                   <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled>
@@ -588,7 +584,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                       const on = providerId === p.uid;
                       const specialties = (p.appliances ?? [])
                         .slice(0, 2)
-                        .map(applianceLabel)
+                        .map((a) => t(applianceLabel(a)))
                         .join(' · ');
                       return (
                         <TouchableOpacity
@@ -606,9 +602,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                           }}
                         >
                           <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>
-                              {p.name.charAt(0).toUpperCase()}
-                            </Text>
+                            <Text style={styles.avatarText}>{p.name.charAt(0).toUpperCase()}</Text>
                           </View>
                           <View style={{ flex: 1 }}>
                             <View style={styles.nameRow}>
@@ -622,7 +616,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                                     size={10}
                                     color={colors.textSecondary}
                                   />
-                                  <Text style={styles.verifiedText}>verified</Text>
+                                  <Text style={styles.verifiedText}>{t('5+ reviews')}</Text>
                                 </View>
                               ) : null}
                             </View>
@@ -637,7 +631,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                                 </Text>
                               </View>
                             ) : (
-                              <Text style={styles.provNoRating}>No reviews yet</Text>
+                              <Text style={styles.provNoRating}>{t('No reviews yet')}</Text>
                             )}
                           </View>
                           {on && (
@@ -651,9 +645,11 @@ export default function BookingScreen({ navigation, route }: Props) {
               </View>
             )}
 
-            <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>Choose a Date</Text>
+            <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
+              {t('Choose a Date')}
+            </Text>
             {!providerId ? (
-              <Text style={styles.emptyNote}>Select a provider to see their calendar.</Text>
+              <Text style={styles.emptyNote}>{t('Select a provider to see their calendar.')}</Text>
             ) : (
               <Calendar
                 selectedDate={selectedDate}
@@ -668,16 +664,21 @@ export default function BookingScreen({ navigation, route }: Props) {
 
             {selectedDate && providerId && (
               <View style={{ marginTop: spacing.lg }}>
-                <Text style={styles.sectionTitle}>Available Times</Text>
+                <Text style={styles.sectionTitle}>{t('Available Times')}</Text>
                 {loadingSlots ? (
-                  <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />
+                  <ActivityIndicator
+                    color={colors.primary}
+                    style={{ marginVertical: spacing.md }}
+                  />
+                ) : slotError ? (
+                  <Text style={styles.blockedNote}>{t(slotError)}</Text>
                 ) : blocked ? (
                   <Text style={styles.blockedNote}>
-                    This provider is unavailable on this date.
+                    {t('This provider is unavailable on this date.')}
                   </Text>
                 ) : slots.length === 0 ? (
                   <Text style={styles.blockedNote}>
-                    No open slots on this day. Try another date.
+                    {t('No open slots on this day. Try another date.')}
                   </Text>
                 ) : (
                   <View style={styles.slotGrid}>
@@ -706,7 +707,7 @@ export default function BookingScreen({ navigation, route }: Props) {
         {/* ---------- STEP 3: Review ---------- */}
         {step === 2 && (
           <>
-            <Text style={styles.sectionTitle}>Booking Summary</Text>
+            <Text style={styles.sectionTitle}>{t('Booking Summary')}</Text>
 
             <View style={styles.card}>
               <View style={styles.summaryTop}>
@@ -722,51 +723,64 @@ export default function BookingScreen({ navigation, route }: Props) {
                     {applianceName.trim() || (category ? CATEGORY_LABELS[category] : 'Service')}
                   </Text>
                   {applianceName.trim() && category ? (
-                    <Text style={styles.summaryCategory}>{CATEGORY_LABELS[category]}</Text>
+                    <Text style={styles.summaryCategory}>{t(CATEGORY_LABELS[category])}</Text>
                   ) : null}
                 </View>
               </View>
 
-              <SummaryRow icon="person-outline" label="Provider" value={providerName ?? '—'} />
-              <SummaryRow icon="calendar-outline" label="Date" value={selectedDate ?? '—'} />
+              <SummaryRow icon="person-outline" label={t('Provider')} value={providerName ?? '—'} />
+              <SummaryRow icon="calendar-outline" label={t('Date')} value={selectedDate ?? '—'} />
               <SummaryRow
                 icon="time-outline"
-                label="Time Slot"
+                label={t('Time Slot')}
                 value={selectedSlot ? prettyTime(selectedSlot) : '—'}
                 last
               />
             </View>
 
-            <Text style={styles.sectionTitle}>Service Address</Text>
+            <Text style={styles.sectionTitle}>{t('Service Address')}</Text>
             <View style={styles.card}>
               {chosenLocation ? (
                 <View style={styles.addressRow}>
                   <Ionicons name="location-outline" size={20} color={colors.primary} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.addressLabel}>{chosenLocation.label}</Text>
+                    <Text style={styles.addressLabel}>{t(chosenLocation.label)}</Text>
                     {chosenLocation.address ? (
                       <Text style={styles.addressText}>{chosenLocation.address}</Text>
                     ) : null}
                     {chosenLocation.area ? (
-                      <Text style={styles.addressText}>{areaLabel(chosenLocation.area)}</Text>
+                      <Text style={styles.addressText}>{t(areaLabel(chosenLocation.area))}</Text>
                     ) : null}
                   </View>
                 </View>
               ) : (
-                <Text style={styles.emptyNote}>No location selected.</Text>
+                <Text style={styles.emptyNote}>{t('No location selected.')}</Text>
               )}
             </View>
 
-            <Text style={styles.sectionTitle}>Describe the problem</Text>
+            <Text style={styles.sectionTitle}>{t('Describe the problem')}</Text>
             <InputField
               label=""
-              placeholder="e.g. AC not cooling, strange noise…"
+              placeholder={t('e.g. AC not cooling, strange noise…')}
               value={description}
               onChangeText={setDescription}
               multiline
               numberOfLines={3}
               style={{ minHeight: 84, textAlignVertical: 'top' }}
             />
+            <AttachmentPicker
+              value={attachments}
+              onChange={setAttachments}
+              providerId={providerId ?? undefined}
+              imagesOnly
+              onBusyChange={setUploading}
+            />
+            <View style={styles.card}>
+              <Text style={typography.h3}>{t('Quote pending')}</Text>
+              <Text style={typography.bodySecondary}>
+                {t('The provider will send a quote. Work starts only after you accept the total.')}
+              </Text>
+            </View>
           </>
         )}
       </ScrollView>
@@ -775,24 +789,26 @@ export default function BookingScreen({ navigation, route }: Props) {
       <View style={styles.footer}>
         {step > 0 && (
           <Button
-            label="Back"
+            label={t('Back')}
             variant="secondary"
+            disabled={uploading || submitting}
             onPress={() => setStep((s) => s - 1)}
             style={{ flex: 1 }}
           />
         )}
         {step < 2 ? (
           <Button
-            label="Continue"
+            label={t('Continue')}
             onPress={() => setStep((s) => s + 1)}
             disabled={!canContinue}
             style={{ flex: 1 }}
           />
         ) : (
           <Button
-            label="Confirm Booking"
+            label={t('Confirm Booking')}
             onPress={handleConfirm}
             loading={submitting}
+            disabled={uploading || !description.trim()}
             style={{ flex: 1 }}
           />
         )}
@@ -812,10 +828,11 @@ function SummaryRow({
   value: string;
   last?: boolean;
 }) {
+  const { t } = useLanguage();
   return (
     <View style={[styles.sumRow, last && { borderBottomWidth: 0 }]}>
       <Ionicons name={icon} size={18} color={colors.textMuted} />
-      <Text style={styles.sumLabel}>{label}</Text>
+      <Text style={styles.sumLabel}>{t(label)}</Text>
       <Text style={styles.sumValue}>{value}</Text>
     </View>
   );
@@ -860,7 +877,13 @@ const styles = StyleSheet.create({
   },
   offerItemText: { ...typography.body, fontWeight: '700' },
   successActions: { alignSelf: 'stretch', marginTop: spacing.xl },
-  container: { padding: spacing.lg, paddingBottom: 110 },
+  container: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: 110,
+  },
 
   searchBox: {
     flexDirection: 'row',
@@ -922,15 +945,6 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.lg,
     backgroundColor: colors.primaryLight,
-  },
-  dropdown: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    ...shadow.card,
   },
   dropdownHeader: {
     ...typography.caption,
@@ -1087,6 +1101,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: colors.surface,
   },
+  emptyBoxTitle: { ...typography.h3, marginBottom: spacing.sm },
   emptyBoxText: { ...typography.caption, flex: 1 },
 
   footer: {

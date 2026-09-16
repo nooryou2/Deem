@@ -1,56 +1,53 @@
+import AttachmentPicker from '@/components/attachment-picker';
+import { useLanguage } from '@/i18n/LanguageContext';
+import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
 // src/screens/MaintenanceDetailScreen.tsx
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Platform,
-  Modal,
-  TouchableOpacity,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import MapPicker from '@/components/MapPicker';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useFocusEffect } from '@react-navigation/native';
-import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
-import StatusBadge from '@/components/StatusBadge';
 import Button from '@/components/Button';
 import DatePickerField from '@/components/DatePickerField';
+import MapPicker from '@/components/MapPicker';
 import ServiceProgressTracker from '@/components/ServiceProgressTracker';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
+import StatusBadge from '@/components/StatusBadge';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
+import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
+import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { fetchCustomerBookings } from '@/services/bookingService';
 import {
-  markMaintenanceCompleted,
-  deleteMaintenanceItem,
-  subscribeToHistory,
-  fetchSingleMaintenanceItem,
-  updateMaintenanceItem,
+deleteMaintenanceItem,
+fetchSingleMaintenanceItem,
+markMaintenanceCompleted,
+subscribeToHistory,
+updateMaintenanceItem,
 } from '@/services/maintenanceService';
 import { fetchRequestsForHomeowner } from '@/services/requestService';
-import { getSavedLocations } from '@/services/roleService';
-import { fetchCustomerBookings } from '@/services/bookingService';
 import { fetchReviewedJobIds } from '@/services/reviewService';
-import { Booking, SavedLocation } from '@/types';
+import { getSavedLocations } from '@/services/roleService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { Booking,MaintenanceItem,SavedLocation,ServiceRequest } from '@/types';
 import { areaLabel } from '@/utils/areas';
-import { useAuth } from '@/context/AuthContext';
-import { CATEGORY_ICONS, CATEGORY_LABELS, FREQUENCY_LABELS } from '@/utils/maintenanceTemplates';
-import { formatFriendlyDate, getMaintenanceStatus } from '@/utils/dateCalculations';
-import type { MainStackParamList } from '@/navigation/MainNavigator';
-import { MaintenanceItem, ServiceRequest } from '@/types';
+import { formatFriendlyDate,getMaintenanceStatus } from '@/utils/dateCalculations';
+import { CATEGORY_ICONS,CATEGORY_LABELS,FREQUENCY_LABELS } from '@/utils/maintenanceTemplates';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useEffect,useState } from 'react';
+import {
+Alert,
+Modal,
+Platform,
+ScrollView,
+StyleSheet,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'MaintenanceDetail'>;
 
 // Slots are stored as 24h "HH:mm"; show them the way people read them.
-function prettyTime(slot?: string): string {
-  if (!slot) return '';
-  const [h, m] = slot.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hr = h % 12 === 0 ? 12 : h % 12;
-  return `${hr}:${String(m).padStart(2, '0')} ${ampm}`;
-}
+
 
 export default function MaintenanceDetailScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { items } = useMaintenanceItems();
   const itemFromList = items.find((i) => i.id === route.params.itemId);
@@ -121,11 +118,9 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
             // can always write to their own task.
             if (match && match.status !== localItem.bookingStatus) {
               updateMaintenanceItem(localItem.id, { bookingStatus: match.status } as any).catch(
-                () => {}
+                () => {},
               );
-              setLocalItem((prev) =>
-                prev ? { ...prev, bookingStatus: match.status } : prev
-              );
+              setLocalItem((prev) => (prev ? { ...prev, bookingStatus: match.status } : prev));
             }
           })
           .catch(() => {});
@@ -133,18 +128,20 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
         setBooking(null);
       }
 
-      fetchReviewedJobIds(user.uid).then(setReviewedJobs).catch(() => {});
+      fetchReviewedJobIds(user.uid)
+        .then(setReviewedJobs)
+        .catch(() => {});
 
       fetchRequestsForHomeowner(user.uid)
         .then((all) => setRequests(all.filter((r) => r.maintenanceItemId === route.params.itemId)))
         .catch(() => {});
-    }, [user, route.params.itemId, item?.id])
+    }, [user, route.params.itemId, item?.id]),
   );
 
   if (!item) {
     return (
       <View style={styles.notFound}>
-        <Text style={typography.body}>This item was removed.</Text>
+        <Text style={typography.body}>{t('This item was removed.')}</Text>
       </View>
     );
   }
@@ -160,7 +157,7 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
       // If a provider accepted and completed this job, record who did it so
       // the visit can be reviewed from the Serviced log.
       const doneByProvider = requests.find(
-        (r) => r.status === 'completed' || r.status === 'in_progress'
+        (r) => r.status === 'completed' || r.status === 'in_progress',
       );
 
       await markMaintenanceCompleted(
@@ -172,7 +169,7 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
         serviceDate,
         doneByProvider
           ? { id: doneByProvider.providerId, name: doneByProvider.providerName }
-          : null
+          : null,
       );
       console.log('Mark complete succeeded for', currentItem.id);
       // Stay on this screen so the user sees the updated next-service date and
@@ -217,10 +214,14 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
       if (ok) performDelete();
       return;
     }
-    Alert.alert('Delete this item?', `"${currentItem.name}" and its history will be permanently removed.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: performDelete },
-    ]);
+    Alert.alert(
+      'Delete this item?',
+      `"${currentItem.name}" and its history will be permanently removed.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: performDelete },
+      ],
+    );
   }
 
   return (
@@ -228,22 +229,22 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
       <View style={styles.headerCard}>
         <Text style={styles.icon}>{CATEGORY_ICONS[item.category]}</Text>
         <Text style={typography.h2}>{item.name}</Text>
-        <Text style={styles.category}>{CATEGORY_LABELS[item.category]}</Text>
+        <Text style={styles.category}>{t(CATEGORY_LABELS[item.category])}</Text>
         <View style={{ marginTop: spacing.sm }}>
           {isUnconfirmed ? (
             <View style={styles.pendingPill}>
               <Text style={styles.pendingPillText}>
                 {effectiveBookingStatus === 'declined'
-                  ? 'Booking declined'
-                  : 'Awaiting provider confirmation'}
+                  ? t('Booking declined')
+                  : t('Awaiting provider confirmation')}
               </Text>
             </View>
           ) : bookingInFlight ? (
             <View style={styles.activePill}>
               <Text style={styles.activePillText}>
                 {effectiveBookingStatus === 'in_progress'
-                  ? 'Service in progress'
-                  : 'Booking confirmed'}
+                  ? t('Service in progress')
+                  : t('Booking confirmed')}
               </Text>
             </View>
           ) : (
@@ -252,19 +253,33 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
         </View>
       </View>
 
+      <View style={styles.headerCard}>
+        <Text style={typography.h3}>{t('Device file')}</Text>
+        <Text style={typography.body}>
+          {t('Brand and model')}: {item.brandModel || t('Not specified')}
+        </Text>
+        <Text style={typography.body}>
+          {t('Serial number')}: {item.serialNumber || t('Not specified')}
+        </Text>
+        <Text style={typography.body}>
+          {t('Warranty expiry')}: {item.warrantyExpiry || t('Not specified')}
+        </Text>
+        {!!item.warrantyNotes && <Text style={typography.bodySecondary}>{item.warrantyNotes}</Text>}
+        <AttachmentPicker value={item.attachments ?? []} readonly />
+      </View>
       {/* Where the appliance is, with directions for whoever is attending. */}
       {jobLocation && (
         <View style={styles.infoCard}>
-          <Text style={styles.cardTitle}>Location</Text>
+          <Text style={styles.cardTitle}>{t('Location')}</Text>
           <View style={styles.addressBlock}>
             <Ionicons name="location" size={18} color={colors.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.addressLabel}>{jobLocation.label}</Text>
+              <Text style={styles.addressLabel}>{t(jobLocation.label)}</Text>
               {jobLocation.address ? (
                 <Text style={styles.addressLine}>{jobLocation.address}</Text>
               ) : null}
               {jobLocation.area ? (
-                <Text style={styles.addressLine}>{areaLabel(jobLocation.area)}</Text>
+                <Text style={styles.addressLine}>{t(areaLabel(jobLocation.area))}</Text>
               ) : null}
             </View>
           </View>
@@ -280,26 +295,26 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
       {/* Booking details, when this task came from a calendar booking */}
       {booking && (
         <View style={styles.infoCard}>
-          <Text style={styles.cardTitle}>Booking</Text>
-          <InfoRow label="Provider" value={booking.providerName} />
-          <InfoRow label="Appointment" value={formatFriendlyDate(booking.date)} />
-          <InfoRow label="Time" value={prettyTime(booking.timeSlot)} />
+          <Text style={styles.cardTitle}>{t('Booking')}</Text>
+          <InfoRow label={t('Provider')} value={booking.providerName} />
+          <InfoRow label={t('Appointment')} value={formatFriendlyDate(booking.date)} />
+          <InfoRow label={t('Time')} value={prettyTime(booking.timeSlot)} />
           <InfoRow
-            label="Status"
+            label={t('Status')}
             value={
               booking.status === 'pending'
-                ? 'Waiting for provider'
+                ? t('Waiting for provider')
                 : booking.status === 'accepted'
-                ? 'Confirmed'
-                : booking.status === 'in_progress'
-                ? 'In progress'
-                : booking.status === 'declined'
-                ? 'Declined'
-                : 'Completed'
+                  ? t('Confirmed')
+                  : booking.status === 'in_progress'
+                    ? t('In progress')
+                    : booking.status === 'declined'
+                      ? t('Declined')
+                      : t('Completed')
             }
           />
           {booking.description ? (
-            <InfoRow label="Your note" value={booking.description} />
+            <InfoRow label={t('Your note')} value={booking.description} />
           ) : null}
 
           {/* A finished booking is exactly when feedback is worth asking for,
@@ -308,7 +323,7 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
             (reviewedJobs.includes(booking.id) ? (
               <View style={styles.ratedRow}>
                 <Ionicons name="checkmark-circle" size={15} color={colors.completed} />
-                <Text style={styles.ratedText}>You rated this service</Text>
+                <Text style={styles.ratedText}>{t('You rated this service')}</Text>
               </View>
             ) : (
               <TouchableOpacity
@@ -326,28 +341,30 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
                 }
               >
                 <Ionicons name="star-outline" size={16} color={colors.white} />
-                <Text style={styles.rateBtnText}>Rate this service</Text>
+                <Text style={styles.rateBtnText}>{t('Rate this service')}</Text>
               </TouchableOpacity>
             ))}
         </View>
       )}
 
       <View style={styles.infoCard}>
-        <InfoRow label="Frequency" value={FREQUENCY_LABELS[item.frequency]} />
+        <InfoRow label={t('Frequency')} value={t(FREQUENCY_LABELS[item.frequency])} />
         <InfoRow
-          label="Last Serviced"
-          value={item.lastServiceDate ? formatFriendlyDate(item.lastServiceDate) : 'Not yet recorded'}
+          label={t('Last Serviced')}
+          value={
+            item.lastServiceDate ? formatFriendlyDate(item.lastServiceDate) : 'Not yet recorded'
+          }
         />
-        <InfoRow label="Next Service Due" value={formatFriendlyDate(item.nextServiceDate)} />
+        <InfoRow label={t('Next Service Due')} value={formatFriendlyDate(item.nextServiceDate)} />
 
-        {item.notes ? <InfoRow label="Notes" value={item.notes} /> : null}
+        {item.notes ? <InfoRow label={t('Notes')} value={item.notes} /> : null}
       </View>
 
       {/* Nothing has been serviced yet while a booking is unconfirmed, and
           requesting another provider would double-book the job. */}
       {!isUnconfirmed && (
         <Button
-          label="Mark as Serviced"
+          label={t('Mark as Serviced')}
           onPress={() => {
             setServiceDate(new Date());
             setShowDatePicker(true);
@@ -358,18 +375,23 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
       )}
       <View style={styles.secondaryActions}>
         <Button
-          label="Edit"
+          label={t('Edit')}
           variant="secondary"
           onPress={() => navigation.navigate('AddEditMaintenance', { itemId: item.id })}
           style={styles.secondaryButton}
         />
-        <Button label="Delete" variant="danger" onPress={handleDelete} style={styles.secondaryButton} />
+        <Button
+          label={t('Delete')}
+          variant="danger"
+          onPress={handleDelete}
+          style={styles.secondaryButton}
+        />
       </View>
 
       {/* Only offer this when no provider is already lined up for the job. */}
       {!booking && (
         <Button
-          label="Request a Service Provider"
+          label={t('Request a Service Provider')}
           variant="secondary"
           onPress={() => navigation.navigate('RequestProvider', { itemId: item.id })}
           style={{ marginTop: spacing.md }}
@@ -378,15 +400,10 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
 
       {requests.length > 0 && (
         <View style={styles.requestsBox}>
-          <Text style={styles.requestsTitle}>Service Progress</Text>
+          <Text style={styles.requestsTitle}>{t('Service Progress')}</Text>
           {requests.map((req) => (
             <View key={req.id}>
-              <ServiceProgressTracker
-                status={req.status}
-                providerName={req.providerName}
-              />
-
-
+              <ServiceProgressTracker status={req.status} providerName={req.providerName} />
             </View>
           ))}
         </View>
@@ -401,24 +418,28 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
       >
         <View style={styles.pickerBackdrop}>
           <View style={styles.pickerCard}>
-            <Text style={[typography.h3, { marginBottom: spacing.sm }]}>When was it serviced?</Text>
+            <Text style={[typography.h3, { marginBottom: spacing.sm }]}>
+              {t('When was it serviced?')}
+            </Text>
             <Text style={[typography.bodySecondary, { marginBottom: spacing.md }]}>
-              Defaults to today. Pick an earlier date if you serviced it before and forgot to log it.
+              {t(
+                'Defaults to today. Pick an earlier date if you serviced it before and forgot to log it.',
+              )}
             </Text>
             <DatePickerField
-              label="Service date"
+              label={t('Service date')}
               value={serviceDate}
               onChange={setServiceDate}
             />
             <View style={styles.pickerActions}>
               <Button
-                label="Cancel"
+                label={t('Cancel')}
                 variant="secondary"
                 onPress={() => setShowDatePicker(false)}
                 style={styles.secondaryButton}
               />
               <Button
-                label="Confirm"
+                label={t('Confirm')}
                 onPress={() => handleMarkComplete(serviceDate)}
                 loading={busy}
                 style={styles.secondaryButton}
@@ -428,11 +449,12 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
         </View>
       </Modal>
 
-      <Text style={[typography.h3, styles.historyTitle]}>Previous Services</Text>
+      <Text style={[typography.h3, styles.historyTitle]}>{t('Previous Services')}</Text>
       {history.length === 0 ? (
         <Text style={styles.noHistory}>
-          No services logged yet. Tap "Mark as Completed Today" after a service to start building
-          a history.
+          {t(
+            'No services logged yet. Tap "Mark as Completed Today" after a service to start building a history.',
+          )}
         </Text>
       ) : (
         history.map((entry, index) => {
@@ -441,9 +463,8 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
           let gapLabel = '';
           if (older) {
             const days = Math.round(
-              (new Date(entry.completedDate).getTime() -
-                new Date(older.completedDate).getTime()) /
-                86400000
+              (new Date(entry.completedDate).getTime() - new Date(older.completedDate).getTime()) /
+                86400000,
             );
             gapLabel = days >= 0 ? `${days} day${days === 1 ? '' : 's'} after previous` : '';
           } else {
@@ -458,7 +479,7 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
               </View>
               {index === 0 ? (
                 <View style={styles.latestBadge}>
-                  <Text style={styles.latestBadgeText}>Latest</Text>
+                  <Text style={styles.latestBadgeText}>{t('Latest')}</Text>
                 </View>
               ) : null}
             </View>
@@ -470,9 +491,10 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
+  const { t } = useLanguage();
   return (
     <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoLabel}>{t(label)}</Text>
       <Text style={styles.infoValue}>{value}</Text>
     </View>
   );
@@ -480,7 +502,13 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  container: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerCard: {
     backgroundColor: colors.surface,

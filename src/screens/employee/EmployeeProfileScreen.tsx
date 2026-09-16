@@ -1,11 +1,14 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/employee/EmployeeProfileScreen.tsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
-import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/Button';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import React,{ useState } from 'react';
+import { Alert,Platform,StyleSheet,View } from 'react-native';
 
 export default function EmployeeProfileScreen() {
+  const { t } = useLanguage();
   const { user, logout, privilege } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -41,12 +44,12 @@ export default function EmployeeProfileScreen() {
         <Text style={styles.email}>{user?.email}</Text>
         <View style={styles.privBadge}>
           <Text style={styles.privText}>
-            {privilege === 'manager' ? 'Manager' : 'Worker'}
+            {privilege === 'manager' ? t('Manager') : t('Worker')}
           </Text>
         </View>
       </View>
 
-      <Button label="Log Out" variant="danger" onPress={confirmLogout} loading={loggingOut} />
+      <Button label={t('Log Out')} variant="danger" onPress={confirmLogout} loading={loggingOut} />
     </View>
   );
 }

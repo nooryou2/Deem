@@ -1,11 +1,13 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/MaintenanceCard.tsx
+import Text from '@/components/app-text';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { BookingStatus,MaintenanceItem,MaintenanceStatus,ServiceRequestStatus } from '@/types';
+import { daysUntil,formatFriendlyDate } from '@/utils/dateCalculations';
+import { CATEGORY_ICONS,FREQUENCY_LABELS } from '@/utils/maintenanceTemplates';
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
+import { StyleSheet,TouchableOpacity,View } from 'react-native';
 import StatusBadge from './StatusBadge';
-import { MaintenanceItem, MaintenanceStatus, ServiceRequestStatus, BookingStatus } from '@/types';
-import { CATEGORY_ICONS, FREQUENCY_LABELS } from '@/utils/maintenanceTemplates';
-import { formatFriendlyDate, daysUntil } from '@/utils/dateCalculations';
 
 interface Props {
   item: MaintenanceItem & {
@@ -35,13 +37,14 @@ const REQ_META: Record<ServiceRequestStatus, { label: string; color: string; tin
 };
 
 export default function MaintenanceCard({ item, onPress }: Props) {
+  const { t } = useLanguage();
   const days = daysUntil(item.nextServiceDate);
   const dueCopy =
     item.status === 'overdue'
       ? `${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} overdue`
       : days === 0
-      ? 'Due today'
-      : `Due in ${days} day${days === 1 ? '' : 's'}`;
+        ? 'Due today'
+        : `Due in ${days} day${days === 1 ? '' : 's'}`;
 
   const reqMeta = item.requestStatus ? REQ_META[item.requestStatus] : null;
   const bookMeta = item.bookingStatus ? BOOKING_META[item.bookingStatus] : null;
@@ -60,7 +63,8 @@ export default function MaintenanceCard({ item, onPress }: Props) {
             {item.name}
           </Text>
           <Text style={styles.meta}>
-            {FREQUENCY_LABELS[item.frequency]} · Next: {formatFriendlyDate(item.nextServiceDate)}
+            {t(FREQUENCY_LABELS[item.frequency])}
+            {t('· Next:')} {formatFriendlyDate(item.nextServiceDate)}
           </Text>
           {!isUnconfirmedBooking && (
             <Text
@@ -82,7 +86,7 @@ export default function MaintenanceCard({ item, onPress }: Props) {
           <View style={styles.pendingBadge}>
             <View style={styles.pendingDot} />
             <Text style={styles.pendingLabel}>
-              {item.bookingStatus === 'declined' ? 'Declined' : 'Pending'}
+              {item.bookingStatus === 'declined' ? t('Declined') : t('Pending')}
             </Text>
           </View>
         ) : (
@@ -93,14 +97,14 @@ export default function MaintenanceCard({ item, onPress }: Props) {
       {/* Booking state, when this task came from a calendar booking */}
       {bookMeta && (
         <View style={[styles.reqBadge, { backgroundColor: bookMeta.tint }]}>
-          <Text style={[styles.reqBadgeText, { color: bookMeta.color }]}>{bookMeta.label}</Text>
+          <Text style={[styles.reqBadgeText, { color: bookMeta.color }]}>{t(bookMeta.label)}</Text>
         </View>
       )}
 
       {/* Provider-request indicator (only when a request exists) */}
       {reqMeta && (
         <View style={[styles.reqBadge, { backgroundColor: reqMeta.tint }]}>
-          <Text style={[styles.reqBadgeText, { color: reqMeta.color }]}>{reqMeta.label}</Text>
+          <Text style={[styles.reqBadgeText, { color: reqMeta.color }]}>{t(reqMeta.label)}</Text>
         </View>
       )}
     </TouchableOpacity>

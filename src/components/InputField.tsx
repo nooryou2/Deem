@@ -1,16 +1,17 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/InputField.tsx
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TextInputProps,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import Text from '@/components/app-text';
+import { colors,radius,spacing,typography } from '@/theme/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import React,{ useEffect,useState } from 'react';
+import {
+Platform,
+StyleSheet,
+TextInput,
+TextInputProps,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 // Edge and Chrome add their own password reveal control inside the field,
 // which would sit next to ours and show two eyes. Injected once per session.
@@ -47,6 +48,7 @@ export default function InputField({
   secureTextEntry,
   ...rest
 }: InputFieldProps) {
+  const { t, rtl } = useLanguage();
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(true);
 
@@ -56,12 +58,23 @@ export default function InputField({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label}>{t(label)}</Text>
       <View style={styles.inputWrap}>
         <TextInput
+          accessibilityLabel={t(label)}
           placeholderTextColor={colors.textMuted}
           style={[
             styles.input,
+            {
+              textAlign:
+                rest.keyboardType === 'email-address' || isPassword
+                  ? 'left'
+                  : rtl
+                    ? 'right'
+                    : 'left',
+              writingDirection:
+                rest.keyboardType === 'email-address' || isPassword ? 'ltr' : rtl ? 'rtl' : 'ltr',
+            },
             isPassword && styles.inputWithIcon,
             focused && styles.inputFocused,
             error ? styles.inputError : null,
@@ -92,7 +105,7 @@ export default function InputField({
           </TouchableOpacity>
         )}
       </View>
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? <Text style={styles.errorText}>{t(error)}</Text> : null}
     </View>
   );
 }

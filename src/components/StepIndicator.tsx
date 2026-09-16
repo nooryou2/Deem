@@ -1,8 +1,10 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/StepIndicator.tsx
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import Text from '@/components/app-text';
+import { colors,spacing,typography } from '@/theme/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '@/theme/theme';
+import React from 'react';
+import { StyleSheet,View } from 'react-native';
 
 interface Props {
   steps: string[];
@@ -11,6 +13,7 @@ interface Props {
 }
 
 export default function StepIndicator({ steps, current }: Props) {
+  const { t } = useLanguage();
   return (
     <View style={styles.wrap}>
       {steps.map((label, i) => {
@@ -38,7 +41,7 @@ export default function StepIndicator({ steps, current }: Props) {
                 style={[styles.label, active && styles.labelOn, done && styles.labelDone]}
                 numberOfLines={1}
               >
-                {label}
+                {t(label)}
               </Text>
             </View>
 

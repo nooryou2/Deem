@@ -1,14 +1,15 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/Button.tsx
+import Text from '@/components/app-text';
+import { colors,radius,typography } from '@/theme/theme';
 import React from 'react';
 import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  ViewStyle,
-  GestureResponderEvent,
+ActivityIndicator,
+GestureResponderEvent,
+StyleSheet,
+TouchableOpacity,
+ViewStyle,
 } from 'react-native';
-import { colors, radius, spacing, typography } from '@/theme/theme';
 
 interface ButtonProps {
   label: string;
@@ -27,10 +28,14 @@ export default function Button({
   disabled = false,
   style,
 }: ButtonProps) {
+  const { t } = useLanguage();
   const isDisabled = disabled || loading;
 
   return (
     <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={t(label)}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       onPress={onPress}
       disabled={isDisabled}
       activeOpacity={0.8}
@@ -46,13 +51,8 @@ export default function Button({
       {loading ? (
         <ActivityIndicator color={variant === 'secondary' ? colors.primary : colors.white} />
       ) : (
-        <Text
-          style={[
-            typography.button,
-            variant === 'secondary' && { color: colors.primary },
-          ]}
-        >
-          {label}
+        <Text style={[typography.button, variant === 'secondary' && { color: colors.primary }]}>
+          {t(label)}
         </Text>
       )}
     </TouchableOpacity>

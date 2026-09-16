@@ -1,26 +1,33 @@
 // src/services/maintenanceService.ts
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  getDocs,
-  getDoc,
-  query,
-  where,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
-import { db, auth } from '@/config/firebase';
-import { MaintenanceItem, ServiceFrequency, MaintenanceCategory } from '@/types';
+import { auth,db } from '@/config/firebase';
+import { MaintenanceCategory,MaintenanceItem,ServiceFrequency } from '@/types';
 import { calculateNextServiceDate } from '@/utils/dateCalculations';
-import { cancelMaintenanceReminders, scheduleMaintenanceReminders } from './notificationService';
+import {
+DocumentData,
+Timestamp,
+UpdateData,
+addDoc,
+collection,
+deleteDoc,
+doc,
+getDoc,
+getDocs,
+onSnapshot,
+query,
+serverTimestamp,
+updateDoc,
+where,
+} from 'firebase/firestore';
+import { cancelMaintenanceReminders,scheduleMaintenanceReminders } from './notificationService';
 
 const COLLECTION = 'maintenanceItems';
 
 export interface CreateMaintenanceInput {
+  brandModel?: string;
+  serialNumber?: string;
+  warrantyExpiry?: string | null;
+  warrantyNotes?: string;
+  attachments?: import('@/types').Attachment[];
   userId: string;
   name: string;
   category: MaintenanceCategory;
@@ -36,9 +43,7 @@ export interface CreateMaintenanceInput {
  * Fetches a single maintenance item by id. Used by the detail screen to
  * refresh in place after marking complete, without depending on the list.
  */
-export async function fetchSingleMaintenanceItem(
-  id: string
-): Promise<MaintenanceItem | null> {
+export async function fetchSingleMaintenanceItem(id: string): Promise<MaintenanceItem | null> {
   const snap = await getDoc(doc(db, COLLECTION, id));
   if (!snap.exists()) return null;
   const data = snap.data();
@@ -52,6 +57,11 @@ export async function fetchSingleMaintenanceItem(
     lastServiceDate: tsToISO(data.lastServiceDate),
     nextServiceDate: tsToISO(data.nextServiceDate) ?? new Date().toISOString(),
     notes: data.notes ?? '',
+    brandModel: data.brandModel ?? '',
+    serialNumber: data.serialNumber ?? '',
+    warrantyExpiry: data.warrantyExpiry ?? null,
+    warrantyNotes: data.warrantyNotes ?? '',
+    attachments: data.attachments ?? [],
     notificationIds: data.notificationIds ?? [],
     locationId: data.locationId ?? null,
     bookingStatus: data.bookingStatus ?? null,
@@ -79,10 +89,14 @@ export async function fetchMaintenanceItems(userId: string): Promise<Maintenance
       lastServiceDate: tsToISO(data.lastServiceDate),
       nextServiceDate: tsToISO(data.nextServiceDate) ?? new Date().toISOString(),
       notes: data.notes ?? '',
+      brandModel: data.brandModel ?? '',
+      serialNumber: data.serialNumber ?? '',
+      warrantyExpiry: data.warrantyExpiry ?? null,
+      warrantyNotes: data.warrantyNotes ?? '',
+      attachments: data.attachments ?? [],
       notificationIds: data.notificationIds ?? [],
       locationId: data.locationId ?? null,
       bookingStatus: data.bookingStatus ?? null,
-    bookingStatus: data.bookingStatus ?? null,
       createdAt: tsToISO(data.createdAt) ?? new Date().toISOString(),
       updatedAt: tsToISO(data.updatedAt) ?? new Date().toISOString(),
     };
@@ -98,7 +112,7 @@ export async function fetchMaintenanceItems(userId: string): Promise<Maintenance
 export function subscribeToMaintenanceItems(
   userId: string,
   onChange: (items: MaintenanceItem[]) => void,
-  onError: (error: Error) => void
+  onError: (error: Error) => void,
 ): () => void {
   // Query by userId only (no orderBy) so this works without a composite
   // Firestore index. We sort by nextServiceDate in JS below instead.
@@ -107,8 +121,7 @@ export function subscribeToMaintenanceItems(
   return onSnapshot(
     q,
     (snapshot) => {
-      const items: MaintenanceItem[] = snapshot.docs
-        .map((d) => {
+      const items: MaintenanceItem[] = snapshot.docs.map((d) => {
         const data = d.data();
         return {
           id: d.id,
@@ -120,11 +133,14 @@ export function subscribeToMaintenanceItems(
           lastServiceDate: tsToISO(data.lastServiceDate),
           nextServiceDate: tsToISO(data.nextServiceDate) ?? new Date().toISOString(),
           notes: data.notes ?? '',
+          brandModel: data.brandModel ?? '',
+          serialNumber: data.serialNumber ?? '',
+          warrantyExpiry: data.warrantyExpiry ?? null,
+          warrantyNotes: data.warrantyNotes ?? '',
+          attachments: data.attachments ?? [],
           notificationIds: data.notificationIds ?? [],
           locationId: data.locationId ?? null,
           bookingStatus: data.bookingStatus ?? null,
-      bookingStatus: data.bookingStatus ?? null,
-    bookingStatus: data.bookingStatus ?? null,
           createdAt: tsToISO(data.createdAt) ?? new Date().toISOString(),
           updatedAt: tsToISO(data.updatedAt) ?? new Date().toISOString(),
         };
@@ -133,7 +149,7 @@ export function subscribeToMaintenanceItems(
       items.sort((a, b) => a.nextServiceDate.localeCompare(b.nextServiceDate));
       onChange(items);
     },
-    onError
+    onError,
   );
 }
 
@@ -142,7 +158,7 @@ export async function createMaintenanceItem(input: CreateMaintenanceInput): Prom
   const nextServiceDate = calculateNextServiceDate(
     baseDate,
     input.frequency,
-    input.customFrequencyDays
+    input.customFrequencyDays,
   );
 
   const docRef = await addDoc(collection(db, COLLECTION), {
@@ -154,6 +170,11 @@ export async function createMaintenanceItem(input: CreateMaintenanceInput): Prom
     lastServiceDate: input.lastServiceDate ? Timestamp.fromDate(input.lastServiceDate) : null,
     nextServiceDate: Timestamp.fromDate(nextServiceDate),
     notes: input.notes ?? '',
+    brandModel: input.brandModel ?? '',
+    serialNumber: input.serialNumber ?? '',
+    warrantyExpiry: input.warrantyExpiry ?? null,
+    warrantyNotes: input.warrantyNotes ?? '',
+    attachments: input.attachments ?? [],
     notificationIds: [],
     locationId: input.locationId ?? null,
     createdAt: serverTimestamp(),
@@ -167,7 +188,7 @@ export async function createMaintenanceItem(input: CreateMaintenanceInput): Prom
     const notificationIds = await scheduleMaintenanceReminders(
       docRef.id,
       input.name,
-      nextServiceDate
+      nextServiceDate,
     );
     if (notificationIds.length > 0) {
       await updateDoc(doc(db, COLLECTION, docRef.id), { notificationIds });
@@ -182,10 +203,19 @@ export async function createMaintenanceItem(input: CreateMaintenanceInput): Prom
 export async function updateMaintenanceItem(
   id: string,
   updates: Partial<CreateMaintenanceInput>,
-  existingNotificationIds: string[] = []
+  existingNotificationIds: string[] = [],
 ): Promise<void> {
-  const payload: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  const payload: UpdateData<DocumentData> = { updatedAt: serverTimestamp() };
 
+  for (const field of [
+    'brandModel',
+    'serialNumber',
+    'warrantyExpiry',
+    'warrantyNotes',
+    'attachments',
+  ] as const) {
+    if (updates[field] !== undefined) payload[field] = updates[field];
+  }
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.category !== undefined) payload.category = updates.category;
   if (updates.notes !== undefined) payload.notes = updates.notes;
@@ -210,11 +240,7 @@ export async function updateMaintenanceItem(
   ) {
     const baseDate = updates.lastServiceDate ?? new Date();
     const frequency = updates.frequency ?? 'monthly';
-    nextServiceDate = calculateNextServiceDate(
-      baseDate,
-      frequency,
-      updates.customFrequencyDays
-    );
+    nextServiceDate = calculateNextServiceDate(baseDate, frequency, updates.customFrequencyDays);
     payload.nextServiceDate = Timestamp.fromDate(nextServiceDate);
   }
 
@@ -228,7 +254,7 @@ export async function updateMaintenanceItem(
       const newIds = await scheduleMaintenanceReminders(
         id,
         updates.name ?? 'Maintenance task',
-        nextServiceDate
+        nextServiceDate,
       );
       if (newIds.length > 0) {
         await updateDoc(doc(db, COLLECTION, id), { notificationIds: newIds });
@@ -251,7 +277,7 @@ export async function markMaintenanceCompleted(
   existingNotificationIds: string[] = [],
   serviceDate: Date = new Date(),
   /** Who performed this visit, when a provider did it. Enables per-visit reviews. */
-  provider?: { id: string; name: string } | null
+  provider?: { id: string; name: string } | null,
 ): Promise<void> {
   const completed = serviceDate;
   const nextServiceDate = calculateNextServiceDate(completed, frequency, customFrequencyDays);
@@ -291,7 +317,7 @@ export async function markMaintenanceCompleted(
 
 export async function deleteMaintenanceItem(
   id: string,
-  notificationIds: string[] = []
+  notificationIds: string[] = [],
 ): Promise<void> {
   // Delete from Firestore FIRST so it always succeeds; cancelling reminders
   // is best-effort and must not block the delete (it can hang on web).
@@ -309,13 +335,13 @@ export async function deleteMaintenanceItem(
  */
 export function subscribeToHistory(
   maintenanceItemId: string,
-  onChange: (entries: { id: string; completedDate: string }[]) => void
+  onChange: (entries: { id: string; completedDate: string }[]) => void,
 ): () => void {
   // Query by maintenanceItemId only (no orderBy) so this needs no composite
   // index. We sort newest-first in JS below.
   const q = query(
     collection(db, 'maintenanceHistory'),
-    where('maintenanceItemId', '==', maintenanceItemId)
+    where('maintenanceItemId', '==', maintenanceItemId),
   );
 
   return onSnapshot(q, (snapshot) => {
@@ -334,6 +360,8 @@ export function subscribeToHistory(
  * is one visit, so a monthly task produces one reviewable entry per month.
  */
 export interface ServiceLogEntry {
+  jobId?: string;
+  jobType?: 'booking' | 'request';
   id: string;
   maintenanceItemId: string;
   maintenanceItemName: string;
@@ -362,6 +390,8 @@ export async function fetchServiceLog(userId: string): Promise<ServiceLogEntry[]
       const data = d.data();
       entries.push({
         id: d.id,
+        jobId: data.jobId ?? data.bookingId ?? undefined,
+        jobType: data.jobType ?? (data.bookingId ? 'booking' : 'request'),
         maintenanceItemId: data.maintenanceItemId,
         maintenanceItemName:
           data.maintenanceItemName ?? nameById.get(data.maintenanceItemId) ?? 'Service',
@@ -382,7 +412,7 @@ export async function fetchServiceLog(userId: string): Promise<ServiceLogEntry[]
     try {
       const q = query(
         collection(db, 'maintenanceHistory'),
-        where('maintenanceItemId', '==', item.id)
+        where('maintenanceItemId', '==', item.id),
       );
       const snap = await getDocs(q);
       for (const d of snap.docs) {
@@ -393,6 +423,8 @@ export async function fetchServiceLog(userId: string): Promise<ServiceLogEntry[]
         seen.add(d.id);
         entries.push({
           id: d.id,
+          jobId: data.jobId ?? data.bookingId ?? undefined,
+          jobType: data.jobType ?? (data.bookingId ? 'booking' : 'request'),
           maintenanceItemId: data.maintenanceItemId,
           maintenanceItemName: data.maintenanceItemName ?? item.name,
           completedDate: tsToISO(data.completedDate) ?? new Date().toISOString(),

@@ -1,35 +1,29 @@
+import AttachmentPicker from '@/components/attachment-picker';
+import { useLanguage } from '@/i18n/LanguageContext';
+import type { Attachment } from '@/types';
+import { isISODate } from '@/utils/bookingValidation';
 // src/screens/AddEditMaintenanceScreen.tsx
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import InputField from '@/components/InputField';
 import Button from '@/components/Button';
 import ChipSelector from '@/components/ChipSelector';
 import DatePickerField from '@/components/DatePickerField';
+import InputField from '@/components/InputField';
 import LocationPicker from '@/components/LocationPicker';
-import { colors, spacing, typography } from '@/theme/theme';
+import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
 import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
-import {
-  createMaintenanceItem,
-  updateMaintenanceItem,
-} from '@/services/maintenanceService';
-import {
-  MAINTENANCE_TEMPLATES,
-  CATEGORY_LABELS,
-  CATEGORY_ICONS,
-  FREQUENCY_LABELS,
-} from '@/utils/maintenanceTemplates';
-import { MaintenanceCategory, ServiceFrequency } from '@/types';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { createMaintenanceItem,updateMaintenanceItem } from '@/services/maintenanceService';
+import { colors,spacing,typography } from '@/theme/theme';
+import { MaintenanceCategory,ServiceFrequency } from '@/types';
+import {
+CATEGORY_ICONS,
+CATEGORY_LABELS,
+FREQUENCY_LABELS,
+MAINTENANCE_TEMPLATES,
+} from '@/utils/maintenanceTemplates';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useEffect,useState } from 'react';
+import { Alert,KeyboardAvoidingView,Platform,ScrollView,StyleSheet,View } from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AddEditMaintenance'>;
 
@@ -45,6 +39,7 @@ const FREQUENCY_OPTIONS = Object.entries(FREQUENCY_LABELS).map(([value, label]) 
 }));
 
 export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { items } = useMaintenanceItems();
   const editingId = route.params?.itemId;
@@ -55,6 +50,12 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
   const [frequency, setFrequency] = useState<ServiceFrequency>('monthly');
   const [customDays, setCustomDays] = useState('30');
   const [notes, setNotes] = useState('');
+  const [brandModel, setBrandModel] = useState('');
+  const [serialNumber, setSerialNumber] = useState('');
+  const [warrantyExpiry, setWarrantyExpiry] = useState('');
+  const [warrantyNotes, setWarrantyNotes] = useState('');
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [locationId, setLocationId] = useState<string | null>(null);
   // Date of the last service. Defaults to today; next-due is calculated from it.
   const [lastServiceDate, setLastServiceDate] = useState<Date>(new Date());
@@ -70,6 +71,11 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
       setFrequency(editingItem.frequency);
       setCustomDays(String(editingItem.customFrequencyDays ?? 30));
       setNotes(editingItem.notes ?? '');
+      setBrandModel(editingItem.brandModel ?? '');
+      setSerialNumber(editingItem.serialNumber ?? '');
+      setWarrantyExpiry(editingItem.warrantyExpiry ?? '');
+      setWarrantyNotes(editingItem.warrantyNotes ?? '');
+      setAttachments(editingItem.attachments ?? []);
       setLocationId(editingItem.locationId ?? null);
       if (editingItem.lastServiceDate) {
         setLastServiceDate(new Date(editingItem.lastServiceDate));
@@ -79,7 +85,7 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
 
   function applyTemplate(templateIndex: number) {
     const template = MAINTENANCE_TEMPLATES[templateIndex];
-    setName(`${template.itemName} – ${template.taskName}`);
+    setName(`${t(template.itemName)} – ${t(template.taskName)}`);
     setCategory(template.category);
     setFrequency(template.frequency);
   }
@@ -90,7 +96,18 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
       setError('Please give this item a name.');
       return;
     }
-    if (!user) return;
+    if (!user || uploading || submitting) return;
+    if (
+      frequency === 'custom' &&
+      (!Number.isInteger(Number(customDays)) || Number(customDays) < 1)
+    ) {
+      setError(t('Enter a valid number of days.'));
+      return;
+    }
+    if (warrantyExpiry && !isISODate(warrantyExpiry)) {
+      setError(t('Use YYYY-MM-DD for the warranty date.'));
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -105,8 +122,13 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
             notes: notes.trim(),
             lastServiceDate,
             locationId,
+            brandModel,
+            serialNumber,
+            warrantyExpiry: warrantyExpiry || null,
+            warrantyNotes,
+            attachments,
           },
-          editingItem.notificationIds
+          editingItem.notificationIds,
         );
       } else {
         await createMaintenanceItem({
@@ -118,6 +140,11 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
           notes: notes.trim(),
           lastServiceDate,
           locationId,
+          brandModel,
+          serialNumber,
+          warrantyExpiry: warrantyExpiry || null,
+          warrantyNotes,
+          attachments,
         });
       }
       navigation.goBack();
@@ -161,13 +188,13 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         {!isEditing && (
           <View style={styles.templatesSection}>
-            <Text style={styles.sectionLabel}>Quick add from a template</Text>
+            <Text style={styles.sectionLabel}>{t('Quick add from a template')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.templateRow}>
                 {MAINTENANCE_TEMPLATES.map((template, index) => (
                   <Button
                     key={`${template.itemName}-${template.taskName}`}
-                    label={`${CATEGORY_ICONS[template.category]} ${template.taskName}`}
+                    label={`${CATEGORY_ICONS[template.category]} ${t(template.taskName)}`}
                     variant="secondary"
                     onPress={() => applyTemplate(index)}
                     style={styles.templateButton}
@@ -179,20 +206,22 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
         )}
 
         <InputField
-          label="Item Name"
-          placeholder="e.g. AC Unit – Filter Cleaning"
+          label={t('Item Name')}
+          placeholder={t('e.g. AC Unit – Filter Cleaning')}
           value={name}
           onChangeText={setName}
         />
 
-        <Text style={styles.sectionLabel}>Category</Text>
+        <Text style={styles.sectionLabel}>{t('Category')}</Text>
         <ChipSelector
           options={CATEGORY_OPTIONS}
           selectedValue={category}
           onSelect={(v) => setCategory(v as MaintenanceCategory)}
         />
 
-        <Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>Service Frequency</Text>
+        <Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>
+          {t('Service Frequency')}
+        </Text>
         <ChipSelector
           options={FREQUENCY_OPTIONS}
           selectedValue={frequency}
@@ -201,7 +230,7 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
 
         {frequency === 'custom' && (
           <InputField
-            label="Repeat every (days)"
+            label={t('Repeat every (days)')}
             keyboardType="number-pad"
             value={customDays}
             onChangeText={setCustomDays}
@@ -211,24 +240,24 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
 
         <View style={{ marginTop: spacing.lg }}>
           <DatePickerField
-            label="Last serviced on"
+            label={t('Last serviced on')}
             value={lastServiceDate}
             onChange={setLastServiceDate}
           />
           <Text style={styles.dateHint}>
-            The next service date is calculated from this. Defaults to today.
+            {t('The next service date is calculated from this. Defaults to today.')}
           </Text>
         </View>
 
-        <Text style={styles.locationLabel}>Where is it?</Text>
+        <Text style={styles.locationLabel}>{t('Where is it?')}</Text>
         <Text style={styles.locationHint}>
-          Pick which of your saved places this appliance is at.
+          {t('Pick which of your saved places this appliance is at.')}
         </Text>
         <LocationPicker value={locationId} onChange={setLocationId} />
 
         <InputField
-          label="Notes (optional)"
-          placeholder="Any extra details..."
+          label={t('Notes (optional)')}
+          placeholder={t('Any extra details...')}
           multiline
           numberOfLines={3}
           value={notes}
@@ -236,14 +265,44 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
           style={{ minHeight: 80, textAlignVertical: 'top', marginTop: spacing.md }}
         />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Text style={styles.sectionLabel}>{t('Device file')}</Text>
+        <InputField label={t('Brand and model')} value={brandModel} onChangeText={setBrandModel} />
+        <InputField
+          label={t('Serial number')}
+          value={serialNumber}
+          onChangeText={setSerialNumber}
+        />
+        <InputField
+          label={t('Warranty expiry')}
+          placeholder="YYYY-MM-DD"
+          value={warrantyExpiry}
+          onChangeText={setWarrantyExpiry}
+        />
+        <InputField
+          label={t('Warranty notes')}
+          value={warrantyNotes}
+          onChangeText={setWarrantyNotes}
+          multiline
+        />
+        <AttachmentPicker
+          value={attachments}
+          onChange={setAttachments}
+          onBusyChange={setUploading}
+        />
+        {error ? <Text style={styles.error}>{t(error)}</Text> : null}
 
         <View style={styles.actions}>
-          <Button label="Cancel" variant="secondary" onPress={confirmDiscard} style={styles.actionButton} />
+          <Button
+            label={t('Cancel')}
+            variant="secondary"
+            onPress={confirmDiscard}
+            style={styles.actionButton}
+          />
           <Button
             label={isEditing ? 'Save Changes' : 'Add Item'}
             onPress={handleSave}
             loading={submitting}
+            disabled={uploading}
             style={styles.actionButton}
           />
         </View>
@@ -254,7 +313,13 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  container: {
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
   sectionLabel: { ...typography.bodySecondary, fontWeight: '600', marginBottom: spacing.sm },
   locationLabel: {
     ...typography.bodySecondary,

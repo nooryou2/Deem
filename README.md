@@ -1,128 +1,91 @@
-# Sanad (سَنَد) — MVP
+# ديم | Deem
 
-A React Native (Expo) app that helps homeowners track recurring maintenance tasks,
-get reminders before things become overdue, and build a history of completed work.
+تطبيق لتنظيم صيانة المنزل وطلب الخدمات، مبني باستخدام Expo وReact Native وFirebase.
 
-This is the **Version 1 MVP** scope from the project spec:
-- Email/password authentication (register, login, forgot password)
-- Maintenance item management (add / edit / delete) with default templates
-  (AC, Water Filter, Water Tank, Smoke Detector, Fire Extinguisher, Water Heater)
-- Service frequency (monthly, every 3 months, every 6 months, yearly, custom)
-- Status tracking (Upcoming / Due Soon / Overdue / Completed) computed live from dates
-- Local reminder notifications before and on the due date
-- Dashboard with totals and a "needs attention" list
-- Maintenance history (completion log per item)
+## المزايا
 
-Service provider directory, warranty tracking, cost tracking, and renewal
-tracking are intentionally **not** included — they're Version 2 / future work
-per the spec.
+- واجهة عربية وإنجليزية مع حفظ اللغة واتجاه العرض المناسب.
+- تسجيل مختصر بالبريد أو Google، وإضافة الموقع عند طلب الخدمة.
+- لوحة للعميل تعرض الطلبات الجارية والموعد القادم والأجهزة التي تحتاج إلى صيانة.
+- حجز بموقع وموعد ووصف للمشكلة وصور مرفقة. يُحجز الموعد ويُربط الجهاز في معاملة واحدة لتجنب التعارض والتكرار.
+- عرض سعر يفصل رسوم المعاينة وتكلفة الخدمة، مع موافقة العميل قبل بدء العمل.
+- متابعة الطلب حتى الاكتمال، وسجل زيارات وتقييم واحد لكل خدمة.
+- ملف للجهاز يتضمن الطراز والرقم التسلسلي والضمان والصور والفواتير بصيغة PDF.
+- واجهات للمزوّد والمدير والفني لإدارة الطلبات والفريق والمواعيد.
 
----
+## التشغيل
 
-## 1. Prerequisites
-
-- Node.js 18+ and npm
-- The Expo Go app on your phone (easiest way to test), or an iOS/Android simulator
-- A free [Firebase](https://console.firebase.google.com) project
-
-## 2. Install dependencies
-
-```bash
-cd sanad
-npm install
+```sh
+npm ci
+npm run web
 ```
 
-## 3. Set up Firebase
+للهاتف، استخدم `npm start` ثم افتح المشروع في Expo Go المتوافق مع SDK 51.
 
-1. Go to the [Firebase Console](https://console.firebase.google.com) → **Add project**.
-2. In your project, go to **Build → Authentication → Get started**, and enable the
-   **Email/Password** sign-in provider.
-3. Go to **Build → Firestore Database → Create database** (start in production mode).
-4. Once created, open the **Rules** tab and paste the contents of `firestore.rules`
-   from this repo, then click **Publish**.
-5. Go to **Project settings → General → Your apps**, click the **Web** icon (`</>`)
-   to register a web app (Expo uses the Firebase JS SDK even for native builds),
-   and copy the resulting config object.
-6. Paste those values into `src/config/firebase.ts`, replacing the placeholders:
+إعداد Firebase الفعلي موجود في `src/config/firebase.ts`. تسجيل Google يتطلب تفعيل المزوّد في Firebase Authentication وإضافة نطاق الموقع إلى النطاقات المسموح بها.
 
-```ts
-const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_PROJECT_ID.appspot.com',
-  messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID',
-};
+## تفعيل قاعدة البيانات والمرفقات
+
+المرفقات تستخدم Firebase Storage، وملفات الأجهزة والعروض والحجوزات تستخدم Firestore. فعّل Storage في مشروع Firebase واضبط CORS للنطاق الفعلي إذا تطلبت إعدادات الحاوية ذلك. تُقبل صور JPEG وPNG وWebP وملفات PDF، حتى ٤ مرفقات و٥ ميجابايت لكل مرفق.
+
+ملفات القواعد الجاهزة:
+
+- `firestore.rules`: ملكية البيانات، المشاركون في الطلب، الموافقة على الأسعار، المواعيد والتقييمات.
+- `storage.rules`: مستندات الأجهزة خاصة بصاحب الحساب؛ صور الطلب متاحة للمزوّد المختار وفريقه.
+
+بعد تسجيل الدخول بالحساب المسؤول عن مشروع Firebase:
+
+```sh
+npx firebase login
+npx firebase deploy --project sanad-e967c --only firestore:rules,storage
 ```
 
-> For a production build you'd move these into environment variables instead of
-> committing them directly — fine to leave as-is for local development and TestFlight.
+لم تُنشر القواعد إلى المشروع الفعلي ضمن هذا التعديل؛ اختُبرت على المحاكي. قبل النشر على مشروع يحوي بيانات سابقة، راجع قواعده الحالية وأي مسارات تستخدمها تطبيقات أخرى. البيانات القديمة لا تحتاج إلى حقول الضمان والمرفقات كي تُقرأ. الطلبات السابقة المرتبطة بجهاز دون رابط عكسي تبقى قابلة للإكمال ويُسجّل إنجازها في السجل، بينما ربط الطلبات الجديدة وتحديث تاريخ الصيانة يتمان تلقائيًا.
 
-### Firestore indexes
-The app queries `maintenanceItems` filtered by `userId` and ordered by
-`nextServiceDate`, and `maintenanceHistory` filtered by `maintenanceItemId` and
-ordered by `completedDate`. The first time you run the app, Firestore will throw
-an error in the console with a direct link to auto-create the needed composite
-index — just click it. (This only happens once per query shape.)
+السعر في هذه النسخة عرض وموافقة، وليس بوابة دفع. لا يجري خصم أي مبلغ. التذكيرات الحالية محلية على الهاتف؛ لا تُرسل إشعارات دفع من الخادم أو تذكيرات ويب.
 
-## 4. Run the app
+## الاختبارات
 
-```bash
-npx expo start
+```sh
+npm run lint
+npm test
+npm run test:workflows
+npx expo export --platform web
 ```
 
-Scan the QR code with Expo Go (Android) or the Camera app (iOS), or press `i` / `a`
-to launch a simulator.
+اختبارات دورة العمل تحتاج Java 17 أو أحدث، وتستخدم مشروع `demo-deem` المحلي فقط. تغطي تعارض المواعيد، ربط الأجهزة، موافقة السعر، سجل الخدمة، تكرار التقييم، ملكية الملفات ورفض الوصول غير المصرح به.
 
-## 5. Project structure
+## معاينة محلية ببيانات تجريبية
 
-```
-src/
-  config/firebase.ts        Firebase init (auth + Firestore)
-  types/                    Shared TypeScript types
-  theme/                    Colors, spacing, typography tokens
-  context/AuthContext.tsx   Auth state available app-wide
-  hooks/useMaintenanceItems.ts  Live items + computed dashboard summary
-  services/
-    authService.ts          Login / register / logout / reset password
-    maintenanceService.ts   Firestore CRUD + completion + history
-    notificationService.ts  Local reminder scheduling (expo-notifications)
-  utils/
-    dateCalculations.ts     Next-due-date math, status derivation
-    maintenanceTemplates.ts Default templates from the spec
-  components/                Reusable UI (Button, InputField, cards, badges...)
-  screens/                   All app screens
-  navigation/                Auth stack, main tab+stack, root switcher
+شغّل المحاكيات في نافذة طرفية:
+
+```sh
+npx firebase emulators:start --project demo-deem --only auth,firestore,storage
 ```
 
-## 6. How status & reminders work
+وفي نافذة أخرى:
 
-- **Status** (`Upcoming` / `Due Soon` / `Overdue`) is never stored — it's computed
-  live from `nextServiceDate` every time it's displayed (`getMaintenanceStatus` in
-  `dateCalculations.ts`), so it's always correct even if the item hasn't been
-  touched in months. "Due Soon" is anything due within 7 days; tweak
-  `DUE_SOON_THRESHOLD_DAYS` to change that.
-- **Reminders** are scheduled as local device notifications (via
-  `expo-notifications`) at creation/edit/completion time: one 3 days before the
-  due date, one on the due date. This works without a backend, which keeps the
-  MVP simple. The tradeoff: reminders only fire on the device that created them.
-  If you later want server-driven push (e.g. via Firebase Cloud Functions +
-  Expo Push API) so reminders work across devices and survive reinstalls, that's
-  a natural Version 2 addition — the `notificationService.ts` file is the place
-  to swap in remote scheduling.
-
-## 7. Deployment (per the spec's Week 3 plan)
-
-```bash
-npm install -g eas-cli
-eas login
-eas build:configure
-eas build --platform ios   # creates a build you can upload to TestFlight
+```sh
+node scripts/seed-demo.cjs
+EXPO_PUBLIC_USE_EMULATORS=true npx expo start --web --port 8082
 ```
 
-## 8. What's next (Version 2, not in this build)
+الحسابان المحليان:
 
-Service provider directory & requests, ratings & reviews, cost tracking,
-file attachments (invoices/warranty docs), warranty expiry reminders, and
-issue-based maintenance reporting — see the original spec for details.
+| الحساب | البريد |
+| --- | --- |
+| العميل | homeowner@example.test |
+| المزوّد | provider@example.test |
+
+كلمة المرور التجريبية لكليهما: `DeemTest123!`. يمكن استخدام `localhost:8082` للعميل و`127.0.0.1:8082` للمزوّد لإبقاء جلستيهما مستقلتين. هذا الإعداد محصور في وضع التطوير؛ لا يُفعّل في نسخة الإنتاج.
+
+الاختبارات تفرّغ بيانات المحاكي قبل كل حالة، فلا تشغّلها بالتزامن مع تجربة تريد الاحتفاظ ببياناتها. أعد تشغيل سكربت البيانات التجريبية عند الحاجة.
+
+## بنية المشروع
+
+- `src/screens`: واجهات العميل والمزوّد والفني.
+- `src/components`: عناصر الواجهة، المرفقات وعروض الأسعار.
+- `src/services`: الحجز والصيانة والمرفقات وعروض الأسعار والتقييمات.
+- `src/i18n`: الترجمة واللغة وتنسيق التواريخ.
+- `src/theme`: ألوان الهوية والمسافات وأنماط النصوص.
+- `tests`: اختبارات التحقق ودورة العمل وقواعد الوصول.

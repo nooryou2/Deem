@@ -1,26 +1,20 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/WriteReviewScreen.tsx
 //
 // Shown after a job is marked completed. The homeowner rates the service with
 // stars and an optional comment. The out-of-10 score is derived from the stars.
 
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Platform,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '@/context/AuthContext';
-import { submitReview } from '@/services/reviewService';
-import StarRating from '@/components/StarRating';
-import InputField from '@/components/InputField';
 import Button from '@/components/Button';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
+import InputField from '@/components/InputField';
+import StarRating from '@/components/StarRating';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { submitReview } from '@/services/reviewService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useState } from 'react';
+import { Alert,Platform,ScrollView,StyleSheet,View } from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'WriteReview'>;
 
@@ -42,6 +36,7 @@ function scoreLabel(stars: number): string {
 }
 
 export default function WriteReviewScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { providerId, providerName, jobId, jobType, serviceName } = route.params;
 
@@ -81,7 +76,11 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
       navigation.goBack();
     } catch (e) {
       console.log('submitReview failed:', e);
-      setError('Could not submit your review. Please try again.');
+      setError(
+        e instanceof Error && e.message === 'ALREADY_REVIEWED'
+          ? t('You rated this service')
+          : t('Could not submit your review. Please try again.'),
+      );
     } finally {
       setSaving(false);
     }
@@ -96,32 +95,30 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
           </Text>
         </View>
         <Text style={styles.provider}>{providerName || serviceName}</Text>
-        <Text style={styles.service}>
-          {providerName ? serviceName : 'Serviced by you'}
-        </Text>
+        <Text style={styles.service}>{providerName ? serviceName : t('Serviced by you')}</Text>
       </View>
 
       {/* Stars */}
       <View style={styles.card}>
         <Text style={styles.question}>
-          {providerName ? 'How was the service?' : 'How did this service go?'}
+          {providerName ? t('How was the service?') : t('How did this service go?')}
         </Text>
         <View style={styles.starsWrap}>
           <StarRating value={stars} onChange={setStars} size={36} />
         </View>
         {stars > 0 && (
           <Text style={styles.starsLabel}>
-            {scoreLabel(stars)} · {stars * 2}/10
+            {t(scoreLabel(stars))} · {stars * 2}/10
           </Text>
         )}
       </View>
 
       {/* Comment */}
       <View style={styles.card}>
-        <Text style={styles.question}>Add a comment (optional)</Text>
+        <Text style={styles.question}>{t('Add a comment (optional)')}</Text>
         <InputField
           label=""
-          placeholder="What went well, or what could be better?"
+          placeholder={t('What went well, or what could be better?')}
           value={comment}
           onChangeText={setComment}
           multiline
@@ -130,16 +127,22 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
         />
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={styles.error}>{t(error)}</Text> : null}
 
-      <Button label="Submit Review" onPress={handleSubmit} loading={saving} />
+      <Button label={t('Submit Review')} onPress={handleSubmit} loading={saving} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  container: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
   header: { alignItems: 'center', marginBottom: spacing.lg },
   avatar: {
     width: 64,

@@ -1,34 +1,36 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/MyLocationsScreen.tsx
 //
 // Lists the homeowner's saved places (Home, Chalet, Office…), up to a maximum
 // of five. Each entry pins a spot on the map and belongs to an area, which is
 // what decides which providers they can see.
 
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Platform,
-  Alert,
-} from 'react-native';
+import Button from '@/components/Button';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
+import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { getSavedLocations,saveSavedLocations } from '@/services/roleService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { MAX_SAVED_LOCATIONS,SavedLocation } from '@/types';
+import { areaLabel } from '@/utils/areas';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '@/context/AuthContext';
-import { getSavedLocations, saveSavedLocations } from '@/services/roleService';
-import { areaLabel } from '@/utils/areas';
-import Button from '@/components/Button';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { SavedLocation, MAX_SAVED_LOCATIONS } from '@/types';
-import type { MainStackParamList } from '@/navigation/MainNavigator';
+import React,{ useCallback,useState } from 'react';
+import {
+ActivityIndicator,
+Alert,
+Platform,
+ScrollView,
+StyleSheet,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'MyLocations'>;
 
 export default function MyLocationsScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [locations, setLocations] = useState<SavedLocation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,15 +102,16 @@ export default function MyLocationsScreen({ navigation }: Props) {
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.intro}>
-          Save up to {MAX_SAVED_LOCATIONS} places so you can pick where you need service.
+          {t('Save up to')} {MAX_SAVED_LOCATIONS}
+          {t('places so you can pick where you need service.')}
         </Text>
 
         {locations.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="location-outline" size={40} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No locations saved</Text>
+            <Text style={styles.emptyTitle}>{t('No locations saved')}</Text>
             <Text style={styles.emptySub}>
-              Add your home so technicians know where to come.
+              {t('Add your home so technicians know where to come.')}
             </Text>
           </View>
         ) : (
@@ -117,25 +120,21 @@ export default function MyLocationsScreen({ navigation }: Props) {
               <TouchableOpacity
                 style={styles.cardMain}
                 activeOpacity={0.7}
-                onPress={() =>
-                  navigation.navigate('SetLocation', { locationId: loc.id })
-                }
+                onPress={() => navigation.navigate('SetLocation', { locationId: loc.id })}
               >
                 <View style={styles.pinIcon}>
                   <Ionicons name="location" size={20} color={colors.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={styles.labelRow}>
-                    <Text style={styles.label}>{loc.label}</Text>
+                    <Text style={styles.label}>{t(loc.label)}</Text>
                     {loc.isDefault && (
                       <View style={styles.defaultPill}>
-                        <Text style={styles.defaultText}>Default</Text>
+                        <Text style={styles.defaultText}>{t('Default')}</Text>
                       </View>
                     )}
                   </View>
-                  {loc.area ? (
-                    <Text style={styles.area}>{areaLabel(loc.area)}</Text>
-                  ) : null}
+                  {loc.area ? <Text style={styles.area}>{areaLabel(loc.area)}</Text> : null}
                   {loc.address ? (
                     <Text style={styles.address} numberOfLines={1}>
                       {loc.address}
@@ -148,12 +147,12 @@ export default function MyLocationsScreen({ navigation }: Props) {
               <View style={styles.cardActions}>
                 {!loc.isDefault && (
                   <TouchableOpacity onPress={() => makeDefault(loc)} disabled={busy}>
-                    <Text style={styles.actionLink}>Set as default</Text>
+                    <Text style={styles.actionLink}>{t('Set as default')}</Text>
                   </TouchableOpacity>
                 )}
                 <View style={{ flex: 1 }} />
                 <TouchableOpacity onPress={() => confirmDelete(loc)} disabled={busy}>
-                  <Text style={styles.deleteLink}>Remove</Text>
+                  <Text style={styles.deleteLink}>{t('Remove')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -162,7 +161,8 @@ export default function MyLocationsScreen({ navigation }: Props) {
 
         {atLimit && (
           <Text style={styles.limitNote}>
-            You've reached the {MAX_SAVED_LOCATIONS}-location limit. Remove one to add another.
+            {t("You've reached the")} {MAX_SAVED_LOCATIONS}
+            {t('-location limit. Remove one to add another.')}
           </Text>
         )}
       </ScrollView>
@@ -180,8 +180,19 @@ export default function MyLocationsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: 110 },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
+  container: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: 110,
+  },
   intro: { ...typography.bodySecondary, marginBottom: spacing.lg },
   card: {
     backgroundColor: colors.surface,

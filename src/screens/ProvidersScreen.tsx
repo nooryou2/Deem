@@ -1,35 +1,35 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/ProvidersScreen.tsx
 //
 // A browsable directory of the service providers who cover the homeowner's
 // areas, with search, sorting, and distance from their saved location.
 
-import React, { useState, useMemo, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Modal,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import StarRating from '@/components/StarRating';
+import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
 import { useAreaFilteredProviders } from '@/hooks/useAreaFilteredProviders';
-import { getSavedLocations } from '@/services/roleService';
-import { SavedLocation } from '@/types';
-import StarRating from '@/components/StarRating';
-import { applianceLabel, applianceIcon, APPLIANCES } from '@/utils/appliances';
-import { distanceKm, areaLabel } from '@/utils/areas';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { ProviderProfile } from '@/types';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { getSavedLocations } from '@/services/roleService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { ProviderProfile,SavedLocation } from '@/types';
+import { APPLIANCES,applianceIcon,applianceLabel } from '@/utils/appliances';
+import { areaLabel,distanceKm } from '@/utils/areas';
+import { Ionicons } from '@expo/vector-icons';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { CompositeScreenProps } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useCallback,useMemo,useState } from 'react';
+import {
+ActivityIndicator,
+FlatList,
+Modal,
+ScrollView,
+StyleSheet,
+TextInput,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<MainStackParamList, 'Providers'>,
@@ -58,6 +58,7 @@ const SORTS: { key: SortKey; label: string }[] = [
 type RankedProvider = ProviderProfile & { distance: number | null };
 
 export default function ProvidersScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { providers, loading } = useAreaFilteredProviders();
 
@@ -68,9 +69,9 @@ export default function ProvidersScreen({ navigation }: Props) {
   const [services, setServices] = useState<string[]>([]);
   const [maxDistance, setMaxDistance] = useState<number | null>(null);
   // Which dropdown is open, if any.
-  const [openMenu, setOpenMenu] = useState<'sort' | 'filters' | 'services' | 'rating' | 'distance' | null>(
-    null
-  );
+  const [openMenu, setOpenMenu] = useState<
+    'sort' | 'filters' | 'services' | 'rating' | 'distance' | null
+  >(null);
   const [locations, setLocations] = useState<SavedLocation[]>([]);
   const [homeId, setHomeId] = useState<string | null>(null);
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
@@ -88,11 +89,11 @@ export default function ProvidersScreen({ navigation }: Props) {
           setHomeId((current) =>
             current && list.some((l) => l.id === current)
               ? current
-              : (list.find((l) => l.isDefault) ?? list[0])?.id ?? null
+              : ((list.find((l) => l.isDefault) ?? list[0])?.id ?? null),
           );
         })
         .catch(() => {});
-    }, [user])
+    }, [user]),
   );
 
   const ranked: RankedProvider[] = useMemo(() => {
@@ -101,16 +102,14 @@ export default function ProvidersScreen({ navigation }: Props) {
     let list: RankedProvider[] = providers.map((p) => ({
       ...p,
       distance:
-        home && p.location
-          ? distanceKm(home, { lat: p.location.lat, lng: p.location.lng })
-          : null,
+        home && p.location ? distanceKm(home, { lat: p.location.lat, lng: p.location.lng }) : null,
     }));
 
     if (q) {
       list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          (p.appliances ?? []).some((a) => applianceLabel(a).toLowerCase().includes(q))
+          (p.appliances ?? []).some((a) => applianceLabel(a).toLowerCase().includes(q)),
       );
     }
 
@@ -158,7 +157,7 @@ export default function ProvidersScreen({ navigation }: Props) {
     const rated = providers.filter((p) => (p.rating?.count ?? 0) > 0);
     if (rated.length === 0) return null;
     return rated.reduce((best, p) =>
-      (p.rating?.averageStars ?? 0) > (best.rating?.averageStars ?? 0) ? p : best
+      (p.rating?.averageStars ?? 0) > (best.rating?.averageStars ?? 0) ? p : best,
     ).uid;
   }, [providers]);
 
@@ -180,7 +179,7 @@ export default function ProvidersScreen({ navigation }: Props) {
             style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
-            placeholder="Search providers or services…"
+            placeholder={t('Search providers or services…')}
             placeholderTextColor={colors.textMuted}
           />
           {query.length > 0 && (
@@ -197,11 +196,12 @@ export default function ProvidersScreen({ navigation }: Props) {
           <View style={styles.homeBar}>
             <Ionicons name="location" size={15} color={colors.primary} />
             <Text style={styles.homeBarText} numberOfLines={1}>
-              Distance from: <Text style={styles.homeBarName}>{home?.label ?? '—'}</Text>
+              {t('Distance from:')}
+              <Text style={styles.homeBarName}>{home?.label ?? '—'}</Text>
             </Text>
             {locations.length > 1 && (
               <TouchableOpacity onPress={() => setLocationPickerOpen(true)} hitSlop={8}>
-                <Text style={styles.homeBarChange}>Change</Text>
+                <Text style={styles.homeBarChange}>{t('Change')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -209,7 +209,9 @@ export default function ProvidersScreen({ navigation }: Props) {
 
         <View style={styles.metaRow}>
           <Text style={styles.count}>
-            {ranked.length} provider{ranked.length === 1 ? '' : 's'} found
+            {ranked.length}
+            {t('provider')} {ranked.length === 1 ? '' : t('s')}
+            {t('found')}
           </Text>
           <TouchableOpacity
             style={styles.sortTrigger}
@@ -217,7 +219,7 @@ export default function ProvidersScreen({ navigation }: Props) {
             activeOpacity={0.7}
           >
             <Text style={styles.sortTriggerText}>
-              Sort by: {SORTS.find((x) => x.key === sort)?.label}
+              {t('Sort by:')} {SORTS.find((x) => x.key === sort)?.label}
             </Text>
             <Ionicons
               name={openMenu === 'sort' ? 'chevron-up' : 'chevron-down'}
@@ -242,7 +244,7 @@ export default function ProvidersScreen({ navigation }: Props) {
           >
             <Ionicons name="options-outline" size={15} color={colors.textPrimary} />
             <Text style={styles.pillText}>
-              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              {t('Filters')} {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
             </Text>
           </TouchableOpacity>
 
@@ -253,10 +255,10 @@ export default function ProvidersScreen({ navigation }: Props) {
           >
             <Text style={styles.pillText}>
               {services.length === 0
-                ? 'Service'
+                ? t('Service')
                 : services.length === 1
-                ? applianceLabel(services[0])
-                : `${services.length} services`}
+                  ? applianceLabel(services[0])
+                  : `${services.length} services`}
             </Text>
             <Ionicons
               name={openMenu === 'services' ? 'chevron-up' : 'chevron-down'}
@@ -270,9 +272,7 @@ export default function ProvidersScreen({ navigation }: Props) {
             onPress={() => setOpenMenu((m) => (m === 'rating' ? null : 'rating'))}
             activeOpacity={0.7}
           >
-            <Text style={styles.pillText}>
-              {minStars > 0 ? `${minStars}+ stars` : 'Rating'}
-            </Text>
+            <Text style={styles.pillText}>{minStars > 0 ? `${minStars}+ stars` : t('Rating')}</Text>
             <Ionicons
               name={openMenu === 'rating' ? 'chevron-up' : 'chevron-down'}
               size={14}
@@ -286,7 +286,7 @@ export default function ProvidersScreen({ navigation }: Props) {
             activeOpacity={0.7}
           >
             <Text style={styles.pillText}>
-              {maxDistance != null ? `Within ${maxDistance} km` : 'Distance'}
+              {maxDistance != null ? `Within ${maxDistance} km` : t('Distance')}
             </Text>
             <Ionicons
               name={openMenu === 'distance' ? 'chevron-up' : 'chevron-down'}
@@ -316,7 +316,7 @@ export default function ProvidersScreen({ navigation }: Props) {
         {openMenu === 'services' && (
           <ScrollView style={styles.menu} nestedScrollEnabled>
             <MenuRow
-              label="Any service"
+              label={t('Any service')}
               selected={services.length === 0}
               onPress={() => setServices([])}
             />
@@ -329,9 +329,7 @@ export default function ProvidersScreen({ navigation }: Props) {
                   selected={on}
                   // Multi-select: tapping toggles rather than replacing.
                   onPress={() =>
-                    setServices((prev) =>
-                      on ? prev.filter((x) => x !== a.id) : [...prev, a.id]
-                    )
+                    setServices((prev) => (on ? prev.filter((x) => x !== a.id) : [...prev, a.id]))
                   }
                 />
               );
@@ -342,7 +340,7 @@ export default function ProvidersScreen({ navigation }: Props) {
         {openMenu === 'rating' && (
           <View style={styles.menu}>
             <MenuRow
-              label="Any rating"
+              label={t('Any rating')}
               selected={minStars === 0}
               onPress={() => {
                 setMinStars(0);
@@ -366,7 +364,7 @@ export default function ProvidersScreen({ navigation }: Props) {
         {openMenu === 'distance' && (
           <View style={styles.menu}>
             <MenuRow
-              label="Any distance"
+              label={t('Any distance')}
               selected={maxDistance == null}
               onPress={() => {
                 setMaxDistance(null);
@@ -389,9 +387,9 @@ export default function ProvidersScreen({ navigation }: Props) {
 
         {openMenu === 'filters' && (
           <ScrollView style={styles.menu} nestedScrollEnabled>
-            <Text style={styles.menuHeading}>Service</Text>
+            <Text style={styles.menuHeading}>{t('Service')}</Text>
             <MenuRow
-              label="Any service"
+              label={t('Any service')}
               selected={services.length === 0}
               onPress={() => setServices([])}
             />
@@ -403,17 +401,17 @@ export default function ProvidersScreen({ navigation }: Props) {
                   label={`${applianceIcon(a.id)}  ${a.label}`}
                   selected={on}
                   onPress={() =>
-                    setServices((prev) =>
-                      on ? prev.filter((x) => x !== a.id) : [...prev, a.id]
-                    )
+                    setServices((prev) => (on ? prev.filter((x) => x !== a.id) : [...prev, a.id]))
                   }
                 />
               );
             })}
 
-            <Text style={[styles.menuHeading, { marginTop: spacing.md }]}>Minimum rating</Text>
+            <Text style={[styles.menuHeading, { marginTop: spacing.md }]}>
+              {t('Minimum rating')}
+            </Text>
             <MenuRow
-              label="Any rating"
+              label={t('Any rating')}
               selected={minStars === 0}
               onPress={() => setMinStars(0)}
             />
@@ -426,9 +424,9 @@ export default function ProvidersScreen({ navigation }: Props) {
               />
             ))}
 
-            <Text style={[styles.menuHeading, { marginTop: spacing.md }]}>Distance</Text>
+            <Text style={[styles.menuHeading, { marginTop: spacing.md }]}>{t('Distance')}</Text>
             <MenuRow
-              label="Any distance"
+              label={t('Any distance')}
               selected={maxDistance == null}
               onPress={() => setMaxDistance(null)}
             />
@@ -450,7 +448,7 @@ export default function ProvidersScreen({ navigation }: Props) {
                   setServices([]);
                 }}
               >
-                <Text style={styles.clearAllText}>Clear all filters</Text>
+                <Text style={styles.clearAllText}>{t('Clear all filters')}</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
@@ -465,7 +463,7 @@ export default function ProvidersScreen({ navigation }: Props) {
               <TouchableOpacity onPress={() => setLocationPickerOpen(false)} hitSlop={8}>
                 <Ionicons name="close" size={22} color={colors.textPrimary} />
               </TouchableOpacity>
-              <Text style={styles.sheetTitle}>Choose location</Text>
+              <Text style={styles.sheetTitle}>{t('Choose location')}</Text>
               <View style={{ width: 22 }} />
             </View>
 
@@ -483,9 +481,11 @@ export default function ProvidersScreen({ navigation }: Props) {
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.sheetRowName, on && styles.sheetRowNameOn]}>
-                      {loc.label}
+                      {t(loc.label)}
                     </Text>
-                    {loc.area ? <Text style={styles.sheetRowArea}>{areaLabel(loc.area)}</Text> : null}
+                    {loc.area ? (
+                      <Text style={styles.sheetRowArea}>{areaLabel(loc.area)}</Text>
+                    ) : null}
                   </View>
                   {on && <Ionicons name="checkmark" size={18} color={colors.primary} />}
                 </TouchableOpacity>
@@ -501,7 +501,7 @@ export default function ProvidersScreen({ navigation }: Props) {
               }}
             >
               <Ionicons name="add" size={18} color={colors.primary} />
-              <Text style={styles.sheetAddText}>Add a new location</Text>
+              <Text style={styles.sheetAddText}>{t('Add a new location')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -512,7 +512,10 @@ export default function ProvidersScreen({ navigation }: Props) {
         keyExtractor={(item) => item.uid}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => {
-          const services = (item.appliances ?? []).slice(0, 3).map(applianceLabel).join(', ');
+          const services = (item.appliances ?? [])
+            .slice(0, 3)
+            .map((a) => t(applianceLabel(a)))
+            .join(', ');
           return (
             <TouchableOpacity
               style={styles.card}
@@ -536,7 +539,7 @@ export default function ProvidersScreen({ navigation }: Props) {
                     </Text>
                     {item.uid === topRatedId && (
                       <View style={styles.topPill}>
-                        <Text style={styles.topPillText}>Top Rated</Text>
+                        <Text style={styles.topPillText}>{t('Top Rated')}</Text>
                       </View>
                     )}
                   </View>
@@ -550,7 +553,7 @@ export default function ProvidersScreen({ navigation }: Props) {
                         </Text>
                       </>
                     ) : (
-                      <Text style={styles.statText}>No reviews yet</Text>
+                      <Text style={styles.statText}>{t('No reviews yet')}</Text>
                     )}
                     {item.distance != null && (
                       <>
@@ -582,11 +585,13 @@ export default function ProvidersScreen({ navigation }: Props) {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="people-outline" size={40} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No providers found</Text>
+            <Text style={styles.emptyTitle}>{t('No providers found')}</Text>
             <Text style={styles.emptySub}>
               {query || activeFilterCount > 0
-                ? 'Try clearing your search or filters.'
-                : 'No providers cover your area yet. You can add another area from your profile.'}
+                ? t('Try clearing your search or filters.')
+                : t(
+                    'No providers cover your area yet. You can add another area from your profile.',
+                  )}
             </Text>
           </View>
         }
@@ -604,9 +609,10 @@ function MenuRow({
   selected: boolean;
   onPress: () => void;
 }) {
+  const { t } = useLanguage();
   return (
     <TouchableOpacity style={styles.menuRow} onPress={onPress} activeOpacity={0.7}>
-      <Text style={[styles.menuRowText, selected && styles.menuRowTextOn]}>{label}</Text>
+      <Text style={[styles.menuRowText, selected && styles.menuRowTextOn]}>{t(label)}</Text>
       {selected && <Ionicons name="checkmark" size={16} color={colors.primary} />}
     </TouchableOpacity>
   );

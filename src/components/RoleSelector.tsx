@@ -1,9 +1,11 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/RoleSelector.tsx
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '@/theme/theme';
+import Text from '@/components/app-text';
+import { colors,radius,spacing } from '@/theme/theme';
 import { UserRole } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet,TouchableOpacity,View } from 'react-native';
 
 interface Props {
   value: UserRole;
@@ -17,10 +19,16 @@ const OPTIONS: {
   sub: string;
 }[] = [
   { value: 'homeowner', label: 'Homeowner', icon: 'home-outline', sub: 'Manage my home' },
-  { value: 'provider', label: 'Service Provider', icon: 'construct-outline', sub: 'Offer services' },
+  {
+    value: 'provider',
+    label: 'Service Provider',
+    icon: 'construct-outline',
+    sub: 'Offer services',
+  },
 ];
 
 export default function RoleSelector({ value, onChange }: Props) {
+  const { t } = useLanguage();
   return (
     <View style={styles.row}>
       {OPTIONS.map((opt) => {
@@ -38,8 +46,8 @@ export default function RoleSelector({ value, onChange }: Props) {
               color={selected ? colors.primary : colors.textSecondary}
               style={{ marginBottom: 6 }}
             />
-            <Text style={[styles.label, selected && styles.labelSelected]}>{opt.label}</Text>
-            <Text style={[styles.sub, selected && styles.subSelected]}>{opt.sub}</Text>
+            <Text style={[styles.label, selected && styles.labelSelected]}>{t(opt.label)}</Text>
+            <Text style={[styles.sub, selected && styles.subSelected]}>{t(opt.sub)}</Text>
           </TouchableOpacity>
         );
       })}

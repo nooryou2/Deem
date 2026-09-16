@@ -1,24 +1,26 @@
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/navigation/ProviderNavigator.tsx
-import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React from 'react';
 import { Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
+import EmployeeDetailScreen from '@/screens/provider/EmployeeDetailScreen';
+import EmployeeWorkloadScreen from '@/screens/provider/EmployeeWorkloadScreen';
+import ManagerProfileScreen from '@/screens/provider/ManagerProfileScreen';
+import ProviderAreasScreen from '@/screens/provider/ProviderAreasScreen';
 import ProviderDashboardScreen from '@/screens/provider/ProviderDashboardScreen';
+import ProviderProfileScreen from '@/screens/provider/ProviderProfileScreen';
 import ProviderRequestsScreen from '@/screens/provider/ProviderRequestsScreen';
 import ProviderScheduleScreen from '@/screens/provider/ProviderScheduleScreen';
 import ProviderTeamScreen from '@/screens/provider/ProviderTeamScreen';
-import ProviderProfileScreen from '@/screens/provider/ProviderProfileScreen';
-import ManagerProfileScreen from '@/screens/provider/ManagerProfileScreen';
 import RequestDetailScreen from '@/screens/provider/RequestDetailScreen';
-import EmployeeDetailScreen from '@/screens/provider/EmployeeDetailScreen';
-import EmployeeWorkloadScreen from '@/screens/provider/EmployeeWorkloadScreen';
-import ProviderAreasScreen from '@/screens/provider/ProviderAreasScreen';
 
 import { useAuth } from '@/context/AuthContext';
-import { colors, spacing } from '@/theme/theme';
-import { ServiceRequest, Employee } from '@/types';
+import { colors,spacing } from '@/theme/theme';
+import { Employee,ServiceRequest } from '@/types';
 
 export type ProviderStackParamList = {
   ProviderTabs: undefined;
@@ -59,12 +61,10 @@ function HeaderLogo() {
 }
 
 function ProviderTabs() {
+  const { t } = useLanguage();
   const { role } = useAuth();
 
-  const ProfileComponent =
-    role === 'provider'
-      ? ProviderProfileScreen
-      : ManagerProfileScreen;
+  const ProfileComponent = role === 'provider' ? ProviderProfileScreen : ManagerProfileScreen;
 
   return (
     <Tab.Navigator
@@ -73,6 +73,8 @@ function ProviderTabs() {
         headerLeft: () => <HeaderLogo />,
 
         headerTitleAlign: 'center',
+        headerRight: () => <LanguageSwitcher />,
+        headerBackTitle: t('Back'),
         headerTitleStyle: {
           fontSize: 16,
           fontWeight: '500',
@@ -116,13 +118,7 @@ function ProviderTabs() {
             );
           }
 
-          return (
-            <Ionicons
-              name={TAB_ICONS[route.name]}
-              size={26}
-              color={color}
-            />
-          );
+          return <Ionicons name={TAB_ICONS[route.name]} size={26} color={color} />;
         },
       })}
     >
@@ -130,7 +126,7 @@ function ProviderTabs() {
         name="ProviderDashboard"
         component={ProviderDashboardScreen}
         options={{
-          title: 'Dashboard',
+          title: t('Dashboard'),
         }}
       />
 
@@ -138,7 +134,7 @@ function ProviderTabs() {
         name="ProviderRequests"
         component={ProviderRequestsScreen}
         options={{
-          title: 'Service Requests',
+          title: t('Service Requests'),
         }}
       />
 
@@ -146,7 +142,7 @@ function ProviderTabs() {
         name="ProviderSchedule"
         component={ProviderScheduleScreen}
         options={{
-          title: 'Schedule',
+          title: t('Schedule'),
         }}
       />
 
@@ -154,7 +150,7 @@ function ProviderTabs() {
         name="ProviderTeam"
         component={ProviderTeamScreen}
         options={{
-          title: 'Team',
+          title: t('Team'),
         }}
       />
 
@@ -162,7 +158,7 @@ function ProviderTabs() {
         name="ProviderProfile"
         component={ProfileComponent}
         options={{
-          title: 'Profile',
+          title: t('Profile'),
         }}
       />
     </Tab.Navigator>
@@ -170,10 +166,13 @@ function ProviderTabs() {
 }
 
 export default function ProviderNavigator() {
+  const { t } = useLanguage();
   return (
     <Stack.Navigator
       screenOptions={{
         headerTitleAlign: 'center',
+        headerRight: () => <LanguageSwitcher />,
+        headerBackTitle: t('Back'),
         headerTitleStyle: {
           fontSize: 16,
           fontWeight: '500',
@@ -198,7 +197,7 @@ export default function ProviderNavigator() {
         name="RequestDetail"
         component={RequestDetailScreen}
         options={{
-          title: 'Request Details',
+          title: t('Request Details'),
         }}
       />
 
@@ -206,7 +205,7 @@ export default function ProviderNavigator() {
         name="EmployeeDetail"
         component={EmployeeDetailScreen}
         options={{
-          title: 'Employee',
+          title: t('Employee'),
         }}
       />
 
@@ -214,7 +213,7 @@ export default function ProviderNavigator() {
         name="ProviderAreas"
         component={ProviderAreasScreen}
         options={{
-          title: 'Areas & Coverage',
+          title: t('Areas & Coverage'),
         }}
       />
 
@@ -222,7 +221,7 @@ export default function ProviderNavigator() {
         name="EmployeeWorkload"
         component={EmployeeWorkloadScreen}
         options={{
-          title: 'Employee Jobs',
+          title: t('Employee Jobs'),
         }}
       />
     </Stack.Navigator>

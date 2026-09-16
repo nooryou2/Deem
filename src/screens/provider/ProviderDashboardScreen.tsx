@@ -1,17 +1,19 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/provider/ProviderDashboardScreen.tsx
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
 import { useCompanyId } from '@/hooks/useCompanyId';
-import { fetchRequestsForProvider } from '@/services/requestService';
-import { fetchBookingsAsRequests } from '@/services/bookingService';
-import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
-import { ServiceRequest } from '@/types';
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
+import { fetchBookingsAsRequests } from '@/services/bookingService';
+import { fetchRequestsForProvider } from '@/services/requestService';
+import { ServiceRequest } from '@/types';
+import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { CompositeScreenProps } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useCallback,useState } from 'react';
+import { ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<ProviderStackParamList, 'ProviderDashboard'>,
@@ -40,6 +42,7 @@ const softShadow = {
 };
 
 export default function ProviderDashboardScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { user, role, companyName } = useAuth();
   const companyId = useCompanyId();
   // Providers greet by their own name; managers see the company they manage.
@@ -63,12 +66,12 @@ export default function ProviderDashboardScreen({ navigation }: Props) {
         merged.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
         setRequests(merged as ServiceRequest[]);
       });
-    }, [companyId])
+    }, [companyId]),
   );
 
   const newCount = requests.filter((r) => r.status === 'pending').length;
   const inProgressCount = requests.filter(
-    (r) => r.status === 'accepted' || r.status === 'in_progress'
+    (r) => r.status === 'accepted' || r.status === 'in_progress',
   ).length;
   const completedCount = requests.filter((r) => r.status === 'completed').length;
 
@@ -83,50 +86,52 @@ export default function ProviderDashboardScreen({ navigation }: Props) {
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.greeting}>
-        {role === 'employee' ? 'Managing' : 'Good morning,'}
+        {role === 'employee' ? t('Managing') : t('Good morning,')}
       </Text>
       <View style={styles.nameRow}>
         <Text style={styles.name}>{firstName}</Text>
         <View style={styles.verifiedBadge}>
           <Text style={styles.verifiedText}>
-            {role === 'employee' ? 'Manager' : '✓ Verified'}
+            {role === 'employee' ? t('Manager') : t('Service Provider')}
           </Text>
         </View>
       </View>
       {role === 'employee' && user?.displayName ? (
-        <Text style={styles.managerName}>Signed in as {user.displayName}</Text>
+        <Text style={styles.managerName}>
+          {t('Signed in as')} {user.displayName}
+        </Text>
       ) : null}
 
       <View style={styles.overviewCard}>
-        <Text style={styles.overviewTitle}>Today Overview</Text>
+        <Text style={styles.overviewTitle}>{t('Today Overview')}</Text>
         <View style={styles.overviewRow}>
           <View style={styles.overviewStat}>
             <Text style={[styles.overviewNum, { color: UI.new }]}>{newCount}</Text>
-            <Text style={styles.overviewLabel}>New Requests</Text>
+            <Text style={styles.overviewLabel}>{t('New Requests')}</Text>
           </View>
           <View style={styles.overviewStat}>
             <Text style={[styles.overviewNum, { color: UI.inProgress }]}>{inProgressCount}</Text>
-            <Text style={styles.overviewLabel}>In Progress</Text>
+            <Text style={styles.overviewLabel}>{t('In Progress')}</Text>
           </View>
           <View style={styles.overviewStat}>
             <Text style={[styles.overviewNum, { color: UI.completed }]}>{completedCount}</Text>
-            <Text style={styles.overviewLabel}>Completed</Text>
+            <Text style={styles.overviewLabel}>{t('Completed')}</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+        <Text style={styles.sectionTitle}>{t('Upcoming Appointments')}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('ProviderRequests')}>
-          <Text style={styles.viewAll}>View all</Text>
+          <Text style={styles.viewAll}>{t('View all')}</Text>
         </TouchableOpacity>
       </View>
 
       {upcoming.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>📭</Text>
-          <Text style={styles.emptyTitle}>No requests yet</Text>
-          <Text style={styles.emptySub}>New homeowner requests will appear here.</Text>
+          <Text style={styles.emptyTitle}>{t('No requests yet')}</Text>
+          <Text style={styles.emptySub}>{t('New homeowner requests will appear here.')}</Text>
         </View>
       ) : (
         upcoming.map((req) => {
@@ -150,19 +155,9 @@ export default function ProviderDashboardScreen({ navigation }: Props) {
                   </Text>
                 ) : null}
               </View>
-              <View
-                style={[
-                  styles.statusPill,
-                  { backgroundColor: isNew ? '#DBEAFE' : '#EDE9FE' },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusPillText,
-                    { color: isNew ? UI.new : UI.inProgress },
-                  ]}
-                >
-                  {isNew ? 'New' : req.status === 'accepted' ? 'Accepted' : 'In Progress'}
+              <View style={[styles.statusPill, { backgroundColor: isNew ? '#DBEAFE' : '#EDE9FE' }]}>
+                <Text style={[styles.statusPillText, { color: isNew ? UI.new : UI.inProgress }]}>
+                  {isNew ? t('New') : req.status === 'accepted' ? 'Accepted' : 'In Progress'}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -175,7 +170,7 @@ export default function ProviderDashboardScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: UI.bg },
-  container: { padding: 20, paddingBottom: 40 },
+  container: { width: '100%', maxWidth: 960, alignSelf: 'center', padding: 20, paddingBottom: 40 },
   greeting: { fontSize: 15, color: UI.body },
   nameRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, marginBottom: 20 },
   managerName: { fontSize: 13, color: '#64748B', marginTop: -12, marginBottom: 16 },

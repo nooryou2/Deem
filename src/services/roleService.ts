@@ -1,20 +1,14 @@
+import { getProviderRating } from './reviewService';
 // src/services/roleService.ts
-import {
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  collection,
-  serverTimestamp,
-} from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import {
-  UserRole,
-  ProviderProfile,
-  GeoLocation,
-  SavedLocation,
-  MAX_SAVED_LOCATIONS,
+GeoLocation,
+MAX_SAVED_LOCATIONS,
+ProviderProfile,
+SavedLocation,
+UserRole,
 } from '@/types';
+import { collection,doc,getDoc,getDocs,serverTimestamp,setDoc } from 'firebase/firestore';
 
 const COLLECTION = 'users';
 const PROVIDERS = 'providers';
@@ -24,22 +18,18 @@ const PROVIDERS = 'providers';
  * If the user is a provider, also writes a public provider profile that
  * homeowners can browse when requesting a service.
  */
-export async function saveUserRole(
-  uid: string,
-  role: UserRole,
-  name: string
-): Promise<void> {
+export async function saveUserRole(uid: string, role: UserRole, name: string): Promise<void> {
   await setDoc(
     doc(db, COLLECTION, uid),
     { role, name, updatedAt: serverTimestamp() },
-    { merge: true }
+    { merge: true },
   );
 
   if (role === 'provider') {
     await setDoc(
       doc(db, PROVIDERS, uid),
       { uid, name, updatedAt: serverTimestamp() },
-      { merge: true }
+      { merge: true },
     );
   }
 }
@@ -52,9 +42,7 @@ export async function getUserRole(uid: string): Promise<UserRole | null> {
     const snap = await getDoc(doc(db, COLLECTION, uid));
     if (!snap.exists()) return null;
     const role = snap.data().role;
-    return role === 'provider' || role === 'homeowner' || role === 'employee'
-      ? role
-      : null;
+    return role === 'provider' || role === 'homeowner' || role === 'employee' ? role : null;
   } catch (e) {
     console.log('getUserRole failed:', e);
     return null;
@@ -67,21 +55,23 @@ export async function getUserRole(uid: string): Promise<UserRole | null> {
 export async function listProviders(): Promise<ProviderProfile[]> {
   try {
     const snap = await getDocs(collection(db, PROVIDERS));
-    return snap.docs.map((d) => {
-      const data = d.data();
-      return {
-        uid: data.uid ?? d.id,
-        name: data.name ?? 'Service Provider',
-        category: data.category,
-        description: data.description,
-        appliances: data.appliances ?? [],
-        otherAppliance: data.otherAppliance ?? '',
-        address: data.address ?? '',
-        serviceAreas: data.serviceAreas ?? [],
-        location: data.location ?? null,
-        rating: data.rating ?? null,
-      };
-    });
+    return Promise.all(
+      snap.docs.map(async (d) => {
+        const data = d.data();
+        return {
+          uid: data.uid ?? d.id,
+          name: data.name ?? 'Service Provider',
+          category: data.category,
+          description: data.description,
+          appliances: data.appliances ?? [],
+          otherAppliance: data.otherAppliance ?? '',
+          address: data.address ?? '',
+          serviceAreas: data.serviceAreas ?? [],
+          location: data.location ?? null,
+          rating: await getProviderRating(d.id),
+        };
+      }),
+    );
   } catch (e) {
     console.log('listProviders failed:', e);
     return [];
@@ -95,12 +85,12 @@ export async function listProviders(): Promise<ProviderProfile[]> {
 export async function saveProviderAppliances(
   uid: string,
   appliances: string[],
-  otherAppliance: string
+  otherAppliance: string,
 ): Promise<void> {
   await setDoc(
     doc(db, PROVIDERS, uid),
     { uid, appliances, otherAppliance, updatedAt: serverTimestamp() },
-    { merge: true }
+    { merge: true },
   );
 }
 
@@ -136,7 +126,7 @@ export async function saveProviderServiceAreas(
   uid: string,
   address: string,
   serviceAreas: string[],
-  location: GeoLocation | null = null
+  location: GeoLocation | null = null,
 ): Promise<void> {
   await setDoc(
     doc(db, PROVIDERS, uid),
@@ -147,7 +137,7 @@ export async function saveProviderServiceAreas(
       location: location ?? null,
       updatedAt: serverTimestamp(),
     },
-    { merge: true }
+    { merge: true },
   );
 }
 
@@ -155,15 +145,8 @@ export async function saveProviderServiceAreas(
  * Saves the areas a homeowner's properties are in (they may have more than one).
  * Stored on their private user doc.
  */
-export async function saveHomeownerAreas(
-  uid: string,
-  areas: string[]
-): Promise<void> {
-  await setDoc(
-    doc(db, COLLECTION, uid),
-    { areas, updatedAt: serverTimestamp() },
-    { merge: true }
-  );
+export async function saveHomeownerAreas(uid: string, areas: string[]): Promise<void> {
+  await setDoc(doc(db, COLLECTION, uid), { areas, updatedAt: serverTimestamp() }, { merge: true });
 }
 
 /**
@@ -185,14 +168,11 @@ export async function getHomeownerAreas(uid: string): Promise<string[]> {
 /**
  * Saves the homeowner's pinned delivery-style location (map pin + address).
  */
-export async function saveHomeownerLocation(
-  uid: string,
-  location: GeoLocation
-): Promise<void> {
+export async function saveHomeownerLocation(uid: string, location: GeoLocation): Promise<void> {
   await setDoc(
     doc(db, COLLECTION, uid),
     { location, updatedAt: serverTimestamp() },
-    { merge: true }
+    { merge: true },
   );
 }
 
@@ -252,19 +232,16 @@ export async function getSavedLocations(uid: string): Promise<SavedLocation[]> {
  * Writes the full list of saved locations, enforcing the maximum and keeping
  * the `areas` field in sync (it's what provider matching reads).
  */
-export async function saveSavedLocations(
-  uid: string,
-  locations: SavedLocation[]
-): Promise<void> {
+export async function saveSavedLocations(uid: string, locations: SavedLocation[]): Promise<void> {
   const capped = locations.slice(0, MAX_SAVED_LOCATIONS);
   // Every area the homeowner has a property in — used to match providers.
   const areas = Array.from(
-    new Set(capped.map((l) => l.area).filter((a): a is string => Boolean(a)))
+    new Set(capped.map((l) => l.area).filter((a): a is string => Boolean(a))),
   );
   await setDoc(
     doc(db, COLLECTION, uid),
     { savedLocations: capped, areas, updatedAt: serverTimestamp() },
-    { merge: true }
+    { merge: true },
   );
 }
 
@@ -276,6 +253,6 @@ export async function saveProviderBio(uid: string, bio: string): Promise<void> {
   await setDoc(
     doc(db, PROVIDERS, uid),
     { uid, description: bio.trim(), updatedAt: serverTimestamp() },
-    { merge: true }
+    { merge: true },
   );
 }

@@ -1,32 +1,28 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/ServicedScreen.tsx
 //
 // A log of every completed service visit. A recurring task appears once per
 // visit, so a monthly job shows a separate, individually reviewable entry for
 // each month it was serviced.
 
-import React, { useState, useCallback, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import SearchBar from '@/components/SearchBar';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
+import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { ServiceLogEntry,fetchServiceLog } from '@/services/maintenanceService';
+import { fetchReviewedJobIds } from '@/services/reviewService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { formatFriendlyDate } from '@/utils/dateCalculations';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '@/context/AuthContext';
-import { fetchServiceLog, ServiceLogEntry } from '@/services/maintenanceService';
-import { fetchReviewedJobIds } from '@/services/reviewService';
-import SearchBar from '@/components/SearchBar';
-import { formatFriendlyDate } from '@/utils/dateCalculations';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import type { MainStackParamList } from '@/navigation/MainNavigator';
+import React,{ useCallback,useMemo,useState } from 'react';
+import { ActivityIndicator,FlatList,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Serviced'>;
 
 export default function ServicedScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [entries, setEntries] = useState<ServiceLogEntry[]>([]);
   const [reviewedJobs, setReviewedJobs] = useState<string[]>([]);
@@ -40,7 +36,9 @@ export default function ServicedScreen({ navigation }: Props) {
       .then(setEntries)
       .catch(() => {})
       .finally(() => setLoading(false));
-    fetchReviewedJobIds(user.uid).then(setReviewedJobs).catch(() => {});
+    fetchReviewedJobIds(user.uid)
+      .then(setReviewedJobs)
+      .catch(() => {});
   }, [user]);
 
   useFocusEffect(load);
@@ -51,7 +49,7 @@ export default function ServicedScreen({ navigation }: Props) {
     return entries.filter(
       (e) =>
         e.maintenanceItemName.toLowerCase().includes(q) ||
-        (e.providerName ?? '').toLowerCase().includes(q)
+        (e.providerName ?? '').toLowerCase().includes(q),
     );
   }, [entries, search]);
 
@@ -69,7 +67,7 @@ export default function ServicedScreen({ navigation }: Props) {
         <SearchBar
           value={search}
           onChangeText={setSearch}
-          placeholder="Search serviced history…"
+          placeholder={t('Search serviced history…')}
         />
       </View>
 
@@ -78,7 +76,7 @@ export default function ServicedScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => {
-          const reviewed = reviewedJobs.includes(item.id);
+          const reviewed = reviewedJobs.includes(item.jobId ?? item.id);
           // Only provider-performed visits can be rated — a self-logged
           // service has nobody to review.
           const canReview = Boolean(item.providerId) && !reviewed;
@@ -92,12 +90,14 @@ export default function ServicedScreen({ navigation }: Props) {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>{item.maintenanceItemName}</Text>
                   <Text style={styles.date}>
-                    Serviced {formatFriendlyDate(item.completedDate)}
+                    {t('Serviced')} {formatFriendlyDate(item.completedDate)}
                   </Text>
                   {item.providerName ? (
-                    <Text style={styles.provider}>by {item.providerName}</Text>
+                    <Text style={styles.provider}>
+                      {t('by')} {item.providerName}
+                    </Text>
                   ) : (
-                    <Text style={styles.selfLogged}>Logged by you</Text>
+                    <Text style={styles.selfLogged}>{t('Logged by you')}</Text>
                   )}
                 </View>
               </View>
@@ -110,22 +110,22 @@ export default function ServicedScreen({ navigation }: Props) {
                     navigation.navigate('WriteReview', {
                       providerId: item.providerId!,
                       providerName: item.providerName ?? 'Provider',
-                      jobId: item.id,
-                      jobType: 'request',
+                      jobId: item.jobId ?? item.id,
+                      jobType: item.jobType ?? 'request',
                       serviceName: item.maintenanceItemName,
                       servicedDate: item.completedDate,
                     })
                   }
                 >
                   <Ionicons name="star-outline" size={15} color={colors.white} />
-                  <Text style={styles.rateBtnText}>Rate this service</Text>
+                  <Text style={styles.rateBtnText}>{t('Rate this service')}</Text>
                 </TouchableOpacity>
               )}
 
               {reviewed && (
                 <View style={styles.ratedRow}>
                   <Ionicons name="checkmark-circle" size={15} color={colors.completed} />
-                  <Text style={styles.ratedText}>You rated this service</Text>
+                  <Text style={styles.ratedText}>{t('You rated this service')}</Text>
                 </View>
               )}
             </View>
@@ -135,12 +135,12 @@ export default function ServicedScreen({ navigation }: Props) {
           <View style={styles.empty}>
             <Ionicons name="time-outline" size={40} color={colors.textMuted} />
             <Text style={styles.emptyTitle}>
-              {search ? 'No matches' : 'No services logged yet'}
+              {search ? t('No matches') : t('No services logged yet')}
             </Text>
             <Text style={styles.emptySub}>
               {search
                 ? `Nothing matches "${search}".`
-                : 'When you mark a task complete, each visit appears here.'}
+                : t('When you mark a task complete, each visit appears here.')}
             </Text>
           </View>
         }

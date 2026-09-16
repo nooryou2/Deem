@@ -7,32 +7,44 @@
 // (e.g. using `expo-constants` + `app.config.js` + a `.env` file that is git-ignored)
 // instead of committing real keys to source control.
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getApp,getApps,initializeApp } from 'firebase/app';
 import {
-  initializeAuth,
-  // @ts-ignore - getReactNativePersistence exists at runtime but is missing from types
-  getReactNativePersistence,
-  getAuth,
-  browserLocalPersistence,
-  type Auth,
+browserLocalPersistence,
+connectAuthEmulator,
+getAuth,
+// @ts-ignore - getReactNativePersistence exists at runtime but is missing from types
+getReactNativePersistence,
+initializeAuth,
+type Auth,
 } from 'firebase/auth';
 import {
-  initializeFirestore,
-  getFirestore,
-  type Firestore,
+connectFirestoreEmulator,
+getFirestore,
+initializeFirestore,
+type Firestore,
 } from 'firebase/firestore';
+import { connectStorageEmulator,getStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const firebaseConfig = {
-  apiKey: 'AIzaSyCs3zmjgT_sWjJdLE4Pr3c9t_I8Iwg66CY',
-  authDomain: 'sanad-e967c.firebaseapp.com',
-  projectId: 'sanad-e967c',
-  storageBucket: 'sanad-e967c.firebasestorage.app',
-  messagingSenderId: '892846536745',
-  appId: '1:892846536745:web:b50459698d2d276f604438',
-  measurementId: 'G-DE397ETR0D',
-};
+const useEmulators = __DEV__ && process.env.EXPO_PUBLIC_USE_EMULATORS === 'true';
+const firebaseConfig = useEmulators
+  ? {
+      apiKey: 'demo-key',
+      authDomain: 'demo-deem.firebaseapp.com',
+      projectId: 'demo-deem',
+      storageBucket: 'demo-deem.appspot.com',
+      appId: 'demo-deem',
+    }
+  : {
+      apiKey: 'AIzaSyCs3zmjgT_sWjJdLE4Pr3c9t_I8Iwg66CY',
+      authDomain: 'sanad-e967c.firebaseapp.com',
+      projectId: 'sanad-e967c',
+      storageBucket: 'sanad-e967c.firebasestorage.app',
+      messagingSenderId: '892846536745',
+      appId: '1:892846536745:web:b50459698d2d276f604438',
+      measurementId: 'G-DE397ETR0D',
+    };
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
@@ -44,9 +56,7 @@ let auth: Auth;
 try {
   auth = initializeAuth(app, {
     persistence:
-      Platform.OS === 'web'
-        ? browserLocalPersistence
-        : getReactNativePersistence(AsyncStorage),
+      Platform.OS === 'web' ? browserLocalPersistence : getReactNativePersistence(AsyncStorage),
   });
 } catch {
   // initializeAuth throws if it was already called (e.g. fast refresh in dev)
@@ -61,10 +71,21 @@ try {
   db = initializeFirestore(app, {
     experimentalForceLongPolling: true,
   });
-  console.log('[Firebase] Firestore initialized with FORCE LONG POLLING ✅');
 } catch (e) {
   console.log('[Firebase] initializeFirestore failed, falling back to getFirestore:', e);
   db = getFirestore(app);
 }
 
-export { app, auth, db };
+if (useEmulators && Platform.OS === 'web') {
+  const host = window.location.hostname;
+  try {
+    connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
+  } catch {}
+  try {
+    connectFirestoreEmulator(db, host, 8180);
+  } catch {}
+  try {
+    connectStorageEmulator(getStorage(app), host, 9199);
+  } catch {}
+}
+export { app,auth,db };

@@ -1,33 +1,35 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/provider/ProviderAreasScreen.tsx
 //
 // Where a provider defines their coverage: which areas they work in, and the
 // map pin homeowners see. Split out from the profile so the lists have room.
 
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Platform,
-  Alert,
-} from 'react-native';
+import Button from '@/components/Button';
+import MapPicker,{ LatLng } from '@/components/MapPicker';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
+import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
+import { getProviderProfile,saveProviderServiceAreas } from '@/services/roleService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { areasByGovernorate,areasByIds,nearestArea } from '@/utils/areas';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '@/context/AuthContext';
-import { getProviderProfile, saveProviderServiceAreas } from '@/services/roleService';
-import MapPicker, { LatLng } from '@/components/MapPicker';
-import Button from '@/components/Button';
-import { areasByGovernorate, areasByIds, nearestArea } from '@/utils/areas';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
+import React,{ useEffect,useMemo,useState } from 'react';
+import {
+ActivityIndicator,
+Alert,
+Platform,
+ScrollView,
+StyleSheet,
+TextInput,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderAreas'>;
 
 export default function ProviderAreasScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,7 @@ export default function ProviderAreasScreen({ navigation }: Props) {
 
   function toggleGovernorate(ids: string[], allOn: boolean) {
     setAreas((prev) =>
-      allOn ? prev.filter((a) => !ids.includes(a)) : Array.from(new Set([...prev, ...ids]))
+      allOn ? prev.filter((a) => !ids.includes(a)) : Array.from(new Set([...prev, ...ids])),
     );
   }
 
@@ -93,7 +95,7 @@ export default function ProviderAreasScreen({ navigation }: Props) {
         user.uid,
         address,
         areas,
-        coords ? { lat: coords.lat, lng: coords.lng } : null
+        coords ? { lat: coords.lat, lng: coords.lng } : null,
       );
       notify('Your coverage was saved.');
       navigation.goBack();
@@ -115,8 +117,10 @@ export default function ProviderAreasScreen({ navigation }: Props) {
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.pageTitle}>Areas &amp; Coverage</Text>
-        <Text style={styles.pageSub}>Manage the areas you cover and your service location.</Text>
+        <Text style={styles.pageTitle}>{t('Areas & Coverage')}</Text>
+        <Text style={styles.pageSub}>
+          {t('Manage the areas you cover and your service location.')}
+        </Text>
 
         {/* Base location first: pinning it suggests the surrounding area, which
             gives the area list a sensible starting point. */}
@@ -126,9 +130,9 @@ export default function ProviderAreasScreen({ navigation }: Props) {
               <Text style={styles.stepNumText}>1</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>Your base location</Text>
+              <Text style={styles.cardTitle}>{t('Your base location')}</Text>
               <Text style={styles.cardSub}>
-                Where your office or workshop is. Tap the map to drop your pin.
+                {t('Where your office or workshop is. Tap the map to drop your pin.')}
               </Text>
             </View>
           </View>
@@ -139,12 +143,10 @@ export default function ProviderAreasScreen({ navigation }: Props) {
             height={230}
           />
           {coords ? (
-            <Text style={styles.pinNote}>
-              Green circles show the areas you cover.
-            </Text>
+            <Text style={styles.pinNote}>{t('Green circles show the areas you cover.')}</Text>
           ) : (
             <Text style={styles.pinNote}>
-              No pin set yet — homeowners won't see how far you are.
+              {t("No pin set yet — homeowners won't see how far you are.")}
             </Text>
           )}
         </View>
@@ -155,9 +157,9 @@ export default function ProviderAreasScreen({ navigation }: Props) {
               <Text style={styles.stepNumText}>2</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>Areas you cover</Text>
+              <Text style={styles.cardTitle}>{t('Areas you cover')}</Text>
               <Text style={styles.cardSub}>
-                You'll only appear to homeowners in these areas.
+                {t("You'll only appear to homeowners in these areas.")}
               </Text>
             </View>
           </View>
@@ -168,7 +170,7 @@ export default function ProviderAreasScreen({ navigation }: Props) {
               style={styles.searchInput}
               value={query}
               onChangeText={setQuery}
-              placeholder="Search areas…"
+              placeholder={t('Search areas…')}
               placeholderTextColor={colors.textMuted}
             />
             {query.length > 0 && (
@@ -179,7 +181,10 @@ export default function ProviderAreasScreen({ navigation }: Props) {
           </View>
 
           {groups.length === 0 && (
-            <Text style={styles.noResults}>No areas match "{query}".</Text>
+            <Text style={styles.noResults}>
+              {t('No areas match "')}
+              {query}".
+            </Text>
           )}
 
           {groups.map((group) => {
@@ -198,11 +203,7 @@ export default function ProviderAreasScreen({ navigation }: Props) {
                   >
                     <Ionicons
                       name={
-                        allOn
-                          ? 'checkbox'
-                          : chosen.length > 0
-                          ? 'remove-circle'
-                          : 'square-outline'
+                        allOn ? 'checkbox' : chosen.length > 0 ? 'remove-circle' : 'square-outline'
                       }
                       size={22}
                       color={chosen.length > 0 ? colors.primary : colors.border}
@@ -229,7 +230,7 @@ export default function ProviderAreasScreen({ navigation }: Props) {
                     }
                   >
                     <Text style={styles.expandText}>
-                      {allOn ? 'All neighborhoods' : `${group.areas.length} areas`}
+                      {allOn ? t('All neighborhoods') : `${group.areas.length} areas`}
                     </Text>
                     <Ionicons
                       name={isOpen ? 'chevron-up' : 'chevron-down'}
@@ -256,7 +257,7 @@ export default function ProviderAreasScreen({ navigation }: Props) {
                             color={on ? colors.primary : colors.border}
                           />
                           <Text style={[styles.areaName, on && styles.areaNameOn]}>
-                            {a.label}
+                            {t(a.label)}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -271,13 +272,13 @@ export default function ProviderAreasScreen({ navigation }: Props) {
         <View style={styles.tipBox}>
           <Ionicons name="bulb-outline" size={16} color="#B45309" />
           <Text style={styles.tipText}>
-            Being specific with your areas helps homeowners find you faster.
+            {t('Being specific with your areas helps homeowners find you faster.')}
           </Text>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button label="Save Coverage" onPress={handleSave} loading={saving} />
+        <Button label={t('Save Coverage')} onPress={handleSave} loading={saving} />
       </View>
     </View>
   );
@@ -291,7 +292,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-  container: { padding: spacing.lg, paddingBottom: 110 },
+  container: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: 110,
+  },
   pageTitle: { ...typography.h2 },
   pageSub: { ...typography.bodySecondary, marginTop: 2, marginBottom: spacing.lg },
 

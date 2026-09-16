@@ -1,18 +1,20 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/MaintenanceListScreen.tsx
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
-import MaintenanceCard from '@/components/MaintenanceCard';
-import EmptyState from '@/components/EmptyState';
 import ChipSelector from '@/components/ChipSelector';
+import EmptyState from '@/components/EmptyState';
+import MaintenanceCard from '@/components/MaintenanceCard';
 import SearchBar from '@/components/SearchBar';
-import { colors, spacing, radius } from '@/theme/theme';
+import Text from '@/components/app-text';
+import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { colors,radius,spacing } from '@/theme/theme';
 import { MaintenanceStatus } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { CompositeScreenProps } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useEffect,useState } from 'react';
+import { FlatList,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<MainStackParamList, 'MaintenanceList'>,
@@ -38,6 +40,7 @@ const FILTERS: {
 ];
 
 export default function MaintenanceListScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const { items, loading } = useMaintenanceItems();
   const [filter, setFilter] = useState<FilterValue>(route.params?.filter ?? 'all');
   const [search, setSearch] = useState('');
@@ -50,8 +53,7 @@ export default function MaintenanceListScreen({ navigation, route }: Props) {
   const filteredItems = items.filter((item) => {
     // A booking still awaiting the provider isn't scheduled yet, so it
     // shouldn't surface under the date-based filters.
-    const unconfirmed =
-      item.bookingStatus === 'pending' || item.bookingStatus === 'declined';
+    const unconfirmed = item.bookingStatus === 'pending' || item.bookingStatus === 'declined';
 
     // Status/category filter
     if (filter === 'on_track') {
@@ -72,24 +74,28 @@ export default function MaintenanceListScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.searchRow}>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search maintenance…" />
+        <SearchBar value={search} onChangeText={setSearch} placeholder={t('Search maintenance…')} />
       </View>
       {/* Registering appliances is the point of this screen, so the action to
           add one sits with the list rather than hidden in a header icon. */}
       <View style={styles.sectionRow}>
-        <Text style={styles.sectionTitle}>Your Appliances</Text>
+        <Text style={styles.sectionTitle}>{t('Your Appliances')}</Text>
         <TouchableOpacity
           style={styles.addBtn}
           activeOpacity={0.85}
           onPress={() => navigation.navigate('AddEditMaintenance', undefined)}
         >
           <Ionicons name="add" size={16} color={colors.white} />
-          <Text style={styles.addBtnText}>Add</Text>
+          <Text style={styles.addBtnText}>{t('Add')}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.filterRow}>
-        <ChipSelector options={FILTERS} selectedValue={filter} onSelect={(v) => setFilter(v as any)} />
+        <ChipSelector
+          options={FILTERS}
+          selectedValue={filter}
+          onSelect={(v) => setFilter(v as any)}
+        />
       </View>
 
       <FlatList
@@ -111,8 +117,8 @@ export default function MaintenanceListScreen({ navigation, route }: Props) {
                 query
                   ? `Nothing matches "${search.trim()}".`
                   : filter === 'all'
-                  ? 'Your maintenance items will appear here.'
-                  : 'Nothing in this category right now.'
+                    ? 'Your maintenance items will appear here.'
+                    : 'Nothing in this category right now.'
               }
             />
           ) : null
@@ -125,10 +131,10 @@ export default function MaintenanceListScreen({ navigation, route }: Props) {
         style={styles.fab}
         activeOpacity={0.7}
         onPress={() => navigation.navigate('Booking', undefined)}
-        accessibilityLabel="Book a service"
+        accessibilityLabel={t('Book a service')}
       >
         <Ionicons name="add" size={20} color={colors.white} />
-        <Text style={styles.fabLabel}>Book a Service</Text>
+        <Text style={styles.fabLabel}>{t('Book a Service')}</Text>
       </TouchableOpacity>
     </View>
   );

@@ -1,3 +1,4 @@
+import { translateLabel } from '@/i18n/locale';
 // src/utils/areas.ts
 //
 // Bahrain's areas, grouped by governorate. Providers pick the areas they cover;
@@ -13,12 +14,7 @@ export interface Area {
   lng: number;
 }
 
-export const GOVERNORATES = [
-  'Capital',
-  'Muharraq',
-  'Northern',
-  'Southern',
-] as const;
+export const GOVERNORATES = ['Capital', 'Muharraq', 'Northern', 'Southern'] as const;
 
 export const AREAS: Area[] = [
   // --- Capital Governorate ---
@@ -32,8 +28,20 @@ export const AREAS: Area[] = [
   { id: 'sanabis', label: 'Sanabis', governorate: 'Capital', lat: 26.2286, lng: 50.5477 },
   { id: 'zinj', label: 'Zinj', governorate: 'Capital', lat: 26.2143, lng: 50.5666 },
   { id: 'mahooz', label: 'Mahooz', governorate: 'Capital', lat: 26.2074, lng: 50.5926 },
-  { id: 'umm_al_hassam', label: 'Umm Al Hassam', governorate: 'Capital', lat: 26.2005, lng: 50.5891 },
-  { id: 'bilad_al_qadeem', label: 'Bilad Al Qadeem', governorate: 'Capital', lat: 26.2075, lng: 50.5578 },
+  {
+    id: 'umm_al_hassam',
+    label: 'Umm Al Hassam',
+    governorate: 'Capital',
+    lat: 26.2005,
+    lng: 50.5891,
+  },
+  {
+    id: 'bilad_al_qadeem',
+    label: 'Bilad Al Qadeem',
+    governorate: 'Capital',
+    lat: 26.2075,
+    lng: 50.5578,
+  },
   { id: 'jidhafs', label: 'Jidhafs', governorate: 'Capital', lat: 26.22, lng: 50.539 },
   { id: 'sagaya', label: 'Sanad', governorate: 'Capital', lat: 26.162, lng: 50.549 },
 
@@ -78,11 +86,11 @@ export const AREAS: Area[] = [
 
 export const AREA_LABELS: Record<string, string> = AREAS.reduce(
   (acc, a) => ({ ...acc, [a.id]: a.label }),
-  {}
+  {},
 );
 
 export function areaLabel(id: string): string {
-  return AREA_LABELS[id] ?? id;
+  return translateLabel(AREA_LABELS[id] ?? id);
 }
 
 /** Areas grouped by governorate, for sectioned pickers. */
@@ -100,7 +108,7 @@ export function areasByGovernorate(): { governorate: string; areas: Area[] }[] {
  */
 export function providerCoversAny(
   providerAreas: string[] | undefined,
-  homeownerAreas: string[] | undefined
+  homeownerAreas: string[] | undefined,
 ): boolean {
   if (!providerAreas || providerAreas.length === 0) return true;
   if (!homeownerAreas || homeownerAreas.length === 0) return true;
@@ -110,16 +118,14 @@ export function providerCoversAny(
 /** Great-circle distance in km between two coordinates. */
 export function distanceKm(
   a: { lat: number; lng: number },
-  b: { lat: number; lng: number }
+  b: { lat: number; lng: number },
 ): number {
   const R = 6371;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
   const dLng = ((b.lng - a.lng) * Math.PI) / 180;
   const lat1 = (a.lat * Math.PI) / 180;
   const lat2 = (b.lat * Math.PI) / 180;
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  const h = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
@@ -145,7 +151,5 @@ export function nearestArea(coords: { lat: number; lng: number }): Area | null {
 export function areasByIds(ids: string[]): Area[] {
   // find() returns the first match, so ids listed under two governorates
   // (e.g. Sitra) still resolve to a single entry.
-  return ids
-    .map((id) => AREAS.find((a) => a.id === id))
-    .filter((a): a is Area => Boolean(a));
+  return ids.map((id) => AREAS.find((a) => a.id === id)).filter((a): a is Area => Boolean(a));
 }

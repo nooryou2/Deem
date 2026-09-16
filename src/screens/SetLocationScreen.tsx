@@ -1,33 +1,28 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/SetLocationScreen.tsx
 //
 // Delivery-app style location picker (à la Talabat): drop a pin on the map,
 // use your current location, and add a written address for the technician.
 
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Platform,
-  Alert,
-  TouchableOpacity,
-} from 'react-native';
+import Button from '@/components/Button';
+import InputField from '@/components/InputField';
+import MapPicker,{ LatLng } from '@/components/MapPicker';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
+import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { getSavedLocations,saveSavedLocations } from '@/services/roleService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { MAX_SAVED_LOCATIONS,SavedLocation } from '@/types';
+import { AREAS,areaLabel,nearestArea } from '@/utils/areas';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '@/context/AuthContext';
-import MapPicker, { LatLng } from '@/components/MapPicker';
-import InputField from '@/components/InputField';
-import Button from '@/components/Button';
-import { getSavedLocations, saveSavedLocations } from '@/services/roleService';
-import { AREAS, areaLabel, nearestArea } from '@/utils/areas';
-import { SavedLocation, MAX_SAVED_LOCATIONS } from '@/types';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import type { MainStackParamList } from '@/navigation/MainNavigator';
+import React,{ useEffect,useState } from 'react';
+import { Alert,Platform,ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'SetLocation'>;
 
 export default function SetLocationScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const editingId = route.params?.locationId ?? null;
   const [label, setLabel] = useState('');
@@ -99,7 +94,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
         area,
         // The very first place saved becomes the default.
         isDefault: editingId
-          ? existing.find((l) => l.id === editingId)?.isDefault ?? false
+          ? (existing.find((l) => l.id === editingId)?.isDefault ?? false)
           : existing.length === 0,
       };
 
@@ -130,17 +125,15 @@ export default function SetLocationScreen({ navigation, route }: Props) {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.container}>
-      <Text style={styles.title}>
-        {editingId ? 'Edit location' : 'Add a location'}
-      </Text>
+      <Text style={styles.title}>{editingId ? t('Edit location') : t('Add a location')}</Text>
       <Text style={styles.subtitle}>
-        Drop a pin so technicians know exactly where to come.
+        {t('Drop a pin so technicians know exactly where to come.')}
       </Text>
 
-      <Text style={[styles.label, { marginTop: spacing.md }]}>Name this place</Text>
+      <Text style={[styles.label, { marginTop: spacing.md }]}>{t('Name this place')}</Text>
       <InputField
         label=""
-        placeholder="Home, Chalet, Office…"
+        placeholder={t('Home, Chalet, Office…')}
         value={label}
         onChangeText={setLabel}
       />
@@ -149,11 +142,11 @@ export default function SetLocationScreen({ navigation, route }: Props) {
 
       {/* Area — still needed for matching providers to this home */}
       <View style={styles.labelRow}>
-        <Text style={styles.label}>Area</Text>
+        <Text style={styles.label}>{t('Area')}</Text>
         {areaAutoPicked && (
           <View style={styles.autoPill}>
             <Ionicons name="sparkles" size={11} color={colors.primary} />
-            <Text style={styles.autoText}>From your pin</Text>
+            <Text style={styles.autoText}>{t('From your pin')}</Text>
           </View>
         )}
       </View>
@@ -164,7 +157,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
       >
         <Ionicons name="location-outline" size={18} color={colors.textMuted} />
         <Text style={[styles.areaValue, !area && styles.areaPlaceholder]}>
-          {area ? areaLabel(area) : 'Choose your area'}
+          {area ? areaLabel(area) : t('Choose your area')}
         </Text>
         <Ionicons
           name={showAreaList ? 'chevron-up' : 'chevron-down'}
@@ -177,7 +170,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
         <View style={styles.areaList}>
           <InputField
             label=""
-            placeholder="Search areas…"
+            placeholder={t('Search areas…')}
             value={areaQuery}
             onChangeText={setAreaQuery}
           />
@@ -193,21 +186,24 @@ export default function SetLocationScreen({ navigation, route }: Props) {
                   setAreaQuery('');
                 }}
               >
-                <Text style={styles.areaRowText}>{a.label}</Text>
+                <Text style={styles.areaRowText}>{t(a.label)}</Text>
                 <Text style={styles.areaRowGov}>{a.governorate}</Text>
               </TouchableOpacity>
             ))}
             {filteredAreas.length === 0 && (
-              <Text style={styles.noMatch}>No areas match "{areaQuery}".</Text>
+              <Text style={styles.noMatch}>
+                {t('No areas match "')}
+                {areaQuery}".
+              </Text>
             )}
           </ScrollView>
         </View>
       )}
 
-      <Text style={styles.label}>Address details</Text>
+      <Text style={styles.label}>{t('Address details')}</Text>
       <InputField
         label=""
-        placeholder="Building 123, Road 45, Flat 2"
+        placeholder={t('Building 123, Road 45, Flat 2')}
         value={address}
         onChangeText={setAddress}
         multiline
@@ -216,7 +212,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
       />
 
       <Button
-        label={editingId ? "Update Location" : "Save Location"}
+        label={editingId ? 'Update Location' : 'Save Location'}
         onPress={handleSave}
         loading={saving}
         style={{ marginTop: spacing.md }}
@@ -227,7 +223,13 @@ export default function SetLocationScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  container: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
   title: { ...typography.h2 },
   subtitle: { ...typography.bodySecondary, marginTop: 2, marginBottom: spacing.md },
   label: { ...typography.bodySecondary, fontWeight: '700' },

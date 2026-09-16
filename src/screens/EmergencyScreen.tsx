@@ -1,33 +1,35 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/EmergencyScreen.tsx
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  ActivityIndicator,
-  Platform,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { MainStackParamList } from '@/navigation/MainNavigator';
-import { useAuth } from '@/context/AuthContext';
-import { useAreaFilteredProviders } from '@/hooks/useAreaFilteredProviders';
-import { createServiceRequest, fetchRequestsForHomeowner } from '@/services/requestService';
+import ApplianceSelector from '@/components/ApplianceSelector';
 import Button from '@/components/Button';
 import SearchBar from '@/components/SearchBar';
-import ApplianceSelector from '@/components/ApplianceSelector';
 import ServiceProgressTracker from '@/components/ServiceProgressTracker';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
+import { useAreaFilteredProviders } from '@/hooks/useAreaFilteredProviders';
+import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { createServiceRequest,fetchRequestsForHomeowner } from '@/services/requestService';
 import { fetchReviewedJobIds } from '@/services/reviewService';
-import { applianceLabel, applianceIcon } from '@/utils/appliances';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { ProviderProfile, ServiceRequest } from '@/types';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { ProviderProfile,ServiceRequest } from '@/types';
+import { applianceIcon,applianceLabel } from '@/utils/appliances';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect,useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React,{ useCallback,useMemo,useState } from 'react';
+import {
+ActivityIndicator,
+Alert,
+Modal,
+Platform,
+ScrollView,
+StyleSheet,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 export default function EmergencyScreen() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   // Only providers who cover the homeowner's area.
@@ -62,8 +64,10 @@ export default function EmergencyScreen() {
       fetchRequestsForHomeowner(user.uid)
         .then((all) => setMyRequests(all.filter((r) => r.isEmergency)))
         .catch(() => {});
-      fetchReviewedJobIds(user.uid).then(setReviewedJobs).catch(() => {});
-    }, [user])
+      fetchReviewedJobIds(user.uid)
+        .then(setReviewedJobs)
+        .catch(() => {});
+    }, [user]),
   );
 
   function notify(msg: string) {
@@ -72,9 +76,7 @@ export default function EmergencyScreen() {
   }
 
   function togglePending(id: string) {
-    setPendingFilter((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setPendingFilter((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
   function applyFilter() {
@@ -87,9 +89,7 @@ export default function EmergencyScreen() {
   const matchingProviders = useMemo(() => {
     let list = providers;
     if (activeFilter.length > 0) {
-      list = list.filter((p) =>
-        (p.appliances ?? []).some((a) => activeFilter.includes(a))
-      );
+      list = list.filter((p) => (p.appliances ?? []).some((a) => activeFilter.includes(a)));
     }
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
@@ -105,7 +105,7 @@ export default function EmergencyScreen() {
 
   function toggleChosen(id: string) {
     setChosenAppliances((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   }
 
@@ -113,7 +113,7 @@ export default function EmergencyScreen() {
     if (!user || !selectedProvider || chosenAppliances.length === 0) return;
     setSubmitting(true);
     try {
-      const label = chosenAppliances.map(applianceLabel).join(', ');
+      const label = chosenAppliances.map((a) => t(applianceLabel(a))).join(', ');
       await createServiceRequest({
         homeownerId: user.uid,
         homeownerName: user.displayName ?? 'Homeowner',
@@ -151,7 +151,7 @@ export default function EmergencyScreen() {
           activeOpacity={0.8}
         >
           <Text style={[styles.toggleText, tab === 'find' && styles.toggleTextActive]}>
-            Find Help
+            {t('Find Help')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -160,7 +160,7 @@ export default function EmergencyScreen() {
           activeOpacity={0.8}
         >
           <Text style={[styles.toggleText, tab === 'requests' && styles.toggleTextActive]}>
-            My Requests{myRequests.length ? ` (${myRequests.length})` : ''}
+            {t('My Requests')} {myRequests.length ? ` (${myRequests.length})` : ''}
           </Text>
         </TouchableOpacity>
       </View>
@@ -170,9 +170,9 @@ export default function EmergencyScreen() {
           {myRequests.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>📭</Text>
-              <Text style={styles.emptyTitle}>No emergency requests yet</Text>
+              <Text style={styles.emptyTitle}>{t('No emergency requests yet')}</Text>
               <Text style={styles.emptySub}>
-                Requests you send from "Find Help" will appear here with their status.
+                {t('Requests you send from "Find Help" will appear here with their status.')}
               </Text>
             </View>
           ) : (
@@ -180,8 +180,9 @@ export default function EmergencyScreen() {
               <View key={req.id} style={styles.reqCard}>
                 <View style={styles.reqHeader}>
                   <Text style={styles.reqTitle} numberOfLines={1}>
-                    {(req.appliances ?? []).map(applianceIcon).join(' ')}{'  '}
-                    {(req.appliances ?? []).map(applianceLabel).join(', ')}
+                    {(req.appliances ?? []).map(applianceIcon).join(' ')}
+                    {'  '}
+                    {(req.appliances ?? []).map((a) => t(applianceLabel(a))).join(', ')}
                   </Text>
                 </View>
                 <ServiceProgressTracker status={req.status} providerName={req.providerName} />
@@ -203,14 +204,14 @@ export default function EmergencyScreen() {
                     }}
                   >
                     <Ionicons name="star-outline" size={16} color={colors.white} />
-                    <Text style={styles.rateBtnText}>Rate this service</Text>
+                    <Text style={styles.rateBtnText}>{t('Rate this service')}</Text>
                   </TouchableOpacity>
                 )}
 
                 {req.status === 'completed' && reviewedJobs.includes(req.id) && (
                   <View style={styles.ratedRow}>
                     <Ionicons name="checkmark-circle" size={15} color={colors.completed} />
-                    <Text style={styles.ratedText}>You rated this service</Text>
+                    <Text style={styles.ratedText}>{t('You rated this service')}</Text>
                   </View>
                 )}
               </View>
@@ -218,94 +219,102 @@ export default function EmergencyScreen() {
           )}
         </ScrollView>
       ) : (
-      <>
-      {/* Top bar: filter summary + change button */}
-      <View style={styles.topBar}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.topTitle}>Find help fast</Text>
-          <Text style={styles.topSub}>
-            {activeFilter.length > 0
-              ? `Showing providers for: ${activeFilter.map(applianceLabel).join(', ')}`
-              : 'Select the appliances that need fixing.'}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.filterBtn}
-          onPress={() => {
-            setPendingFilter(activeFilter);
-            setFilterOpen(true);
-          }}
-        >
-          <Text style={styles.filterBtnText}>Filter</Text>
-        </TouchableOpacity>
-      </View>
+        <>
+          {/* Top bar: filter summary + change button */}
+          <View style={styles.topBar}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.topTitle}>{t('Find help fast')}</Text>
+              <Text style={styles.topSub}>
+                {activeFilter.length > 0
+                  ? `Showing providers for: ${activeFilter.map((a) => t(applianceLabel(a))).join(', ')}`
+                  : t('Select the appliances that need fixing.')}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.filterBtn}
+              onPress={() => {
+                setPendingFilter(activeFilter);
+                setFilterOpen(true);
+              }}
+            >
+              <Text style={styles.filterBtnText}>{t('Filter')}</Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* Search */}
-      {hasFiltered && (
-        <View style={styles.searchRow}>
-          <SearchBar value={search} onChangeText={setSearch} placeholder="Search provider name…" />
-        </View>
-      )}
+          {/* Search */}
+          {hasFiltered && (
+            <View style={styles.searchRow}>
+              <SearchBar
+                value={search}
+                onChangeText={setSearch}
+                placeholder={t('Search provider name…')}
+              />
+            </View>
+          )}
 
-      {/* Provider list */}
-      {loading ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
-      ) : !hasFiltered ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>🚨</Text>
-          <Text style={styles.emptyTitle}>What's the emergency?</Text>
-          <Text style={styles.emptySub}>Tap Filter to pick the appliances that need fixing.</Text>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.listContent}>
-          {matchingProviders.length === 0 ? (
+          {/* Provider list */}
+          {loading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
+          ) : !hasFiltered ? (
             <View style={styles.empty}>
-              <Ionicons name="search-outline" size={40} color={colors.textMuted} />
-              <Text style={styles.emptyTitle}>No providers found</Text>
+              <Text style={styles.emptyIcon}>🚨</Text>
+              <Text style={styles.emptyTitle}>{t("What's the emergency?")}</Text>
               <Text style={styles.emptySub}>
-                {myAreas.length > 0
-                  ? 'No provider covering your area fixes those appliances. Try different appliances, or add another area in your profile.'
-                  : 'No one currently fixes those appliances. Try different ones.'}
+                {t('Tap Filter to pick the appliances that need fixing.')}
               </Text>
             </View>
           ) : (
-            matchingProviders.map((p) => (
-              <TouchableOpacity
-                key={p.uid}
-                style={styles.providerCard}
-                activeOpacity={0.85}
-                onPress={() => openProvider(p)}
-              >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{p.name.charAt(0).toUpperCase()}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.providerName}>{p.name}</Text>
-                  <Text style={styles.providerChips} numberOfLines={1}>
-                    {(p.appliances ?? []).map(applianceIcon).join('  ')}
+            <ScrollView contentContainerStyle={styles.listContent}>
+              {matchingProviders.length === 0 ? (
+                <View style={styles.empty}>
+                  <Ionicons name="search-outline" size={40} color={colors.textMuted} />
+                  <Text style={styles.emptyTitle}>{t('No providers found')}</Text>
+                  <Text style={styles.emptySub}>
+                    {myAreas.length > 0
+                      ? t(
+                          'No provider covering your area fixes those appliances. Try different appliances, or add another area in your profile.',
+                        )
+                      : t('No one currently fixes those appliances. Try different ones.')}
                   </Text>
                 </View>
-                <Text style={styles.chevron}>›</Text>
-              </TouchableOpacity>
-            ))
+              ) : (
+                matchingProviders.map((p) => (
+                  <TouchableOpacity
+                    key={p.uid}
+                    style={styles.providerCard}
+                    activeOpacity={0.85}
+                    onPress={() => openProvider(p)}
+                  >
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{p.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.providerName}>{p.name}</Text>
+                      <Text style={styles.providerChips} numberOfLines={1}>
+                        {(p.appliances ?? []).map(applianceIcon).join('  ')}
+                      </Text>
+                    </View>
+                    <Text style={styles.chevron}>›</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
           )}
-        </ScrollView>
-      )}
-      </>
+        </>
       )}
 
       {/* ---- Filter popup ---- */}
       <Modal visible={filterOpen} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>What needs fixing?</Text>
-            <Text style={styles.modalSub}>Select all appliances with a problem.</Text>
+            <Text style={styles.modalTitle}>{t('What needs fixing?')}</Text>
+            <Text style={styles.modalSub}>{t('Select all appliances with a problem.')}</Text>
             <ScrollView style={{ maxHeight: 320 }}>
               <ApplianceSelector selected={pendingFilter} onToggle={togglePending} />
             </ScrollView>
             <View style={styles.modalActions}>
               <Button
-                label="Cancel"
+                label={t('Cancel')}
                 variant="secondary"
                 onPress={() => setFilterOpen(false)}
                 style={{ flex: 1 }}
@@ -329,7 +338,7 @@ export default function EmergencyScreen() {
               <>
                 <Text style={styles.modalTitle}>{selectedProvider.name}</Text>
                 <Text style={styles.modalSub}>
-                  Select the appliances you need this provider to fix.
+                  {t('Select the appliances you need this provider to fix.')}
                 </Text>
                 <ScrollView style={{ maxHeight: 300 }}>
                   <View style={styles.detailGrid}>
@@ -344,7 +353,7 @@ export default function EmergencyScreen() {
                         >
                           <Text style={styles.detailChipIcon}>{applianceIcon(a)}</Text>
                           <Text style={[styles.detailChipLabel, on && styles.detailChipLabelOn]}>
-                            {applianceLabel(a)}
+                            {t(applianceLabel(a))}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -352,7 +361,7 @@ export default function EmergencyScreen() {
                   </View>
                   {selectedProvider.otherAppliance ? (
                     <Text style={styles.otherNote}>
-                      Also fixes: {selectedProvider.otherAppliance}
+                      {t('Also fixes:')} {selectedProvider.otherAppliance}
                     </Text>
                   ) : null}
                 </ScrollView>
@@ -374,18 +383,18 @@ export default function EmergencyScreen() {
                   }}
                 >
                   <Text style={styles.bookInsteadText}>
-                    📅  Prefer a scheduled visit? Book a date & time
+                    {t('📅 Prefer a scheduled visit? Book a date & time')}
                   </Text>
                 </TouchableOpacity>
                 <View style={styles.modalActions}>
                   <Button
-                    label="Close"
+                    label={t('Close')}
                     variant="secondary"
                     onPress={() => setSelectedProvider(null)}
                     style={{ flex: 1 }}
                   />
                   <Button
-                    label="Request Service"
+                    label={t('Request Service')}
                     onPress={sendRequest}
                     loading={submitting}
                     disabled={chosenAppliances.length === 0}

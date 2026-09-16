@@ -1,16 +1,18 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/LocationPicker.tsx
 //
 // Lets the homeowner say which of their saved places an appliance lives at.
 // Purely organisational — provider matching still uses all of their areas.
 
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
 import { getSavedLocations } from '@/services/roleService';
-import { areaLabel } from '@/utils/areas';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import { colors,radius,spacing,typography } from '@/theme/theme';
 import { SavedLocation } from '@/types';
+import { areaLabel } from '@/utils/areas';
+import { Ionicons } from '@expo/vector-icons';
+import React,{ useEffect,useState } from 'react';
+import { ActivityIndicator,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 interface Props {
   value: string | null;
@@ -20,6 +22,7 @@ interface Props {
 }
 
 export default function LocationPicker({ value, onChange, onLoaded }: Props) {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [locations, setLocations] = useState<SavedLocation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +53,7 @@ export default function LocationPicker({ value, onChange, onLoaded }: Props) {
       <View style={styles.emptyBox}>
         <Ionicons name="location-outline" size={18} color={colors.textMuted} />
         <Text style={styles.emptyText}>
-          No saved locations yet. Add one from Profile → My Locations.
+          {t('No saved locations yet. Add one from Profile → My Locations.')}
         </Text>
       </View>
     );
@@ -73,12 +76,12 @@ export default function LocationPicker({ value, onChange, onLoaded }: Props) {
               color={on ? colors.primary : colors.border}
             />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.label, on && styles.labelOn]}>{loc.label}</Text>
+              <Text style={[styles.label, on && styles.labelOn]}>{t(loc.label)}</Text>
               {loc.area ? <Text style={styles.area}>{areaLabel(loc.area)}</Text> : null}
             </View>
             {loc.isDefault && (
               <View style={styles.defaultPill}>
-                <Text style={styles.defaultText}>Default</Text>
+                <Text style={styles.defaultText}>{t('Default')}</Text>
               </View>
             )}
           </TouchableOpacity>

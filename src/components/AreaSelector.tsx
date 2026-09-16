@@ -1,9 +1,11 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/AreaSelector.tsx
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import Text from '@/components/app-text';
+import { colors,radius,spacing,typography } from '@/theme/theme';
 import { areasByGovernorate } from '@/utils/areas';
+import { Ionicons } from '@expo/vector-icons';
+import React,{ useState } from 'react';
+import { StyleSheet,TextInput,TouchableOpacity,View } from 'react-native';
 
 interface Props {
   selected: string[];
@@ -20,10 +22,11 @@ export default function AreaSelector({
   startCollapsed = true,
   searchable = false,
 }: Props) {
+  const { t } = useLanguage();
   const allGroups = areasByGovernorate();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
-    allGroups.reduce((acc, g) => ({ ...acc, [g.governorate]: !startCollapsed }), {})
+    allGroups.reduce((acc, g) => ({ ...acc, [g.governorate]: !startCollapsed }), {}),
   );
 
   // Filter areas by the search text, dropping governorates with no matches.
@@ -38,16 +41,14 @@ export default function AreaSelector({
     : allGroups;
 
   function toggleArea(id: string) {
-    onChange(
-      selected.includes(id) ? selected.filter((a) => a !== id) : [...selected, id]
-    );
+    onChange(selected.includes(id) ? selected.filter((a) => a !== id) : [...selected, id]);
   }
 
   function toggleGovernorate(areaIds: string[], allOn: boolean) {
     onChange(
       allOn
         ? selected.filter((a) => !areaIds.includes(a))
-        : Array.from(new Set([...selected, ...areaIds]))
+        : Array.from(new Set([...selected, ...areaIds])),
     );
   }
 
@@ -60,7 +61,7 @@ export default function AreaSelector({
             style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
-            placeholder="Search areas…"
+            placeholder={t('Search areas…')}
             placeholderTextColor={colors.textMuted}
           />
           {query.length > 0 && (
@@ -73,12 +74,17 @@ export default function AreaSelector({
 
       {searchable && selected.length > 0 && (
         <Text style={styles.selectedCount}>
-          {selected.length} area{selected.length === 1 ? '' : 's'} selected
+          {selected.length}
+          {t('area')} {selected.length === 1 ? '' : t('s')}
+          {t('selected')}
         </Text>
       )}
 
       {groups.length === 0 && (
-        <Text style={styles.noResults}>No areas match "{query}".</Text>
+        <Text style={styles.noResults}>
+          {t('No areas match "')}
+          {query}".
+        </Text>
       )}
 
       {groups.map((group) => {
@@ -93,9 +99,7 @@ export default function AreaSelector({
             <TouchableOpacity
               style={styles.groupHeader}
               activeOpacity={0.7}
-              onPress={() =>
-                setOpen((o) => ({ ...o, [group.governorate]: !o[group.governorate] }))
-              }
+              onPress={() => setOpen((o) => ({ ...o, [group.governorate]: !o[group.governorate] }))}
             >
               <Ionicons
                 name={isOpen ? 'chevron-down' : 'chevron-forward'}
@@ -109,11 +113,8 @@ export default function AreaSelector({
                 </View>
               )}
               <View style={{ flex: 1 }} />
-              <TouchableOpacity
-                onPress={() => toggleGovernorate(ids, allOn)}
-                hitSlop={8}
-              >
-                <Text style={styles.selectAll}>{allOn ? 'Clear' : 'All'}</Text>
+              <TouchableOpacity onPress={() => toggleGovernorate(ids, allOn)} hitSlop={8}>
+                <Text style={styles.selectAll}>{allOn ? t('Clear') : t('All')}</Text>
               </TouchableOpacity>
             </TouchableOpacity>
 
@@ -137,7 +138,7 @@ export default function AreaSelector({
                         />
                       )}
                       <Text style={[styles.chipText, on && styles.chipTextOn]}>
-                        {area.label}
+                        {t(area.label)}
                       </Text>
                     </TouchableOpacity>
                   );

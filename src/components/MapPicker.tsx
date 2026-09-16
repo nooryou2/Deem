@@ -1,3 +1,4 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/MapPicker.tsx
 //
 // A location picker built on Leaflet + OpenStreetMap tiles. Deliberately
@@ -6,10 +7,11 @@
 //
 // Communication with the map is done through postMessage.
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import Text from '@/components/app-text';
+import { colors,radius,spacing,typography } from '@/theme/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import React,{ useCallback,useEffect,useRef,useState } from 'react';
+import { ActivityIndicator,Platform,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 export interface LatLng {
   lat: number;
@@ -43,7 +45,7 @@ function buildMapHtml(
   center: LatLng,
   marker: LatLng | null,
   radiusKm?: number,
-  readonly = false
+  readonly = false,
 ): string {
   const m = marker ?? center;
   return `<!DOCTYPE html>
@@ -150,6 +152,7 @@ export default function MapPicker({
   height = 260,
   readonly = false,
 }: Props) {
+  const { t } = useLanguage();
   const center = value ?? DEFAULT_CENTER;
   const frameRef = useRef<any>(null);
   const [locating, setLocating] = useState(false);
@@ -207,10 +210,12 @@ export default function MapPicker({
         () => {
           setLocating(false);
           if (Platform.OS === 'web') {
-            window.alert('Could not get your location. Please allow location access, or drop the pin manually.');
+            window.alert(
+              'Could not get your location. Please allow location access, or drop the pin manually.',
+            );
           }
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { enableHighAccuracy: true, timeout: 10000 },
       );
     } else {
       setLocating(false);
@@ -226,38 +231,38 @@ export default function MapPicker({
             ref={frameRef}
             srcDoc={html}
             style={{ border: 'none', width: '100%', height: '100%' }}
-            title="Pick location"
+            title={t('Pick location')}
           />
         ) : (
           <View style={styles.nativeFallback}>
             <Ionicons name="map-outline" size={28} color={colors.textMuted} />
             <Text style={styles.fallbackText}>
-              Map picking is available on the web version.
+              {t('Map picking is available on the web version.')}
             </Text>
           </View>
         )}
       </View>
 
       {!readonly && (
-      <View style={styles.controls}>
-        <TouchableOpacity style={styles.locateBtn} onPress={useMyLocation} disabled={locating}>
-          {locating ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <Ionicons name="locate" size={18} color={colors.primary} />
-          )}
-          <Text style={styles.locateText}>Use my current location</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={styles.controls}>
+          <TouchableOpacity style={styles.locateBtn} onPress={useMyLocation} disabled={locating}>
+            {locating ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="locate" size={18} color={colors.primary} />
+            )}
+            <Text style={styles.locateText}>{t('Use my current location')}</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {!readonly && value && (
         <Text style={styles.coords}>
-          Pin: {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
+          {t('Pin:')} {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
         </Text>
       )}
       {!readonly && (
-        <Text style={styles.hint}>Tap the map or drag the pin to set the exact spot.</Text>
+        <Text style={styles.hint}>{t('Tap the map or drag the pin to set the exact spot.')}</Text>
       )}
     </View>
   );

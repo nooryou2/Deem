@@ -1,8 +1,10 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/ServiceProgressTracker.tsx
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { colors, spacing } from '@/theme/theme';
+import Text from '@/components/app-text';
+import { colors,spacing } from '@/theme/theme';
 import { ServiceRequestStatus } from '@/types';
+import React from 'react';
+import { StyleSheet,View } from 'react-native';
 
 interface Props {
   status: ServiceRequestStatus;
@@ -26,13 +28,15 @@ const ORDER: Record<ServiceRequestStatus, number> = {
 };
 
 export default function ServiceProgressTracker({ status, providerName }: Props) {
+  const { t } = useLanguage();
   // Declined is a dead-end state — show a distinct message instead of the track.
   if (status === 'declined') {
     return (
       <View style={styles.declinedBox}>
-        <Text style={styles.declinedTitle}>Request declined</Text>
+        <Text style={styles.declinedTitle}>{t('Request declined')}</Text>
         <Text style={styles.declinedSub}>
-          {providerName} can't take this on right now. You can request another provider.
+          {providerName}
+          {t("can't take this on right now. You can request another provider.")}
         </Text>
       </View>
     );
@@ -42,7 +46,9 @@ export default function ServiceProgressTracker({ status, providerName }: Props) 
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.assignedTo}>Assigned to {providerName}</Text>
+      <Text style={styles.assignedTo}>
+        {t('Provider')} {providerName}
+      </Text>
       <View style={styles.track}>
         {STEPS.map((step, i) => {
           const done = i <= currentIndex;
@@ -53,7 +59,9 @@ export default function ServiceProgressTracker({ status, providerName }: Props) 
                 <View style={[styles.dot, done ? styles.dotDone : styles.dotTodo]}>
                   {done ? <Text style={styles.check}>✓</Text> : null}
                 </View>
-                <Text style={[styles.stepLabel, done && styles.stepLabelDone]}>{step.label}</Text>
+                <Text style={[styles.stepLabel, done && styles.stepLabelDone]}>
+                  {t(step.label)}
+                </Text>
               </View>
               {!isLast && (
                 <View style={[styles.line, i < currentIndex ? styles.lineDone : styles.lineTodo]} />

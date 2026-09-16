@@ -1,6 +1,7 @@
+import { dateLocale } from '@/i18n/locale';
 // src/utils/dateCalculations.ts
-import { addMonths, addYears, addDays, differenceInCalendarDays, parseISO } from 'date-fns';
-import { ServiceFrequency, MaintenanceStatus } from '@/types';
+import { MaintenanceStatus,ServiceFrequency } from '@/types';
+import { addDays,addMonths,addYears,differenceInCalendarDays,parseISO } from 'date-fns';
 
 // How many days out counts as "Due Soon" rather than "Upcoming".
 export const DUE_SOON_THRESHOLD_DAYS = 7;
@@ -11,7 +12,7 @@ export const DUE_SOON_THRESHOLD_DAYS = 7;
 export function calculateNextServiceDate(
   fromDate: Date,
   frequency: ServiceFrequency,
-  customDays?: number | null
+  customDays?: number | null,
 ): Date {
   switch (frequency) {
     case 'monthly':
@@ -57,9 +58,16 @@ export function daysUntil(dateISO: string): number {
 
 export function formatFriendlyDate(dateISO: string): string {
   const date = parseISO(dateISO);
-  return date.toLocaleDateString('en-GB', {
+  return date.toLocaleDateString(dateLocale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
+}
+
+export function formatTimeSlot(slot?: string): string {
+  if (!slot) return '';
+  const [hour, minute] = slot.split(':').map(Number);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return slot;
+  return new Date(2000, 0, 1, hour, minute).toLocaleTimeString(dateLocale, { hour: 'numeric', minute: '2-digit' });
 }

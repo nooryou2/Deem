@@ -1,30 +1,27 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/ProviderDetailScreen.tsx
 //
 // The homeowner's view of a service provider: who they are, what they fix,
 // where they work, and what other customers have said.
 
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { fetchProviderReviews } from '@/services/reviewService';
 import StarRating from '@/components/StarRating';
-import { applianceLabel, applianceIcon } from '@/utils/appliances';
+import Text from '@/components/app-text';
+import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { fetchProviderReviews } from '@/services/reviewService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { Review } from '@/types';
+import { applianceIcon,applianceLabel } from '@/utils/appliances';
 import { areaLabel } from '@/utils/areas';
 import { formatFriendlyDate } from '@/utils/dateCalculations';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { Review } from '@/types';
-import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { Ionicons } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useEffect,useState } from 'react';
+import { ActivityIndicator,ScrollView,StyleSheet,View } from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ProviderDetail'>;
 
 export default function ProviderDetailScreen({ route }: Props) {
+  const { t } = useLanguage();
   const { provider, distance } = route.params;
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,12 +58,12 @@ export default function ProviderDetailScreen({ route }: Props) {
               <StarRating value={rating.averageStars} readonly size={18} />
             </View>
             <Text style={styles.headerRatingText}>
-              {rating.averageStars.toFixed(1)} · {rating.count} review
-              {rating.count === 1 ? '' : 's'}
+              {rating.averageStars.toFixed(1)} · {rating.count}
+              {t('review')} {rating.count === 1 ? '' : t('s')}
             </Text>
           </>
         ) : (
-          <Text style={styles.noRating}>No reviews yet</Text>
+          <Text style={styles.noRating}>{t('No reviews yet')}</Text>
         )}
 
         {distance != null && (
@@ -82,35 +79,39 @@ export default function ProviderDetailScreen({ route }: Props) {
       </View>
 
       {/* Services */}
-      <Text style={styles.sectionTitle}>Services offered</Text>
+      <Text style={styles.sectionTitle}>{t('Services offered')}</Text>
       <View style={styles.card}>
         {appliances.length === 0 ? (
-          <Text style={styles.emptyText}>This provider hasn't listed their services yet.</Text>
+          <Text style={styles.emptyText}>
+            {t("This provider hasn't listed their services yet.")}
+          </Text>
         ) : (
           <View style={styles.tagWrap}>
             {appliances.map((a) => (
               <View key={a} style={styles.tag}>
                 <Text style={styles.tagIcon}>{applianceIcon(a)}</Text>
-                <Text style={styles.tagText}>{applianceLabel(a)}</Text>
+                <Text style={styles.tagText}>{t(applianceLabel(a))}</Text>
               </View>
             ))}
           </View>
         )}
         {provider.otherAppliance ? (
-          <Text style={styles.alsoFixes}>Also fixes: {provider.otherAppliance}</Text>
+          <Text style={styles.alsoFixes}>
+            {t('Also fixes:')} {provider.otherAppliance}
+          </Text>
         ) : null}
       </View>
 
       {/* Coverage */}
-      <Text style={styles.sectionTitle}>Areas covered</Text>
+      <Text style={styles.sectionTitle}>{t('Areas covered')}</Text>
       <View style={styles.card}>
         {areas.length === 0 ? (
-          <Text style={styles.emptyText}>Works across all areas.</Text>
+          <Text style={styles.emptyText}>{t('Works across all areas.')}</Text>
         ) : (
           <View style={styles.tagWrap}>
             {areas.map((a) => (
               <View key={a} style={styles.areaTag}>
-                <Text style={styles.areaTagText}>{areaLabel(a)}</Text>
+                <Text style={styles.areaTagText}>{t(areaLabel(a))}</Text>
               </View>
             ))}
           </View>
@@ -125,7 +126,7 @@ export default function ProviderDetailScreen({ route }: Props) {
 
       {/* Reviews */}
       <Text style={styles.sectionTitle}>
-        Reviews{reviews.length > 0 ? ` (${reviews.length})` : ''}
+        {t('Reviews')} {reviews.length > 0 ? ` (${reviews.length})` : ''}
       </Text>
 
       {loading ? (
@@ -133,7 +134,7 @@ export default function ProviderDetailScreen({ route }: Props) {
       ) : reviews.length === 0 ? (
         <View style={styles.card}>
           <Text style={styles.emptyText}>
-            No reviews yet. Be the first to rate this provider after a service.
+            {t('No reviews yet. Be the first to rate this provider after a service.')}
           </Text>
         </View>
       ) : (
@@ -182,7 +183,13 @@ export default function ProviderDetailScreen({ route }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  container: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
 
   header: {
     alignItems: 'center',

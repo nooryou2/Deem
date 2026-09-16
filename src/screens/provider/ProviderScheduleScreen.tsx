@@ -1,42 +1,38 @@
+import { useCompanyId } from '@/hooks/useCompanyId';
+import { useLanguage } from '@/i18n/LanguageContext';
+import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
 // src/screens/provider/ProviderScheduleScreen.tsx
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  Platform,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import { useAuth } from '@/context/AuthContext';
-import {
-  fetchProviderBookings,
-  getAvailability,
-  saveAvailability,
-  toggleBlockedDate,
-  updateBookingStatus,
-  freeSlot,
-} from '@/services/bookingService';
-import Calendar from '@/components/Calendar';
 import Button from '@/components/Button';
-import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { Booking, BookingStatus, ProviderAvailability } from '@/types';
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Calendar from '@/components/Calendar';
+import Text from '@/components/app-text';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
+import {
+fetchProviderBookings,
+getAvailability,
+saveAvailability,
+toggleBlockedDate,
+updateBookingStatus
+} from '@/services/bookingService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { Booking,BookingStatus,ProviderAvailability } from '@/types';
+import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
+import { Ionicons } from '@expo/vector-icons';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { CompositeScreenProps } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useCallback,useState } from 'react';
+import {
+Alert,
+Modal,
+Platform,
+ScrollView,
+StyleSheet,
+TouchableOpacity,
+View,
+} from 'react-native';
 
-function prettyTime(slot: string): string {
-  const [h, m] = slot.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hr = h % 12 === 0 ? 12 : h % 12;
-  return `${hr}:${String(m).padStart(2, '0')} ${ampm}`;
-}
+
 
 const SLOT_OPTIONS = [30, 60, 90, 120];
 
@@ -56,13 +52,15 @@ function toRequest(b: Booking) {
     category: b.category,
     status: b.status,
     notes: b.description ?? '',
+    attachments: b.attachments ?? [],
+    location: b.location ?? null,
     preferredDate: b.date,
     timeSlot: b.timeSlot,
     locationId: (b as any).locationId ?? null,
     isEmergency: false,
     appliances: [],
-    assignedEmployeeId: null,
-    assignedEmployeeName: null,
+    assignedEmployeeId: b.assignedEmployeeId ?? null,
+    assignedEmployeeName: b.assignedEmployeeName ?? null,
     isBooking: true as const,
     createdAt: b.createdAt,
     updatedAt: b.createdAt,
@@ -75,7 +73,8 @@ type Props = CompositeScreenProps<
 >;
 
 export default function ProviderScheduleScreen({ navigation }: Props) {
-  const { user } = useAuth();
+  const { t } = useLanguage();
+  const companyId = useCompanyId();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [availability, setAvailability] = useState<ProviderAvailability | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -84,10 +83,14 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
-    if (!user) return;
-    fetchProviderBookings(user.uid).then(setBookings).catch(() => {});
-    getAvailability(user.uid).then(setAvailability).catch(() => {});
-  }, [user]);
+    if (!companyId) return;
+    fetchProviderBookings(companyId)
+      .then(setBookings)
+      .catch(() => {});
+    getAvailability(companyId)
+      .then(setAvailability)
+      .catch(() => {});
+  }, [companyId]);
 
   useFocusEffect(load);
 
@@ -97,15 +100,15 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
   }
 
   const bookedDates = Array.from(
-    new Set(bookings.filter((b) => b.status !== 'declined').map((b) => b.date))
+    new Set(bookings.filter((b) => b.status !== 'declined').map((b) => b.date)),
   );
   const dayBookings = selectedDate
     ? bookings.filter((b) => b.date === selectedDate && b.status !== 'declined')
     : [];
 
   async function handleDayPress(date: string) {
-    if (mode === 'block' && user) {
-      const updated = await toggleBlockedDate(user.uid, date);
+    if (mode === 'block' && companyId) {
+      const updated = await toggleBlockedDate(companyId, date);
       setAvailability(updated);
     } else {
       setSelectedDate(date);
@@ -116,10 +119,6 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
     setBusy(true);
     try {
       await updateBookingStatus(b.id, status);
-      // Declining frees the slot for other customers.
-      if (status === 'declined') {
-        await freeSlot(b.providerId, b.date, b.timeSlot);
-      }
       setBookings((prev) => prev.map((x) => (x.id === b.id ? { ...x, status } : x)));
     } catch {
       notify('Could not update booking.');
@@ -129,9 +128,13 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
   }
 
   async function saveHours(next: ProviderAvailability) {
-    if (!user) return;
-    setAvailability(next);
-    await saveAvailability(user.uid, next);
+    if (!companyId) return;
+    try {
+      await saveAvailability(companyId, next);
+      setAvailability(next);
+    } catch {
+      notify(t('Could not save. Please try again.'));
+    }
   }
 
   return (
@@ -143,14 +146,16 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
             style={[styles.modeBtn, mode === 'view' && styles.modeBtnOn]}
             onPress={() => setMode('view')}
           >
-            <Text style={[styles.modeText, mode === 'view' && styles.modeTextOn]}>Bookings</Text>
+            <Text style={[styles.modeText, mode === 'view' && styles.modeTextOn]}>
+              {t('Bookings')}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.modeBtn, mode === 'block' && styles.modeBtnOn]}
             onPress={() => setMode('block')}
           >
             <Text style={[styles.modeText, mode === 'block' && styles.modeTextOn]}>
-              Block Dates
+              {t('Block Dates')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -160,7 +165,9 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
       </View>
 
       {mode === 'block' && (
-        <Text style={styles.hint}>Tap any date to mark it unavailable (or free it again).</Text>
+        <Text style={styles.hint}>
+          {t('Tap any date to mark it unavailable (or free it again).')}
+        </Text>
       )}
 
       <Calendar
@@ -178,7 +185,7 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
         <View style={{ marginTop: spacing.lg }}>
           <Text style={styles.dayTitle}>{selectedDate}</Text>
           {dayBookings.length === 0 ? (
-            <Text style={styles.emptyNote}>No bookings on this day.</Text>
+            <Text style={styles.emptyNote}>{t('No bookings on this day.')}</Text>
           ) : (
             dayBookings.map((b) => (
               <View key={b.id} style={styles.bookingCard}>
@@ -193,9 +200,7 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
                     <Text style={styles.bookingCustomer}>{b.customerName}</Text>
                   </View>
                   <View style={[styles.statusPill, statusStyle(b.status).pill]}>
-                    <Text style={[styles.statusText, statusStyle(b.status).text]}>
-                      {b.status}
-                    </Text>
+                    <Text style={[styles.statusText, statusStyle(b.status).text]}>{b.status}</Text>
                   </View>
                   <Ionicons
                     name="chevron-forward"
@@ -213,14 +218,14 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
                       onPress={() => setStatus(b, 'declined')}
                       disabled={busy}
                     >
-                      <Text style={styles.declineText}>Decline</Text>
+                      <Text style={styles.declineText}>{t('Decline')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.actBtn, styles.acceptBtn]}
                       onPress={() => setStatus(b, 'accepted')}
                       disabled={busy}
                     >
-                      <Text style={styles.acceptText}>Accept</Text>
+                      <Text style={styles.acceptText}>{t('Accept')}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -230,7 +235,7 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
                     onPress={() => setStatus(b, 'in_progress')}
                     disabled={busy}
                   >
-                    <Text style={styles.acceptText}>Start Work</Text>
+                    <Text style={styles.acceptText}>{t('Start Work')}</Text>
                   </TouchableOpacity>
                 )}
                 {b.status === 'in_progress' && (
@@ -239,7 +244,7 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
                     onPress={() => setStatus(b, 'completed')}
                     disabled={busy}
                   >
-                    <Text style={styles.acceptText}>Mark Completed</Text>
+                    <Text style={styles.acceptText}>{t('Mark Completed')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -252,24 +257,28 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
       <Modal visible={settingsOpen} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Working Hours & Slots</Text>
+            <Text style={styles.modalTitle}>{t('Working Hours & Slots')}</Text>
             {availability && (
               <>
-                <Text style={styles.settingLabel}>Start hour: {availability.startHour}:00</Text>
+                <Text style={styles.settingLabel}>
+                  {t('Start hour:')} {availability.startHour}:00
+                </Text>
                 <HourStepper
                   value={availability.startHour}
                   min={0}
                   max={availability.endHour - 1}
                   onChange={(v) => saveHours({ ...availability, startHour: v })}
                 />
-                <Text style={styles.settingLabel}>End hour: {availability.endHour}:00</Text>
+                <Text style={styles.settingLabel}>
+                  {t('End hour:')} {availability.endHour}:00
+                </Text>
                 <HourStepper
                   value={availability.endHour}
                   min={availability.startHour + 1}
                   max={23}
                   onChange={(v) => saveHours({ ...availability, endHour: v })}
                 />
-                <Text style={styles.settingLabel}>Slot duration</Text>
+                <Text style={styles.settingLabel}>{t('Slot duration')}</Text>
                 <View style={styles.slotOptRow}>
                   {SLOT_OPTIONS.map((mins) => {
                     const on = availability.slotMinutes === mins;
@@ -289,7 +298,7 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
               </>
             )}
             <Button
-              label="Done"
+              label={t('Done')}
               onPress={() => setSettingsOpen(false)}
               style={{ marginTop: spacing.lg }}
             />
@@ -313,17 +322,11 @@ function HourStepper({
 }) {
   return (
     <View style={styles.stepper}>
-      <TouchableOpacity
-        style={styles.stepBtn}
-        onPress={() => value > min && onChange(value - 1)}
-      >
+      <TouchableOpacity style={styles.stepBtn} onPress={() => value > min && onChange(value - 1)}>
         <Text style={styles.stepBtnText}>−</Text>
       </TouchableOpacity>
       <Text style={styles.stepValue}>{value}:00</Text>
-      <TouchableOpacity
-        style={styles.stepBtn}
-        onPress={() => value < max && onChange(value + 1)}
-      >
+      <TouchableOpacity style={styles.stepBtn} onPress={() => value < max && onChange(value + 1)}>
         <Text style={styles.stepBtnText}>＋</Text>
       </TouchableOpacity>
     </View>
@@ -347,7 +350,13 @@ function statusStyle(status: string) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  container: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   modeToggle: {
     flex: 1,
@@ -404,7 +413,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   modalTitle: { ...typography.h2, marginBottom: spacing.md },
-  settingLabel: { ...typography.bodySecondary, fontWeight: '600', marginTop: spacing.md, marginBottom: spacing.xs },
+  settingLabel: {
+    ...typography.bodySecondary,
+    fontWeight: '600',
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   stepBtn: {
     width: 40,

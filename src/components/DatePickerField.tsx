@@ -1,15 +1,11 @@
+import { useLanguage } from '@/i18n/LanguageContext';
+import { dateLocale } from '@/i18n/locale';
 // src/components/DatePickerField.tsx
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Platform,
-  TouchableOpacity,
-  Modal,
-} from 'react-native';
+import Text from '@/components/app-text';
+import { colors,radius,spacing,typography } from '@/theme/theme';
 import { Picker } from '@react-native-picker/picker';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import React,{ useState } from 'react';
+import { Modal,Platform,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 interface Props {
   label: string;
@@ -20,7 +16,7 @@ interface Props {
 }
 
 function formatDisplay(d: Date): string {
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function toInputValue(d: Date): string {
@@ -31,13 +27,14 @@ function toInputValue(d: Date): string {
 }
 
 export default function DatePickerField({ label, value, onChange, maximumDate }: Props) {
+  const { t } = useLanguage();
   const max = maximumDate ?? new Date();
 
   // ---- WEB: use the browser's native date input ----
   if (Platform.OS === 'web') {
     return (
       <View style={styles.container}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.label}>{t(label)}</Text>
         {/* @ts-ignore - react-native-web passes through DOM props */}
         <input
           type="date"
@@ -82,6 +79,7 @@ function NativeDatePicker({
   onChange: (d: Date) => void;
   max: Date;
 }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [tempDay, setTempDay] = useState(value.getDate());
   const [tempMonth, setTempMonth] = useState(value.getMonth());
@@ -90,8 +88,18 @@ function NativeDatePicker({
   const currentYear = max.getFullYear();
   const years = Array.from({ length: 11 }, (_, i) => currentYear - i); // last 10 yrs
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   const daysInMonth = new Date(tempYear, tempMonth + 1, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -105,7 +113,7 @@ function NativeDatePicker({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label}>{t(label)}</Text>
       <TouchableOpacity style={styles.field} onPress={() => setOpen(true)} activeOpacity={0.7}>
         <Text style={styles.fieldText}>{formatDisplay(value)}</Text>
         <Text style={styles.calendarIcon}>📅</Text>
@@ -116,11 +124,11 @@ function NativeDatePicker({
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setOpen(false)}>
-                <Text style={styles.modalCancel}>Cancel</Text>
+                <Text style={styles.modalCancel}>{t('Cancel')}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>{label}</Text>
+              <Text style={styles.modalTitle}>{t(label)}</Text>
               <TouchableOpacity onPress={confirm}>
-                <Text style={styles.modalDone}>Done</Text>
+                <Text style={styles.modalDone}>{t('Done')}</Text>
               </TouchableOpacity>
             </View>
 

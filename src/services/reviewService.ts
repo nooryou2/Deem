@@ -1,21 +1,18 @@
 // src/services/reviewService.ts
-import {
-  collection,
-  doc,
-  addDoc,
-  setDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { Review, ReviewSource, ProviderRating } from '@/types';
+import { ProviderRating,Review,ReviewSource } from '@/types';
+import {
+Timestamp,
+collection,
+doc,
+getDocs,
+query,
+runTransaction,
+serverTimestamp,
+where,
+} from 'firebase/firestore';
 
 const REVIEWS = 'reviews';
-const PROVIDERS = 'providers';
 
 export interface CreateReviewInput {
   providerId: string;
@@ -30,44 +27,21 @@ export interface CreateReviewInput {
   servicedDate?: string;
 }
 
-/**
- * Saves a review and refreshes the provider's aggregate rating.
- *
- * The aggregate is stored on the provider's public profile so lists can sort
- * by rating without reading every review — important once a provider has
- * hundreds of them.
- */
 export async function submitReview(input: CreateReviewInput): Promise<void> {
-  await addDoc(collection(db, REVIEWS), {
-    ...input,
-    comment: input.comment ?? '',
-    createdAt: serverTimestamp(),
+  if (!Number.isInteger(input.stars) || input.stars < 1 || input.stars > 5)
+    throw new Error('INVALID_RATING');
+  const id = `${input.homeownerId}_${input.jobType}_${input.jobId}`;
+  await runTransaction(db, async (tx) => {
+    const reference = doc(db, REVIEWS, id);
+    const existing = await tx.get(reference);
+    if (existing.exists()) throw new Error('ALREADY_REVIEWED');
+    tx.set(reference, {
+      ...input,
+      servicedDate: input.servicedDate ?? '',
+      comment: input.comment ?? '',
+      createdAt: serverTimestamp(),
+    });
   });
-  // Self-logged visits have no provider, so there's no public rating to update.
-  if (input.providerId) {
-    await recalculateProviderRating(input.providerId);
-  }
-}
-
-/**
- * Recomputes a provider's average rating from all their reviews and writes it
- * onto their public profile.
- */
-export async function recalculateProviderRating(providerId: string): Promise<void> {
-  const reviews = await fetchProviderReviews(providerId);
-  if (reviews.length === 0) return;
-
-  const totalStars = reviews.reduce((sum, r) => sum + r.stars, 0);
-  const avgStars = totalStars / reviews.length;
-
-  const rating: ProviderRating = {
-    averageStars: Number(avgStars.toFixed(2)),
-    // Out-of-10 is simply the star average doubled — no separate input needed.
-    averageScore: Number((avgStars * 2).toFixed(1)),
-    count: reviews.length,
-  };
-
-  await setDoc(doc(db, PROVIDERS, providerId), { rating }, { merge: true });
 }
 
 export async function fetchProviderReviews(providerId: string): Promise<Review[]> {
@@ -97,13 +71,10 @@ export async function fetchReviewedJobIds(homeownerId: string): Promise<string[]
 
 /** Reads a provider's aggregate rating, or null when they have no reviews. */
 export async function getProviderRating(providerId: string): Promise<ProviderRating | null> {
-  try {
-    const snap = await getDoc(doc(db, PROVIDERS, providerId));
-    if (!snap.exists()) return null;
-    return (snap.data().rating as ProviderRating) ?? null;
-  } catch {
-    return null;
-  }
+  const reviews = await fetchProviderReviews(providerId);
+  if (!reviews.length) return null;
+  const averageStars = reviews.reduce((sum, review) => sum + review.stars, 0) / reviews.length;
+  return { averageStars, averageScore: averageStars * 2, count: reviews.length };
 }
 
 function mapReview(id: string, data: any): Review {

@@ -9,7 +9,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build:ios": "eas build --platform ios",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "tsx --test tests/booking-validation.test.ts",
+    "test:workflows": "node scripts/build-test-services.cjs && firebase emulators:exec --project demo-deem --only firestore,storage \"node --test --test-concurrency=1 tests/workflows.test.cjs\""
   },
   "dependencies": {
     "@expo/metro-runtime": "~3.2.3",
@@ -22,6 +24,8 @@
     "expo": "~51.0.0",
     "expo-constants": "~16.0.0",
     "expo-device": "~6.0.0",
+    "expo-document-picker": "~12.0.2",
+    "expo-image-picker": "~15.1.0",
     "expo-notifications": "~0.28.0",
     "expo-status-bar": "~1.12.1",
     "firebase": "^10.12.0",
@@ -35,8 +39,12 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
+    "@firebase/rules-unit-testing": "^3.0.4",
     "@types/react": "~18.2.79",
     "babel-plugin-module-resolver": "^5.0.3",
+    "firebase-tools": "^13.35.1",
+    "prettier": "^3.6.2",
+    "tsx": "^4.23.13",
     "typescript": "~5.3.3"
   }
 }

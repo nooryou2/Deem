@@ -1,3 +1,4 @@
+import { translateLabel } from '@/i18n/locale';
 // src/utils/appliances.ts
 
 // The fixed catalog of appliances a provider can register to fix, and a
@@ -24,16 +25,16 @@ export const APPLIANCES: Appliance[] = [
 
 export const APPLIANCE_LABELS: Record<string, string> = APPLIANCES.reduce(
   (acc, a) => ({ ...acc, [a.id]: a.label }),
-  {}
+  {},
 );
 
 export const APPLIANCE_ICONS: Record<string, string> = APPLIANCES.reduce(
   (acc, a) => ({ ...acc, [a.id]: a.icon }),
-  {}
+  {},
 );
 
 export function applianceLabel(id: string): string {
-  return APPLIANCE_LABELS[id] ?? id;
+  return translateLabel(APPLIANCE_LABELS[id] ?? id);
 }
 
 export function applianceIcon(id: string): string {

@@ -1,42 +1,43 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/provider/ProviderProfileScreen.tsx
 //
 // The provider's own profile: how they appear to homeowners, what they service,
 // and where they work. Area and map editing lives on a separate screen so this
 // one stays scannable.
 
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Platform,
-  ActivityIndicator,
-  Modal,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '@/context/AuthContext';
-import {
-  getProviderProfile,
-  saveProviderAppliances,
-  saveProviderServiceAreas,
-  saveProviderBio,
-} from '@/services/roleService';
-import { getProviderRating } from '@/services/reviewService';
 import Button from '@/components/Button';
 import InputField from '@/components/InputField';
 import StarRating from '@/components/StarRating';
-import { APPLIANCES, applianceIcon } from '@/utils/appliances';
-import { areaLabel, GOVERNORATES, AREAS } from '@/utils/areas';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { ProviderRating } from '@/types';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
+import { getProviderRating } from '@/services/reviewService';
+import {
+getProviderProfile,
+saveProviderAppliances,
+saveProviderBio,
+saveProviderServiceAreas,
+} from '@/services/roleService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { ProviderRating } from '@/types';
+import { APPLIANCES,applianceIcon } from '@/utils/appliances';
+import { AREAS,GOVERNORATES,areaLabel } from '@/utils/areas';
+import { Ionicons } from '@expo/vector-icons';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { CompositeScreenProps } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useCallback,useState } from 'react';
+import {
+ActivityIndicator,
+Alert,
+Modal,
+Platform,
+ScrollView,
+StyleSheet,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<ProviderStackParamList, 'ProviderProfile'>,
@@ -44,6 +45,7 @@ type Props = CompositeScreenProps<
 >;
 
 export default function ProviderProfileScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { user, logout } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -65,7 +67,9 @@ export default function ProviderProfileScreen({ navigation }: Props) {
 
   const load = useCallback(() => {
     if (!user) return;
-    getProviderRating(user.uid).then(setRating).catch(() => {});
+    getProviderRating(user.uid)
+      .then(setRating)
+      .catch(() => {});
     getProviderProfile(user.uid)
       .then((p) => {
         if (p) {
@@ -119,12 +123,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
     if (!user) return;
     setSaving(true);
     try {
-      await saveProviderServiceAreas(
-        user.uid,
-        draftAddress,
-        serviceAreas,
-        null
-      );
+      await saveProviderServiceAreas(user.uid, draftAddress, serviceAreas, null);
       setAddress(draftAddress.trim());
       setAddressOpen(false);
     } catch {
@@ -165,7 +164,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
 
   // Which governorates the selected areas fall under, for the summary line.
   const coveredGovernorates = GOVERNORATES.filter((g) =>
-    serviceAreas.some((id) => AREAS.find((a) => a.id === id)?.governorate === g)
+    serviceAreas.some((id) => AREAS.find((a) => a.id === id)?.governorate === g),
   );
 
   if (loading) {
@@ -196,12 +195,12 @@ export default function ProviderProfileScreen({ navigation }: Props) {
           <View style={styles.ratingRow}>
             <StarRating value={rating.averageStars} readonly size={16} />
             <Text style={styles.ratingText}>
-              {rating.averageStars.toFixed(1)} ({rating.count} review
-              {rating.count === 1 ? '' : 's'})
+              {rating.averageStars.toFixed(1)} ({rating.count}
+              {t('review')} {rating.count === 1 ? '' : t('s')})
             </Text>
           </View>
         ) : (
-          <Text style={styles.noRating}>No reviews yet</Text>
+          <Text style={styles.noRating}>{t('No reviews yet')}</Text>
         )}
 
         {/* Stat strip */}
@@ -209,22 +208,22 @@ export default function ProviderProfileScreen({ navigation }: Props) {
           <View style={styles.stat}>
             <Ionicons name="shield-checkmark-outline" size={17} color={colors.completed} />
             <Text style={styles.statValue}>
-              {rating && rating.count >= 5 ? 'Verified' : 'New'}
+              {rating && rating.count >= 5 ? t('5+ reviews') : t('New')}
             </Text>
-            <Text style={styles.statLabel}>Business</Text>
+            <Text style={styles.statLabel}>{t('Business')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
             <Ionicons name="calendar-outline" size={17} color={colors.primary} />
-            <Text style={styles.statValue}>Joined</Text>
+            <Text style={styles.statValue}>{t('Joined')}</Text>
             <Text style={styles.statLabel}>{joined}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
             <Ionicons name="location-outline" size={17} color={colors.primary} />
-            <Text style={styles.statValue}>Based in</Text>
+            <Text style={styles.statValue}>{t('Based in')}</Text>
             <Text style={styles.statLabel} numberOfLines={1}>
-              {serviceAreas.length > 0 ? areaLabel(serviceAreas[0]) : 'Not set'}
+              {serviceAreas.length > 0 ? areaLabel(serviceAreas[0]) : t('Not set')}
             </Text>
           </View>
         </View>
@@ -233,8 +232,8 @@ export default function ProviderProfileScreen({ navigation }: Props) {
       {/* Bio */}
       <View style={styles.sectionHead}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.sectionTitle}>About your business</Text>
-          <Text style={styles.sectionSub}>What homeowners read before choosing you.</Text>
+          <Text style={styles.sectionTitle}>{t('About your business')}</Text>
+          <Text style={styles.sectionSub}>{t('What homeowners read before choosing you.')}</Text>
         </View>
         <TouchableOpacity
           style={styles.editBtn}
@@ -244,7 +243,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
           }}
         >
           <Ionicons name="pencil" size={13} color={colors.primary} />
-          <Text style={styles.editBtnText}>Edit</Text>
+          <Text style={styles.editBtnText}>{t('Edit')}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.card}>
@@ -256,18 +255,18 @@ export default function ProviderProfileScreen({ navigation }: Props) {
       {/* Services */}
       <View style={styles.sectionHead}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.sectionTitle}>Services you offer</Text>
-          <Text style={styles.sectionSub}>Homeowners find you by these.</Text>
+          <Text style={styles.sectionTitle}>{t('Services you offer')}</Text>
+          <Text style={styles.sectionSub}>{t('Homeowners find you by these.')}</Text>
         </View>
         <TouchableOpacity style={styles.editBtn} onPress={() => setServicesOpen(true)}>
           <Ionicons name="options-outline" size={13} color={colors.primary} />
-          <Text style={styles.editBtnText}>Manage</Text>
+          <Text style={styles.editBtnText}>{t('Manage')}</Text>
         </TouchableOpacity>
       </View>
       {appliances.length === 0 ? (
         <View style={styles.card}>
           <Text style={styles.placeholderText}>
-            No services selected yet — tap Manage to choose what you fix.
+            {t('No services selected yet — tap Manage to choose what you fix.')}
           </Text>
         </View>
       ) : (
@@ -282,11 +281,15 @@ export default function ProviderProfileScreen({ navigation }: Props) {
           ))}
         </View>
       )}
-      {otherText ? <Text style={styles.alsoFixes}>Also fixes: {otherText}</Text> : null}
+      {otherText ? (
+        <Text style={styles.alsoFixes}>
+          {t('Also fixes:')} {otherText}
+        </Text>
+      ) : null}
 
       {/* Areas — editing lives on its own screen */}
-      <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>Areas you cover</Text>
-      <Text style={styles.sectionSub}>Manage areas and set your coverage location.</Text>
+      <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>{t('Areas you cover')}</Text>
+      <Text style={styles.sectionSub}>{t('Manage areas and set your coverage location.')}</Text>
       <TouchableOpacity
         style={styles.linkRow}
         activeOpacity={0.7}
@@ -298,13 +301,13 @@ export default function ProviderProfileScreen({ navigation }: Props) {
         <View style={{ flex: 1 }}>
           <Text style={styles.linkTitle}>
             {serviceAreas.length === 0
-              ? 'No areas selected'
+              ? t('No areas selected')
               : `${serviceAreas.length} area${serviceAreas.length === 1 ? '' : 's'} selected`}
           </Text>
           <Text style={styles.linkSub} numberOfLines={1}>
             {coveredGovernorates.length > 0
               ? coveredGovernorates.join(', ')
-              : 'Tap to choose where you work'}
+              : t('Tap to choose where you work')}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
@@ -313,8 +316,8 @@ export default function ProviderProfileScreen({ navigation }: Props) {
       {/* Address */}
       <View style={styles.sectionHead}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.sectionTitle}>Your address</Text>
-          <Text style={styles.sectionSub}>Where your business is based.</Text>
+          <Text style={styles.sectionTitle}>{t('Your address')}</Text>
+          <Text style={styles.sectionSub}>{t('Where your business is based.')}</Text>
         </View>
         <TouchableOpacity
           style={styles.editBtn}
@@ -324,7 +327,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
           }}
         >
           <Ionicons name="pencil" size={13} color={colors.primary} />
-          <Text style={styles.editBtnText}>Edit</Text>
+          <Text style={styles.editBtnText}>{t('Edit')}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.linkRow}>
@@ -337,7 +340,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
       </View>
 
       <Button
-        label="Log Out"
+        label={t('Log Out')}
         variant="danger"
         onPress={confirmLogout}
         loading={loggingOut}
@@ -348,7 +351,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
       <Modal visible={servicesOpen} transparent animationType="slide">
         <View style={styles.sheetBackdrop}>
           <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Services you offer</Text>
+            <Text style={styles.sheetTitle}>{t('Services you offer')}</Text>
             <ScrollView style={{ maxHeight: 360 }}>
               {APPLIANCES.map((a) => {
                 const on = appliances.includes(a.id);
@@ -359,7 +362,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
                     activeOpacity={0.7}
                     onPress={() =>
                       setAppliances((prev) =>
-                        on ? prev.filter((x) => x !== a.id) : [...prev, a.id]
+                        on ? prev.filter((x) => x !== a.id) : [...prev, a.id],
                       )
                     }
                   >
@@ -369,14 +372,14 @@ export default function ProviderProfileScreen({ navigation }: Props) {
                       color={on ? colors.primary : colors.border}
                     />
                     <Text style={styles.checkIcon}>{a.icon}</Text>
-                    <Text style={styles.checkLabel}>{a.label}</Text>
+                    <Text style={styles.checkLabel}>{t(a.label)}</Text>
                   </TouchableOpacity>
                 );
               })}
               {appliances.includes('other') && (
                 <InputField
-                  label="Describe the other service"
-                  placeholder="e.g. Curtain fitting"
+                  label={t('Describe the other service')}
+                  placeholder={t('e.g. Curtain fitting')}
                   value={otherText}
                   onChangeText={setOtherText}
                 />
@@ -384,7 +387,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
             </ScrollView>
             <View style={styles.sheetActions}>
               <Button
-                label="Cancel"
+                label={t('Cancel')}
                 variant="secondary"
                 onPress={() => {
                   setServicesOpen(false);
@@ -393,7 +396,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
                 style={{ flex: 1 }}
               />
               <Button
-                label="Save"
+                label={t('Save')}
                 onPress={() => saveServices(appliances, otherText)}
                 loading={saving}
                 style={{ flex: 1 }}
@@ -407,10 +410,10 @@ export default function ProviderProfileScreen({ navigation }: Props) {
       <Modal visible={bioOpen} transparent animationType="slide">
         <View style={styles.sheetBackdrop}>
           <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>About your business</Text>
+            <Text style={styles.sheetTitle}>{t('About your business')}</Text>
             <InputField
               label=""
-              placeholder="We provide reliable home services…"
+              placeholder={t('We provide reliable home services…')}
               value={draftBio}
               onChangeText={setDraftBio}
               multiline
@@ -419,12 +422,12 @@ export default function ProviderProfileScreen({ navigation }: Props) {
             />
             <View style={styles.sheetActions}>
               <Button
-                label="Cancel"
+                label={t('Cancel')}
                 variant="secondary"
                 onPress={() => setBioOpen(false)}
                 style={{ flex: 1 }}
               />
-              <Button label="Save" onPress={saveBio} loading={saving} style={{ flex: 1 }} />
+              <Button label={t('Save')} onPress={saveBio} loading={saving} style={{ flex: 1 }} />
             </View>
           </View>
         </View>
@@ -434,10 +437,10 @@ export default function ProviderProfileScreen({ navigation }: Props) {
       <Modal visible={addressOpen} transparent animationType="slide">
         <View style={styles.sheetBackdrop}>
           <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Your address</Text>
+            <Text style={styles.sheetTitle}>{t('Your address')}</Text>
             <InputField
               label=""
-              placeholder="Building 123, Road 45, Manama"
+              placeholder={t('Building 123, Road 45, Manama')}
               value={draftAddress}
               onChangeText={setDraftAddress}
               multiline
@@ -446,12 +449,17 @@ export default function ProviderProfileScreen({ navigation }: Props) {
             />
             <View style={styles.sheetActions}>
               <Button
-                label="Cancel"
+                label={t('Cancel')}
                 variant="secondary"
                 onPress={() => setAddressOpen(false)}
                 style={{ flex: 1 }}
               />
-              <Button label="Save" onPress={saveAddress} loading={saving} style={{ flex: 1 }} />
+              <Button
+                label={t('Save')}
+                onPress={saveAddress}
+                loading={saving}
+                style={{ flex: 1 }}
+              />
             </View>
           </View>
         </View>
@@ -473,7 +481,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-  container: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  container: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
 
   headerCard: {
     backgroundColor: colors.surface,
@@ -556,7 +570,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   serviceIcon: { fontSize: 20 },
-  serviceLabel: { fontSize: 11, fontWeight: '600', color: colors.textSecondary, textAlign: 'center' },
+  serviceLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
   alsoFixes: { ...typography.caption, marginTop: spacing.sm, fontStyle: 'italic' },
 
   linkRow: {

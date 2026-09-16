@@ -29,6 +29,11 @@ export interface MaintenanceItem {
   customFrequencyDays?: number | null;
   lastServiceDate: string | null; // ISO date string
   nextServiceDate: string; // ISO date string
+  brandModel?: string;
+  serialNumber?: string;
+  warrantyExpiry?: string | null;
+  warrantyNotes?: string;
+  attachments?: Attachment[];
   notes?: string;
   notificationIds?: string[]; // scheduled local notification identifiers
   /** Which saved location this appliance lives at (id from savedLocations). */
@@ -74,14 +79,11 @@ export type EmployeePrivilege = 'worker' | 'manager';
 
 // Mirrors the service-request lifecycle so a provider can move a booking
 // through the same stages from their Requests tab.
-export type BookingStatus =
-  | 'pending'
-  | 'accepted'
-  | 'in_progress'
-  | 'declined'
-  | 'completed';
+export type BookingStatus = 'pending' | 'accepted' | 'in_progress' | 'declined' | 'completed';
 
 export interface Booking {
+  attachments?: Attachment[];
+  location?: SavedLocation | null;
   id: string;
   providerId: string;
   providerName: string;
@@ -108,6 +110,7 @@ export interface ProviderAvailability {
   startHour: number; // 0-23, e.g. 9
   endHour: number; // 0-23, e.g. 18
   slotMinutes: number; // 30, 60, 90, 120
+  weeklyOffDays?: number[];
   blockedDates: string[]; // 'YYYY-MM-DD' the provider marked unavailable
 }
 
@@ -122,6 +125,11 @@ export interface Employee {
 }
 
 export interface ServiceRequest {
+  attachments?: Attachment[];
+  location?: SavedLocation | null;
+  locationId?: string | null;
+  timeSlot?: string;
+  isBooking?: boolean;
   id: string;
   homeownerId: string;
   homeownerName: string;
@@ -205,4 +213,26 @@ export interface ProviderRating {
   /** Derived from stars (stars x 2) so we can show an out-of-10 figure. */
   averageScore: number;
   count: number;
+}
+
+export interface Attachment {
+  id: string;
+  name: string;
+  path: string;
+  contentType: string;
+  size: number;
+}
+export interface ServiceQuote {
+  id: string;
+  providerId: string;
+  customerId: string;
+  jobId: string;
+  jobType: 'booking' | 'request';
+  inspectionFee: number;
+  servicePrice: number;
+  total: number;
+  currency: 'BHD';
+  scope: string;
+  status: 'pending' | 'accepted' | 'declined';
+  version: number;
 }

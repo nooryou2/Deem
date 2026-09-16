@@ -1,43 +1,32 @@
-// src/screens/auth/RegisterScreen.tsx
-//
-// Signup runs as three steps so the form never feels long:
-//   1. Select Role   — homeowner or service provider
-//   2. Personal Info — name, email, password
-//   3. Location      — optional map pin and area(s)
-//
-// Only step 2 is required; the location step can be skipped and completed
-// later from the user's profile.
-
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '@/context/AuthContext';
-import { getAuthErrorMessage } from '@/services/authService';
-import InputField from '@/components/InputField';
 import Button from '@/components/Button';
 import GoogleButton from '@/components/GoogleButton';
+import InputField from '@/components/InputField';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import StepIndicator from '@/components/StepIndicator';
-import AreaSelector from '@/components/AreaSelector';
-import MapPicker, { LatLng } from '@/components/MapPicker';
-import { nearestArea, areaLabel } from '@/utils/areas';
-import { getEmailError, getPasswordError } from '@/utils/validation';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/i18n/LanguageContext';
 import type { AuthStackParamList } from '@/navigation/AuthNavigator';
+import { getAuthErrorMessage } from '@/services/authService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
 import { UserRole } from '@/types';
+import { getEmailError,getPasswordError } from '@/utils/validation';
+import { Ionicons } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useState } from 'react';
+import {
+Image,
+KeyboardAvoidingView,
+Platform,
+ScrollView,
+StyleSheet,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
-const STEPS = ['Select Role', 'Personal Info', 'Location'];
+const STEPS = ['Select Role', 'Personal Info'];
 
 const ROLES: {
   value: UserRole;
@@ -55,6 +44,7 @@ const ROLES: {
 ];
 
 export default function RegisterScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { register, loginWithGoogle } = useAuth();
 
   const [step, setStep] = useState(0);
@@ -72,23 +62,9 @@ export default function RegisterScreen({ navigation }: Props) {
   const [confirmError, setConfirmError] = useState('');
   const [nameError, setNameError] = useState('');
 
-  // Step 3
-  const [areas, setAreas] = useState<string[]>([]);
-  const [coords, setCoords] = useState<LatLng | null>(null);
-
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [formError, setFormError] = useState('');
-
-  // Dropping a pin fills in the surrounding area, so most people never need to
-  // open the area list at all.
-  function handleCoordsChange(next: LatLng) {
-    setCoords(next);
-    const match = nearestArea(next);
-    if (match && !areas.includes(match.id)) {
-      setAreas((prev) => [...prev, match.id]);
-    }
-  }
 
   /** Validates step 2 and reports whether it's safe to continue. */
   function validateDetails(): boolean {
@@ -146,7 +122,7 @@ export default function RegisterScreen({ navigation }: Props) {
     }
     setLoading(true);
     try {
-      await register(name, email.trim(), password, role, areas, coords);
+      await register(name, email.trim(), password, role, [], null);
     } catch (error) {
       setFormError(getAuthErrorMessage(error, 'register'));
     } finally {
@@ -160,19 +136,23 @@ export default function RegisterScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><TouchableOpacity accessibilityRole="button" onPress={() => navigation.navigate('Landing')}><Text style={styles.linkText}>{t('Back to home ←')}</Text></TouchableOpacity><LanguageSwitcher /></View>
         <Image
           source={require('../../../assets/logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.title}>{t('Create Account')}</Text>
+        <Text style={styles.stepHint}>
+          {t('You can add your home location when requesting a service.')}
+        </Text>
         <StepIndicator steps={STEPS} current={step} />
 
         <View style={styles.card}>
           {/* ---------- STEP 1: Role ---------- */}
           {step === 0 && (
             <>
-              <Text style={styles.stepTitle}>I want to sign up as</Text>
+              <Text style={styles.stepTitle}>{t('I want to sign up as')}</Text>
               <View style={styles.roleRow}>
                 {ROLES.map((opt) => {
                   const on = role === opt.value;
@@ -189,9 +169,9 @@ export default function RegisterScreen({ navigation }: Props) {
                         color={on ? colors.primary : colors.textSecondary}
                       />
                       <Text style={[styles.roleLabel, on && styles.roleLabelOn]}>
-                        {opt.label}
+                        {t(opt.label)}
                       </Text>
-                      <Text style={[styles.roleSub, on && styles.roleSubOn]}>{opt.sub}</Text>
+                      <Text style={[styles.roleSub, on && styles.roleSubOn]}>{t(opt.sub)}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -199,12 +179,12 @@ export default function RegisterScreen({ navigation }: Props) {
 
               <View style={styles.dividerRow}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
+                <Text style={styles.dividerText}>{t('or')}</Text>
                 <View style={styles.dividerLine} />
               </View>
 
               <GoogleButton
-                label="Sign up with Google"
+                label={t('Sign up with Google')}
                 onPress={handleGoogle}
                 loading={googleLoading}
               />
@@ -214,10 +194,10 @@ export default function RegisterScreen({ navigation }: Props) {
           {/* ---------- STEP 2: Personal info ---------- */}
           {step === 1 && (
             <>
-              <Text style={styles.stepTitle}>Personal Info</Text>
+              <Text style={styles.stepTitle}>{t('Personal Info')}</Text>
               <InputField
-                label="Full Name"
-                placeholder="Ahmed Ali"
+                label={t('Full Name')}
+                placeholder={t('Ahmed Ali')}
                 value={name}
                 onChangeText={(t) => {
                   setName(t);
@@ -226,8 +206,8 @@ export default function RegisterScreen({ navigation }: Props) {
                 error={nameError}
               />
               <InputField
-                label="Email"
-                placeholder="you@example.com"
+                label={t('Email')}
+                placeholder={t('you@example.com')}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
@@ -242,8 +222,8 @@ export default function RegisterScreen({ navigation }: Props) {
                 error={emailError}
               />
               <InputField
-                label="Password"
-                placeholder="At least 6 characters"
+                label={t('Password')}
+                placeholder={t('At least 6 characters')}
                 isPassword
                 value={password}
                 onChangeText={(t) => {
@@ -253,8 +233,8 @@ export default function RegisterScreen({ navigation }: Props) {
                 error={passwordError}
               />
               <InputField
-                label="Confirm Password"
-                placeholder="Re-enter your password"
+                label={t('Confirm Password')}
+                placeholder={t('Re-enter your password')}
                 isPassword
                 value={confirmPassword}
                 onChangeText={(t) => {
@@ -266,58 +246,24 @@ export default function RegisterScreen({ navigation }: Props) {
             </>
           )}
 
-          {/* ---------- STEP 3: Location ---------- */}
-          {step === 2 && (
-            <>
-              <Text style={styles.stepTitle}>
-                {role === 'provider' ? 'Where are you based?' : 'Where is your home?'}
-              </Text>
-              <Text style={styles.stepHint}>
-                {role === 'provider'
-                  ? "Homeowners see you first when you cover their area. You can set this later."
-                  : "We'll show providers who work near you. You can set this later."}
-              </Text>
-
-              <MapPicker value={coords} onChange={handleCoordsChange} height={200} />
-
-              <Text style={styles.areaLabel}>
-                {role === 'provider' ? 'Areas you can work in' : 'Your area'}
-              </Text>
-              {areas.length > 0 && (
-                <View style={styles.areaChips}>
-                  {areas.map((a) => (
-                    <View key={a} style={styles.areaChip}>
-                      <Text style={styles.areaChipText}>{areaLabel(a)}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-              <AreaSelector selected={areas} onChange={setAreas} searchable />
-
-              <Text style={styles.terms}>
-                By creating an account, you agree to our Terms of Service and Privacy Policy.
-              </Text>
-            </>
-          )}
-
-          {formError ? <Text style={styles.error}>{formError}</Text> : null}
+          {formError ? <Text style={styles.error}>{t(formError)}</Text> : null}
         </View>
 
         {/* Footer navigation */}
         <View style={styles.footer}>
           {step > 0 && (
             <Button
-              label="Back"
+              label={t('Back')}
               variant="secondary"
               onPress={() => setStep((s) => s - 1)}
               style={{ flex: 1 }}
             />
           )}
-          {step < 2 ? (
-            <Button label="Continue" onPress={handleContinue} style={{ flex: 1 }} />
+          {step < 1 ? (
+            <Button label={t('Continue')} onPress={handleContinue} style={{ flex: 1 }} />
           ) : (
             <Button
-              label="Create Account"
+              label={t('Create Account')}
               onPress={handleFinish}
               loading={loading}
               style={{ flex: 1 }}
@@ -326,9 +272,9 @@ export default function RegisterScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.loginRow}>
-          <Text style={styles.loginText}>Already have an account? </Text>
+          <Text style={styles.loginText}>{t('Already have an account?')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.linkText}>Log in</Text>
+            <Text style={styles.linkText}>{t('Log in')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -338,7 +284,14 @@ export default function RegisterScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  container: { flexGrow: 1, padding: spacing.lg, justifyContent: 'center' },
+  container: {
+    flexGrow: 1,
+    padding: spacing.lg,
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
+  },
   logo: { width: 92, height: 92, alignSelf: 'center', marginBottom: spacing.sm },
   title: { ...typography.h2, textAlign: 'center', marginBottom: spacing.lg },
   card: {

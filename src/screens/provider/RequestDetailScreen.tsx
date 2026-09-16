@@ -1,51 +1,43 @@
+import AttachmentPicker from '@/components/attachment-picker';
+import QuoteCard from '@/components/quote-card';
+import { useLanguage } from '@/i18n/LanguageContext';
+import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
 // src/screens/provider/RequestDetailScreen.tsx
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  Platform,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Button from '@/components/Button';
 import MapPicker from '@/components/MapPicker';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
-import {
-  updateRequestStatus,
-  assignEmployee,
-  fetchRequestsForProvider,
-} from '@/services/requestService';
+import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
+import { assignEmployeeToBooking,updateBookingStatus } from '@/services/bookingService';
 import { listEmployees } from '@/services/employeeService';
 import {
-  updateBookingStatus,
-  freeSlot,
-  assignEmployeeToBooking,
-} from '@/services/bookingService';
+assignEmployee,
+updateRequestStatus
+} from '@/services/requestService';
 import { getSavedLocations } from '@/services/roleService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { Employee,SavedLocation,ServiceRequest,ServiceRequestStatus } from '@/types';
+import { applianceIcon,applianceLabel } from '@/utils/appliances';
 import { areaLabel } from '@/utils/areas';
-import { SavedLocation } from '@/types';
-import Button from '@/components/Button';
-import { applianceLabel, applianceIcon } from '@/utils/appliances';
-import { CATEGORY_ICONS, CATEGORY_LABELS } from '@/utils/maintenanceTemplates';
 import { formatFriendlyDate } from '@/utils/dateCalculations';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { ServiceRequest, ServiceRequestStatus, Employee } from '@/types';
-import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
+import { CATEGORY_LABELS } from '@/utils/maintenanceTemplates';
+import { Ionicons } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useEffect,useState } from 'react';
+import {
+Alert,
+Modal,
+Platform,
+ScrollView,
+StyleSheet,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'RequestDetail'>;
 
 // Slots are stored as 24h "HH:mm"; show them the way people read them.
-function prettyTime(slot?: string): string {
-  if (!slot) return '';
-  const [h, m] = slot.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hr = h % 12 === 0 ? 12 : h % 12;
-  return `${hr}:${String(m).padStart(2, '0')} ${ampm}`;
-}
+
 
 const STATUS_META: Record<ServiceRequestStatus, { label: string; color: string; tint: string }> = {
   pending: { label: 'Pending', color: '#D97706', tint: '#FEF3C7' },
@@ -55,7 +47,8 @@ const STATUS_META: Record<ServiceRequestStatus, { label: string; color: string; 
   declined: { label: 'Declined', color: '#DC2626', tint: '#FEE2E2' },
 };
 
-export default function RequestDetailScreen({ navigation, route }: Props) {
+export default function RequestDetailScreen({ route }: Props) {
+  const { t } = useLanguage();
   const { user, role, privilege } = useAuth();
   const [req, setReq] = useState<ServiceRequest>(route.params.request);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -64,6 +57,10 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
   const [jobLocation, setJobLocation] = useState<SavedLocation | null>(null);
 
   useEffect(() => {
+    if (req.location) {
+      setJobLocation(req.location);
+      return;
+    }
     if (!req.homeownerId) return;
     getSavedLocations(req.homeownerId)
       .then((list) => {
@@ -83,8 +80,11 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
   useEffect(() => {
     if (!canManage) return;
     // The provider's own uid is the employer id; for a manager it's their employerId.
-    const providerId = role === 'provider' ? user?.uid : (route.params.request.providerId);
-    if (providerId) listEmployees(providerId).then(setEmployees).catch(() => {});
+    const providerId = role === 'provider' ? user?.uid : route.params.request.providerId;
+    if (providerId)
+      listEmployees(providerId)
+        .then(setEmployees)
+        .catch(() => {});
   }, [canManage, user, role, route.params.request.providerId]);
 
   function notify(msg: string) {
@@ -99,16 +99,16 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
       // update has to go to the right one.
       if ((req as any).isBooking) {
         await updateBookingStatus(req.id, status as any);
-        // Declining frees the slot for other customers.
-        if (status === 'declined' && (req as any).preferredDate) {
-          await freeSlot(req.providerId, (req as any).preferredDate, (req as any).timeSlot);
-        }
       } else {
         await updateRequestStatus(req.id, status);
       }
       setReq((r) => ({ ...r, status }));
     } catch (e) {
-      notify('Could not update status.');
+      notify(
+        e instanceof Error && e.message === 'QUOTE_REQUIRED'
+          ? t('The customer must accept the quote before work starts.')
+          : t('Could not update status.'),
+      );
     } finally {
       setBusy(false);
     }
@@ -134,7 +134,7 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
   }
 
   const meta = STATUS_META[req.status];
-  const isEmployee = role === 'employee';
+  const isEmployee = role === 'employee' && privilege !== 'manager';
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.container}>
@@ -143,12 +143,12 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
         <Text style={styles.bannerTitle}>{req.serviceType}</Text>
         {req.isEmergency ? (
           <View style={styles.emergencyPill}>
-            <Text style={styles.emergencyText}>Emergency</Text>
+            <Text style={styles.emergencyText}>{t('Emergency')}</Text>
           </View>
         ) : null}
         <View style={styles.bannerStatus}>
           <View style={[styles.statusDot, { backgroundColor: meta.color }]} />
-          <Text style={styles.bannerStatusText}>{meta.label}</Text>
+          <Text style={styles.bannerStatusText}>{t(meta.label)}</Text>
         </View>
       </View>
       <View style={styles.bannerCurve} />
@@ -156,7 +156,7 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
       {/* Date and time side by side — the two facts that matter most. */}
       {(req as any).preferredDate ? (
         <View style={styles.section}>
-          <Text style={styles.sectionHeading}>Appointment</Text>
+          <Text style={styles.sectionHeading}>{t('Appointment')}</Text>
           <View style={styles.splitRow}>
             <View style={styles.splitItem}>
               <Ionicons name="calendar-outline" size={22} color={colors.primary} />
@@ -164,7 +164,7 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
                 <Text style={styles.splitValue}>
                   {formatFriendlyDate((req as any).preferredDate)}
                 </Text>
-                <Text style={styles.splitLabel}>Date</Text>
+                <Text style={styles.splitLabel}>{t('Date')}</Text>
               </View>
             </View>
             {(req as any).timeSlot ? (
@@ -174,7 +174,7 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
                   <Ionicons name="time-outline" size={22} color={colors.primary} />
                   <View>
                     <Text style={styles.splitValue}>{prettyTime((req as any).timeSlot)}</Text>
-                    <Text style={styles.splitLabel}>Time</Text>
+                    <Text style={styles.splitLabel}>{t('Time')}</Text>
                   </View>
                 </View>
               </>
@@ -187,19 +187,19 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
       <View style={styles.section}>
         <View style={styles.headingRow}>
           <Ionicons name="location" size={17} color={colors.primary} />
-          <Text style={styles.sectionHeading}>Location</Text>
+          <Text style={styles.sectionHeading}>{t('Location')}</Text>
         </View>
         {jobLocation ? (
           <>
             <View style={styles.addressBlock}>
               <Ionicons name="location" size={18} color={colors.primary} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.addressLabel}>{jobLocation.label}</Text>
+                <Text style={styles.addressLabel}>{t(jobLocation.label)}</Text>
                 {jobLocation.address ? (
                   <Text style={styles.addressLine}>{jobLocation.address}</Text>
                 ) : null}
                 {jobLocation.area ? (
-                  <Text style={styles.addressLine}>{areaLabel(jobLocation.area)}</Text>
+                  <Text style={styles.addressLine}>{t(areaLabel(jobLocation.area))}</Text>
                 ) : null}
               </View>
             </View>
@@ -212,26 +212,28 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
           </>
         ) : (
           <Text style={styles.emptyNote}>
-            The customer hasn't saved an address. Contact them for directions.
+            {t("The customer hasn't saved an address. Contact them for directions.")}
           </Text>
         )}
       </View>
 
       {/* What & who — tinted so it reads as a distinct block. */}
       <View style={styles.tintedCard}>
-        <Text style={styles.tintedHeading}>Job details</Text>
-        <Row label="Customer" value={req.homeownerName} />
-        <Row label="Service" value={CATEGORY_LABELS[req.category] ?? 'Service'} />
+        <Text style={styles.tintedHeading}>{t('Job details')}</Text>
+        <Row label={t('Customer')} value={req.homeownerName} />
+        <Row label={t('Service')} value={t(CATEGORY_LABELS[req.category] ?? 'Service')} />
         {req.appliances && req.appliances.length > 0 ? (
           <Row
-            label="Appliances"
-            value={req.appliances.map((a) => `${applianceIcon(a)} ${applianceLabel(a)}`).join('\n')}
+            label={t('Appliances')}
+            value={req.appliances
+              .map((a) => `${applianceIcon(a)} ${t(applianceLabel(a))}`)
+              .join('\n')}
           />
         ) : null}
-        <Row label="Requested on" value={formatFriendlyDate(req.createdAt)} />
+        <Row label={t('Requested on')} value={formatFriendlyDate(req.createdAt)} />
         <Row
-          label="Assigned to"
-          value={req.assignedEmployeeName || 'Not assigned yet'}
+          label={t('Assigned to')}
+          value={req.assignedEmployeeName || t('Not assigned yet')}
           last
         />
       </View>
@@ -244,93 +246,103 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
             <Ionicons name="document-text-outline" size={20} color={colors.textSecondary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.noteLabel}>Customer notes</Text>
+            <Text style={styles.noteLabel}>{t('Customer notes')}</Text>
             <Text style={styles.noteText}>{req.notes}</Text>
           </View>
         </View>
       ) : null}
 
+      <View style={{ paddingHorizontal: spacing.lg }}>
+        <AttachmentPicker value={req.attachments ?? []} readonly />
+        <QuoteCard
+          jobId={req.id}
+          jobType={req.isBooking ? 'booking' : 'request'}
+          providerId={req.providerId}
+          customerId={req.homeownerId}
+          canOffer={canManage && ['pending', 'accepted'].includes(req.status)}
+        />
+      </View>
       <View style={styles.actionsWrap}>
-      {/* Provider / manager actions */}
-      {!isEmployee && (
-        <>
-          {req.status === 'pending' && (
-            <View style={styles.actionRow}>
+        {/* Provider / manager actions */}
+        {!isEmployee && (
+          <>
+            {req.status === 'pending' && (
+              <View style={styles.actionRow}>
+                <Button
+                  label={t('Decline')}
+                  variant="danger"
+                  onPress={() => setStatus('declined')}
+                  loading={busy}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  label={t('Accept')}
+                  onPress={() => setStatus('accepted')}
+                  loading={busy}
+                  style={{ flex: 1 }}
+                />
+              </View>
+            )}
+
+            {(req.status === 'accepted' || req.status === 'in_progress') && (
               <Button
-                label="Decline"
-                variant="danger"
-                onPress={() => setStatus('declined')}
-                loading={busy}
-                style={{ flex: 1 }}
+                label={req.assignedEmployeeName ? 'Reassign Employee' : 'Assign Employee'}
+                variant="secondary"
+                onPress={() => setAssignOpen(true)}
+                style={{ marginTop: spacing.md }}
               />
+            )}
+
+            {req.status === 'accepted' && (
               <Button
-                label="Accept"
-                onPress={() => setStatus('accepted')}
+                label={t('Start Work')}
+                onPress={() => setStatus('in_progress')}
                 loading={busy}
-                style={{ flex: 1 }}
+                style={{ marginTop: spacing.md }}
               />
-            </View>
-          )}
+            )}
+            {req.status === 'in_progress' && (
+              <Button
+                label={t('Mark Completed')}
+                onPress={() => setStatus('completed')}
+                loading={busy}
+                style={{ marginTop: spacing.md }}
+              />
+            )}
+          </>
+        )}
 
-          {(req.status === 'accepted' || req.status === 'in_progress') && (
-            <Button
-              label={req.assignedEmployeeName ? 'Reassign Employee' : 'Assign Employee'}
-              variant="secondary"
-              onPress={() => setAssignOpen(true)}
-              style={{ marginTop: spacing.md }}
-            />
-          )}
-
-          {req.status === 'accepted' && (
-            <Button
-              label="Start Work"
-              onPress={() => setStatus('in_progress')}
-              loading={busy}
-              style={{ marginTop: spacing.md }}
-            />
-          )}
-          {req.status === 'in_progress' && (
-            <Button
-              label="Mark Completed"
-              onPress={() => setStatus('completed')}
-              loading={busy}
-              style={{ marginTop: spacing.md }}
-            />
-          )}
-        </>
-      )}
-
-      {/* Employee (worker) actions: can update status of their assigned job */}
-      {isEmployee && (
-        <>
-          {req.status === 'accepted' && (
-            <Button
-              label="Start Work"
-              onPress={() => setStatus('in_progress')}
-              loading={busy}
-              style={{ marginTop: spacing.md }}
-            />
-          )}
-          {req.status === 'in_progress' && (
-            <Button
-              label="Mark Completed"
-              onPress={() => setStatus('completed')}
-              loading={busy}
-              style={{ marginTop: spacing.md }}
-            />
-          )}
-        </>
-      )}
+        {/* Employee (worker) actions: can update status of their assigned job */}
+        {isEmployee && (
+          <>
+            {req.status === 'accepted' && (
+              <Button
+                label={t('Start Work')}
+                onPress={() => setStatus('in_progress')}
+                loading={busy}
+                style={{ marginTop: spacing.md }}
+              />
+            )}
+            {req.status === 'in_progress' && (
+              <Button
+                label={t('Mark Completed')}
+                onPress={() => setStatus('completed')}
+                loading={busy}
+                style={{ marginTop: spacing.md }}
+              />
+            )}
+          </>
+        )}
       </View>
 
       {/* Assign employee modal */}
       <Modal visible={assignOpen} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Assign an Employee</Text>
+            <Text style={styles.modalTitle}>{t('Assign an Employee')}</Text>
             {employees.length === 0 ? (
               <Text style={styles.noEmp}>
-                No employees yet. Add team members from the Team tab first.
+                {t('No employees yet. Add team members from the Team tab first.')}
               </Text>
             ) : (
               <ScrollView style={{ maxHeight: 320 }}>
@@ -347,7 +359,7 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.empName}>{emp.name}</Text>
                       <Text style={styles.empPriv}>
-                        {emp.privilege === 'manager' ? 'Manager' : 'Worker'}
+                        {emp.privilege === 'manager' ? t('Manager') : t('Worker')}
                       </Text>
                     </View>
                     {req.assignedEmployeeId === emp.uid ? (
@@ -358,7 +370,7 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
               </ScrollView>
             )}
             <Button
-              label="Close"
+              label={t('Close')}
               variant="secondary"
               onPress={() => setAssignOpen(false)}
               style={{ marginTop: spacing.md }}
@@ -370,18 +382,11 @@ export default function RequestDetailScreen({ navigation, route }: Props) {
   );
 }
 
-function Row({
-  label,
-  value,
-  last = false,
-}: {
-  label: string;
-  value: string;
-  last?: boolean;
-}) {
+function Row({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
+  const { t } = useLanguage();
   return (
     <View style={[styles.row, last && { borderBottomWidth: 0 }]}>
-      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={styles.rowLabel}>{t(label)}</Text>
       <Text style={styles.rowValue}>{value}</Text>
     </View>
   );

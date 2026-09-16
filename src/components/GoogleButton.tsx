@@ -1,8 +1,10 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/GoogleButton.tsx
-import React from 'react';
-import { Text, StyleSheet, TouchableOpacity, ActivityIndicator, View } from 'react-native';
+import Text from '@/components/app-text';
+import { colors,radius,spacing } from '@/theme/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '@/theme/theme';
+import React from 'react';
+import { ActivityIndicator,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 interface Props {
   label?: string;
@@ -17,22 +19,30 @@ export default function GoogleButton({
   loading = false,
   disabled = false,
 }: Props) {
+  const { t } = useLanguage();
   return (
-    <TouchableOpacity
-      style={[styles.button, (disabled || loading) && styles.disabled]}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.8}
-    >
-      {loading ? (
-        <ActivityIndicator color={colors.textSecondary} />
-      ) : (
-        <View style={styles.content}>
-          <Ionicons name="logo-google" size={18} color="#4285F4" />
-          <Text style={styles.label}>{label}</Text>
-        </View>
-      )}
-    </TouchableOpacity>
+    <View>
+      <TouchableOpacity
+        style={[styles.button, (disabled || loading) && styles.disabled]}
+        onPress={onPress}
+        disabled={disabled || loading}
+        activeOpacity={0.8}
+      >
+        {loading ? (
+          <ActivityIndicator color={colors.textSecondary} />
+        ) : (
+          <View style={styles.content}>
+            <Ionicons name="logo-google" size={18} color="#4285F4" />
+            <Text style={styles.label}>{t(label)}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+      <Text style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 20, marginTop: 10 }}>
+        {t(
+          'Google shares your name, email and profile picture. We do not request access to Gmail or Drive.',
+        )}
+      </Text>
+    </View>
   );
 }
 

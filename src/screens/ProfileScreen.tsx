@@ -1,30 +1,21 @@
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/ProfileScreen.tsx
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Alert,
-  Platform,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '@/context/AuthContext';
-import Button from '@/components/Button';
 import AreaSelector from '@/components/AreaSelector';
-import {
-  getHomeownerAreas,
-  saveHomeownerAreas,
-  getSavedLocations,
-} from '@/services/roleService';
+import Button from '@/components/Button';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
+import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { getHomeownerAreas,getSavedLocations,saveHomeownerAreas } from '@/services/roleService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
 import { MAX_SAVED_LOCATIONS } from '@/types';
 import { areaLabel } from '@/utils/areas';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { Ionicons } from '@expo/vector-icons';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { CompositeScreenProps } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useEffect,useState } from 'react';
+import { Alert,Platform,ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<MainStackParamList, 'Profile'>,
@@ -32,6 +23,7 @@ type Props = CompositeScreenProps<
 >;
 
 export default function ProfileScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
   const [areas, setAreas] = useState<string[]>([]);
@@ -42,8 +34,12 @@ export default function ProfileScreen({ navigation }: Props) {
   // Load the homeowner's registered areas.
   useEffect(() => {
     if (!user) return;
-    getHomeownerAreas(user.uid).then(setAreas).catch(() => {});
-    getSavedLocations(user.uid).then((l) => setLocationCount(l.length)).catch(() => {});
+    getHomeownerAreas(user.uid)
+      .then(setAreas)
+      .catch(() => {});
+    getSavedLocations(user.uid)
+      .then((l) => setLocationCount(l.length))
+      .catch(() => {});
   }, [user]);
 
   async function handleSaveAreas() {
@@ -98,6 +94,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.container}>
+      <LanguageSwitcher />
       <View style={styles.card}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
@@ -112,13 +109,13 @@ export default function ProfileScreen({ navigation }: Props) {
       <View style={styles.areaCard}>
         <View style={styles.areaHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.areaTitle}>My Areas</Text>
+            <Text style={styles.areaTitle}>{t('My Areas')}</Text>
             <Text style={styles.areaSub}>
-              You'll only see providers who work in these areas.
+              {t("You'll only see providers who work in these areas.")}
             </Text>
           </View>
           <TouchableOpacity onPress={() => setEditingAreas((v) => !v)} hitSlop={8}>
-            <Text style={styles.editLink}>{editingAreas ? 'Cancel' : 'Edit'}</Text>
+            <Text style={styles.editLink}>{editingAreas ? t('Cancel') : t('Edit')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -126,19 +123,19 @@ export default function ProfileScreen({ navigation }: Props) {
           <View style={{ marginTop: spacing.md }}>
             <AreaSelector selected={areas} onChange={setAreas} />
             <Button
-              label="Save Areas"
+              label={t('Save Areas')}
               onPress={handleSaveAreas}
               loading={savingAreas}
               style={{ marginTop: spacing.md }}
             />
           </View>
         ) : areas.length === 0 ? (
-          <Text style={styles.noAreas}>No areas set yet — tap Edit to add one.</Text>
+          <Text style={styles.noAreas}>{t('No areas set yet — tap Edit to add one.')}</Text>
         ) : (
           <View style={styles.areaChips}>
             {areas.map((a) => (
               <View key={a} style={styles.areaChip}>
-                <Text style={styles.areaChipText}>{areaLabel(a)}</Text>
+                <Text style={styles.areaChipText}>{t(areaLabel(a))}</Text>
               </View>
             ))}
           </View>
@@ -156,11 +153,11 @@ export default function ProfileScreen({ navigation }: Props) {
             <Ionicons name="location-outline" size={20} color={colors.primary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.menuLabel}>My Locations</Text>
+            <Text style={styles.menuLabel}>{t('My Locations')}</Text>
             <Text style={styles.menuSub}>
               {locationCount > 0
                 ? `${locationCount} of ${MAX_SAVED_LOCATIONS} saved`
-                : 'Set where technicians should come'}
+                : t('Set where technicians should come')}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
@@ -177,21 +174,21 @@ export default function ProfileScreen({ navigation }: Props) {
             <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.menuLabel}>Serviced</Text>
-            <Text style={styles.menuSub}>Items you've already had serviced</Text>
+            <Text style={styles.menuLabel}>{t('Serviced')}</Text>
+            <Text style={styles.menuSub}>{t("Items you've already had serviced")}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
 
-      <Button label="Log Out" variant="danger" onPress={confirmLogout} loading={loggingOut} />
+      <Button label={t('Log Out')} variant="danger" onPress={confirmLogout} loading={loggingOut} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg },
+  container: { width: '100%', maxWidth: 960, alignSelf: 'center', padding: spacing.lg },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,

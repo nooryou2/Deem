@@ -1,24 +1,25 @@
+import { useLanguage } from '@/i18n/LanguageContext';
+import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
 // src/screens/provider/ProviderRequestsScreen.tsx
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Platform,
-  Alert,
-} from 'react-native';
+import Text from '@/components/app-text';
+import { useCompanyId } from '@/hooks/useCompanyId';
+import { fetchBookingsAsRequests,updateBookingStatus } from '@/services/bookingService';
+import { fetchRequestsForProvider,updateRequestStatus } from '@/services/requestService';
+import { ServiceRequest,ServiceRequestStatus } from '@/types';
+import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useAuth } from '@/context/AuthContext';
-import { useCompanyId } from '@/hooks/useCompanyId';
-import { fetchRequestsForProvider, updateRequestStatus } from '@/services/requestService';
-import { fetchBookingsAsRequests, updateBookingStatus, freeSlot } from '@/services/bookingService';
-import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
-import { ServiceRequest, ServiceRequestStatus } from '@/types';
+import React,{ useCallback,useState } from 'react';
+import {
+ActivityIndicator,
+Alert,
+FlatList,
+Platform,
+ScrollView,
+StyleSheet,
+TouchableOpacity,
+View,
+} from 'react-native';
 
 const UI = {
   bg: '#FBF9F6',
@@ -31,13 +32,7 @@ const UI = {
 };
 
 // Booking slots are stored as 24h "HH:mm"; show them the way people read them.
-function prettyTime(slot?: string): string {
-  if (!slot) return '';
-  const [h, m] = slot.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hr = h % 12 === 0 ? 12 : h % 12;
-  return `${hr}:${String(m).padStart(2, '0')} ${ampm}`;
-}
+
 
 const softShadow = {
   shadowColor: '#3D2E1A',
@@ -65,10 +60,10 @@ const STATUS_META: Record<ServiceRequestStatus, { label: string; color: string; 
   declined: { label: 'Declined', color: '#DC2626', tint: '#FEE2E2' },
 };
 
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { CompositeScreenProps } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<ProviderStackParamList, 'ProviderRequests'>,
@@ -76,7 +71,7 @@ type Props = CompositeScreenProps<
 >;
 
 export default function ProviderRequestsScreen({ navigation }: Props) {
-  const { user } = useAuth();
+  const { t } = useLanguage();
   const companyId = useCompanyId();
   const [filter, setFilter] = useState<FilterValue>('all');
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -113,10 +108,6 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
       // Bookings live in a different collection to service requests.
       if ((req as any).isBooking) {
         await updateBookingStatus(req.id, status as any);
-        // Declining frees the time slot for other customers.
-        if (status === 'declined' && (req as any).preferredDate) {
-          await freeSlot(req.providerId, (req as any).preferredDate, (req as any).timeSlot);
-        }
       } else {
         await updateRequestStatus(req.id, status);
       }
@@ -129,8 +120,7 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
     }
   }
 
-  const filtered =
-    filter === 'all' ? requests : requests.filter((r) => r.status === filter);
+  const filtered = filter === 'all' ? requests : requests.filter((r) => r.status === filter);
 
   return (
     <View style={styles.root}>
@@ -151,9 +141,7 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
                 activeOpacity={0.8}
                 style={[styles.chip, active && styles.chipActive]}
               >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {f.label}
-                </Text>
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{t(f.label)}</Text>
               </TouchableOpacity>
             );
           })}
@@ -183,7 +171,7 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
                   <View style={{ flex: 1 }}>
                     <View style={[styles.statusPill, { backgroundColor: meta.tint }]}>
                       <Text style={[styles.statusPillText, { color: meta.color }]}>
-                        {meta.label}
+                        {t(meta.label)}
                       </Text>
                     </View>
                     <Text style={styles.service}>{item.serviceType}</Text>
@@ -208,14 +196,14 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
                       disabled={isBusy}
                       onPress={() => changeStatus(item, 'declined')}
                     >
-                      <Text style={styles.declineText}>Decline</Text>
+                      <Text style={styles.declineText}>{t('Decline')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.actionBtn, styles.acceptBtn]}
                       disabled={isBusy}
                       onPress={() => changeStatus(item, 'accepted')}
                     >
-                      <Text style={styles.acceptText}>Accept</Text>
+                      <Text style={styles.acceptText}>{t('Accept')}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -223,16 +211,14 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
                     so it sits alongside Start Work rather than being buried in
                     the detail screen. */}
                 {(item.status === 'accepted' || item.status === 'in_progress') && (
-                    <TouchableOpacity
-                      style={[styles.actionBtn, styles.assignBtn]}
-                      disabled={isBusy}
-                      onPress={() =>
-                        navigation.navigate('RequestDetail', { request: item })
-                      }
-                    >
-                      <Ionicons name="person-add-outline" size={15} color={UI.brand} />
-                      <Text style={styles.assignText}>
-                        {item.assignedEmployeeName ? 'Reassign' : 'Assign Employee'}
+                  <TouchableOpacity
+                    style={[styles.actionBtn, styles.assignBtn]}
+                    disabled={isBusy}
+                    onPress={() => navigation.navigate('RequestDetail', { request: item })}
+                  >
+                    <Ionicons name="person-add-outline" size={15} color={UI.brand} />
+                    <Text style={styles.assignText}>
+                      {item.assignedEmployeeName ? t('Reassign') : t('Assign Employee')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -243,7 +229,7 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
                     disabled={isBusy}
                     onPress={() => changeStatus(item, 'in_progress')}
                   >
-                    <Text style={styles.acceptText}>Start Work</Text>
+                    <Text style={styles.acceptText}>{t('Start Work')}</Text>
                   </TouchableOpacity>
                 )}
                 {item.status === 'in_progress' && (
@@ -252,7 +238,7 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
                     disabled={isBusy}
                     onPress={() => changeStatus(item, 'completed')}
                   >
-                    <Text style={styles.acceptText}>Mark Completed</Text>
+                    <Text style={styles.acceptText}>{t('Mark Completed')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -261,11 +247,11 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>📋</Text>
-              <Text style={styles.emptyTitle}>No requests here</Text>
+              <Text style={styles.emptyTitle}>{t('No requests here')}</Text>
               <Text style={styles.emptySub}>
                 {filter === 'all'
-                  ? 'When a homeowner requests you, it shows up here.'
-                  : 'Nothing in this category right now.'}
+                  ? t('When a homeowner requests you, it shows up here.')
+                  : t('Nothing in this category right now.')}
               </Text>
             </View>
           }
@@ -317,7 +303,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 14,
   },
-  statusPill: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
+  statusPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
   statusPillText: { fontSize: 11, fontWeight: '700' },
   service: { fontSize: 15, fontWeight: '700', color: UI.title, marginTop: 4 },
   customer: { fontSize: 13, color: UI.body, marginTop: 1 },
@@ -347,5 +338,11 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 60 },
   emptyIcon: { fontSize: 36, marginBottom: 10 },
   emptyTitle: { fontSize: 16, fontWeight: '700', color: UI.title },
-  emptySub: { fontSize: 13, color: UI.muted, marginTop: 4, textAlign: 'center', paddingHorizontal: 30 },
+  emptySub: {
+    fontSize: 13,
+    color: UI.muted,
+    marginTop: 4,
+    textAlign: 'center',
+    paddingHorizontal: 30,
+  },
 });

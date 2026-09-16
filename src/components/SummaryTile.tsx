@@ -1,7 +1,9 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/SummaryTile.tsx
+import Text from '@/components/app-text';
+import { radius,shadow,spacing } from '@/theme/theme';
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, radius, spacing, shadow } from '@/theme/theme';
+import { StyleSheet,TouchableOpacity } from 'react-native';
 
 interface Props {
   label: string;
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export default function SummaryTile({ label, value, color, backgroundColor, onPress }: Props) {
+  const { t } = useLanguage();
   return (
     <TouchableOpacity
       style={[styles.tile, { backgroundColor }]}
@@ -20,7 +23,7 @@ export default function SummaryTile({ label, value, color, backgroundColor, onPr
       disabled={!onPress}
     >
       <Text style={[styles.value, { color }]}>{value}</Text>
-      <Text style={[styles.label, { color }]}>{label}</Text>
+      <Text style={[styles.label, { color }]}>{t(label)}</Text>
     </TouchableOpacity>
   );
 }

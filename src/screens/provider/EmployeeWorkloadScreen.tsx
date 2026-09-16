@@ -1,20 +1,15 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/provider/EmployeeWorkloadScreen.tsx
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { fetchRequestsForEmployee } from '@/services/requestService';
+import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
-import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
-import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
-import { ServiceRequest, ServiceRequestStatus } from '@/types';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
+import { fetchRequestsForEmployee } from '@/services/requestService';
+import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
+import { ServiceRequest,ServiceRequestStatus } from '@/types';
+import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useEffect,useState } from 'react';
+import { ActivityIndicator,FlatList,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'EmployeeWorkload'>;
 
@@ -27,6 +22,7 @@ const STATUS_META: Record<ServiceRequestStatus, { label: string; color: string; 
 };
 
 export default function EmployeeWorkloadScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const emp = route.params.employee;
   const { role } = useAuth();
   const isOwner = role === 'provider'; // account owner can edit the employee
@@ -53,8 +49,9 @@ export default function EmployeeWorkloadScreen({ navigation, route }: Props) {
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{emp.name}</Text>
           <Text style={styles.sub}>
-            {emp.privilege === 'manager' ? 'Manager' : 'Worker'} · {active.length} active ·{' '}
-            {done.length} completed
+            {emp.privilege === 'manager' ? t('Manager') : t('Worker')} · {active.length}
+            {t('active ·')} {done.length}
+            {t('completed')}
           </Text>
         </View>
         {isOwner && (
@@ -63,7 +60,7 @@ export default function EmployeeWorkloadScreen({ navigation, route }: Props) {
             onPress={() => navigation.navigate('EmployeeDetail', { employee: emp })}
             activeOpacity={0.8}
           >
-            <Text style={styles.editBtnText}>Edit</Text>
+            <Text style={styles.editBtnText}>{t('Edit')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -88,7 +85,7 @@ export default function EmployeeWorkloadScreen({ navigation, route }: Props) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={[styles.pill, { backgroundColor: meta.tint }]}>
-                    <Text style={[styles.pillText, { color: meta.color }]}>{meta.label}</Text>
+                    <Text style={[styles.pillText, { color: meta.color }]}>{t(meta.label)}</Text>
                   </View>
                   <Text style={styles.service}>{item.serviceType}</Text>
                   <Text style={styles.customer}>{item.homeownerName}</Text>
@@ -100,8 +97,8 @@ export default function EmployeeWorkloadScreen({ navigation, route }: Props) {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>🧰</Text>
-              <Text style={styles.emptyTitle}>No jobs assigned</Text>
-              <Text style={styles.emptySub}>This employee has no assigned jobs yet.</Text>
+              <Text style={styles.emptyTitle}>{t('No jobs assigned')}</Text>
+              <Text style={styles.emptySub}>{t('This employee has no assigned jobs yet.')}</Text>
             </View>
           }
         />
@@ -159,7 +156,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: spacing.md,
   },
-  pill: { alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.pill },
+  pill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
   pillText: { fontSize: 11, fontWeight: '700' },
   service: { ...typography.body, fontWeight: '700', marginTop: 4 },
   customer: { ...typography.caption, marginTop: 1 },

@@ -1,8 +1,10 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/ApplianceSelector.tsx
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
-import { colors, radius, spacing, typography } from '@/theme/theme';
+import Text from '@/components/app-text';
+import { colors,radius,spacing } from '@/theme/theme';
 import { APPLIANCES } from '@/utils/appliances';
+import React from 'react';
+import { StyleSheet,TextInput,TouchableOpacity,View } from 'react-native';
 
 interface Props {
   selected: string[];
@@ -17,6 +19,7 @@ export default function ApplianceSelector({
   otherText = '',
   onOtherTextChange,
 }: Props) {
+  const { t } = useLanguage();
   const showOtherField = selected.includes('other') && onOtherTextChange;
 
   return (
@@ -32,7 +35,7 @@ export default function ApplianceSelector({
               style={[styles.chip, isOn && styles.chipOn]}
             >
               <Text style={styles.chipIcon}>{a.icon}</Text>
-              <Text style={[styles.chipLabel, isOn && styles.chipLabelOn]}>{a.label}</Text>
+              <Text style={[styles.chipLabel, isOn && styles.chipLabelOn]}>{t(a.label)}</Text>
             </TouchableOpacity>
           );
         })}
@@ -43,7 +46,7 @@ export default function ApplianceSelector({
           style={styles.otherInput}
           value={otherText}
           onChangeText={onOtherTextChange}
-          placeholder="Describe the other appliance…"
+          placeholder={t('Describe the other appliance…')}
           placeholderTextColor={colors.textMuted}
         />
       )}

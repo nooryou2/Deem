@@ -1,18 +1,21 @@
+import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/auth/ForgotPasswordScreen.tsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '@/context/AuthContext';
-import { getAuthErrorMessage } from '@/services/authService';
-import InputField from '@/components/InputField';
 import Button from '@/components/Button';
-import { colors, spacing, typography } from '@/theme/theme';
-import { getEmailError } from '@/utils/validation';
+import InputField from '@/components/InputField';
+import Text from '@/components/app-text';
+import { useAuth } from '@/context/AuthContext';
 import type { AuthStackParamList } from '@/navigation/AuthNavigator';
+import { getAuthErrorMessage } from '@/services/authService';
+import { colors,spacing,typography } from '@/theme/theme';
+import { getEmailError } from '@/utils/validation';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React,{ useState } from 'react';
+import { StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
 
 export default function ForgotPasswordScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,33 +43,35 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={typography.h1}>Reset password</Text>
+      <Text style={typography.h1}>{t('Reset password')}</Text>
       <Text style={styles.subtitle}>
-        Enter the email associated with your account and we'll send you a link to reset your
-        password.
+        {t(
+          "Enter the email associated with your account and we'll send you a link to reset your password.",
+        )}
       </Text>
 
       {sent ? (
         <View style={styles.successBox}>
           <Text style={styles.successText}>
-            If an account exists for {email}, a reset link is on its way.
+            {t('If an account exists for')} {email}
+            {t(', a reset link is on its way.')}
           </Text>
-          <Button label="Back to Login" onPress={() => navigation.navigate('Login')} />
+          <Button label={t('Back to Login')} onPress={() => navigation.navigate('Login')} />
         </View>
       ) : (
         <>
           <InputField
-            label="Email"
-            placeholder="you@example.com"
+            label={t('Email')}
+            placeholder={t('you@example.com')}
             autoCapitalize="none"
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
           />
-          {formError ? <Text style={styles.error}>{formError}</Text> : null}
-          <Button label="Send Reset Link" onPress={handleReset} loading={loading} />
+          {formError ? <Text style={styles.error}>{t(formError)}</Text> : null}
+          <Button label={t('Send Reset Link')} onPress={handleReset} loading={loading} />
           <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
-            <Text style={styles.linkText}>Back to login</Text>
+            <Text style={styles.linkText}>{t('Back to login')}</Text>
           </TouchableOpacity>
         </>
       )}
@@ -75,7 +80,12 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: spacing.lg, justifyContent: 'center', backgroundColor: colors.background },
+  container: {
+    flex: 1,
+    padding: spacing.lg,
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
   subtitle: { ...typography.bodySecondary, marginTop: spacing.sm, marginBottom: spacing.xl },
   error: { color: colors.danger, marginBottom: spacing.md, fontSize: 13 },
   backLink: { alignSelf: 'center', marginTop: spacing.lg },
