@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function owns(uid) { return signedIn() && request.auth.uid == uid; }
+    function manager(providerId) {
+      return signedIn() && (owns(providerId) || (exists(/databases/$(database)/documents/employees/$(request.auth.uid)) && get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.providerId == providerId && get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.privilege == 'manager'));
+    }
+    function participant(data) {
+      return signedIn() && (owns(data.get('customerId', data.get('homeownerId', ''))) || manager(data.providerId) || owns(data.get('assignedEmployeeId', '')));
+    }
+    function job(type, id) { return type == 'booking' ? get(/databases/$(database)/documents/bookings/$(id)).data : get(/databases/$(database)/documents/serviceRequests/$(id)).data; }
+    function validStatus(old, next, quoteKey) {
+      return (old == 'pending' && next in ['accepted', 'declined']) || (old == 'accepted' && (next == 'declined' || (next == 'in_progress' && get(/databases/$(database)/documents/quotes/$(quoteKey)).data.status == 'accepted'))) || (old == 'in_progress' && next == 'completed');
+    }
+    function updateJob(type, id) {
+      let data = resource.data;
+      let changed = request.resource.data.diff(data).affectedKeys();
+      return (manager(data.providerId) && changed.hasOnly(['assignedEmployeeId', 'assignedEmployeeName', 'updatedAt']) && get(/databases/$(database)/documents/employees/$(request.resource.data.assignedEmployeeId)).data.providerId == data.providerId)
+        || ((manager(data.providerId) || owns(data.get('assignedEmployeeId', ''))) && changed.hasOnly(['status', 'updatedAt']) && validStatus(data.status, request.resource.data.status, type + '_' + id) && (manager(data.providerId) || request.resource.data.status in ['in_progress', 'completed']));
+    }
+    match /users/{uid} {
+      allow read: if owns(uid) || (resource.data.get('role', '') == 'employee' && manager(resource.data.providerId));
+      allow create: if (owns(uid) && request.resource.data.role in ['homeowner', 'provider'] && !request.resource.data.keys().hasAny(['privilege', 'providerId'])) || (request.resource.data.role == 'employee' && owns(request.resource.data.providerId) && get(/databases/$(database)/documents/employees/$(uid)).data.providerId == request.auth.uid);
+      allow update: if (owns(uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'privilege', 'providerId'])) || (owns(resource.data.get('providerId', '')) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'privilege', 'role', 'updatedAt']));
+    }
+    match /providers/{uid} {
+      allow read: if signedIn();
+      allow create, update: if owns(uid) && request.resource.data.uid == uid && !request.resource.data.diff(resource == null ? {} : resource.data).affectedKeys().hasAny(['rating']);
+    }
+    match /employees/{uid} {
+      allow read: if owns(uid) || manager(resource.data.providerId);
+      allow create: if owns(request.resource.data.providerId) && request.resource.data.uid == uid && request.resource.data.privilege in ['worker', 'manager'];
+      allow update: if owns(resource.data.providerId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'privilege', 'updatedAt']) && request.resource.data.privilege in ['worker', 'manager'];
+      allow delete: if owns(resource.data.providerId);
+    }
+    match /availability/{uid} {
+      allow read: if signedIn();
+      allow create, update: if manager(uid) && request.resource.data.startHour >= 0 && request.resource.data.endHour <= 24 && request.resource.data.startHour < request.resource.data.endHour && request.resource.data.slotMinutes >= 15 && request.resource.data.slotMinutes <= 240;
+    }
+    match /bookings/{id} {
+      allow read: if participant(resource.data);
+      allow create: if owns(request.resource.data.customerId) && request.resource.data.status == 'pending' && request.resource.data.providerId != request.auth.uid && request.resource.data.location is map && request.resource.data.description.size() > 0 && request.resource.data.get('attachments', []).size() <= 4 && getAfter(/databases/$(database)/documents/bookedSlots/$(request.resource.data.providerId + '_' + request.resource.data.date)).data.lastBookingId == id;
+      allow update: if updateJob('booking', id);
+    }
+    match /serviceRequests/{id} {
+      allow read: if participant(resource.data);
+      allow create: if owns(request.resource.data.homeownerId) && request.resource.data.status == 'pending' && request.resource.data.providerId != request.auth.uid;
+      allow update: if updateJob('request', id);
+    }
+    match /bookedSlots/{id} {
+      allow read: if signedIn();
+      function reservation() {
+        let data = request.resource.data;
+        let booking = getAfter(/databases/$(database)/documents/bookings/$(data.lastBookingId)).data;
+        let before = resource == null ? [] : resource.data.slots;
+        return owns(booking.customerId) && booking.providerId == data.providerId && booking.date == data.date && id == data.providerId + '_' + data.date && !(booking.timeSlot in before) && data.slots.size() == before.size() + 1 && data.slots.hasAll(before) && data.slots.hasAny([booking.timeSlot]);
+      }
+      allow create: if reservation();
+      allow update: if reservation() || (manager(resource.data.providerId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['slots']) && resource.data.slots.hasAll(request.resource.data.slots));
+    }
+    function linkedJob(data) {
+      return data.get('requestId', null) != null ? get(/databases/$(database)/documents/serviceRequests/$(data.requestId)).data : get(/databases/$(database)/documents/bookings/$(data.bookingId)).data;
+    }
+    function hasLinkedJob(data) { return data.get('bookingId', null) != null || data.get('requestId', null) != null; }
+    match /maintenanceItems/{id} {
+      allow read: if owns(resource.data.userId) || (hasLinkedJob(resource.data) && participant(linkedJob(resource.data)));
+      allow create: if owns(request.resource.data.userId);
+      allow update: if (owns(resource.data.userId) && request.resource.data.userId == resource.data.userId) || (hasLinkedJob(resource.data) && participant(linkedJob(resource.data)) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookingStatus', 'lastServiceDate', 'nextServiceDate', 'updatedAt']));
+      allow delete: if owns(resource.data.userId);
+    }
+    match /maintenanceHistory/{id} {
+      allow read: if owns(resource.data.get('userId', '')) || (resource.data.get('maintenanceItemId', null) != null && owns(get(/databases/$(database)/documents/maintenanceItems/$(resource.data.maintenanceItemId)).data.userId));
+      allow create: if owns(request.resource.data.userId) || (request.resource.data.get('jobId', null) != null && participant(job(request.resource.data.jobType, request.resource.data.jobId)) && request.resource.data.userId == job(request.resource.data.jobType, request.resource.data.jobId).get('customerId', job(request.resource.data.jobType, request.resource.data.jobId).get('homeownerId', '')));
+      allow update, delete: if false;
+    }
+    match /quotes/{id} {
+      function quoteJob() { return job(request.resource.data.jobType, request.resource.data.jobId); }
+      function validQuote() {
+        let data = request.resource.data;
+        return data.inspectionFee is number && data.inspectionFee >= 0 && data.servicePrice is number && data.servicePrice >= 0 && data.total >= 0 && data.total <= 200000 && data.total * 1000 - data.inspectionFee * 1000 - data.servicePrice * 1000 < 1 && data.total * 1000 - data.inspectionFee * 1000 - data.servicePrice * 1000 > -1 && data.currency == 'BHD' && data.scope.size() > 0 && data.scope.size() <= 3000 && data.status == 'pending' && data.customerId == quoteJob().get('customerId', quoteJob().get('homeownerId', '')) && data.providerId == quoteJob().providerId && id == data.jobType + '_' + data.jobId;
+      }
+      allow get: if signedIn() && (resource == null || owns(resource.data.customerId) || manager(resource.data.providerId) || participant(job(resource.data.jobType, resource.data.jobId)));
+      allow list: if owns(resource.data.customerId) || manager(resource.data.providerId);
+      allow create: if manager(request.resource.data.providerId) && validQuote() && request.resource.data.version == 1 && quoteJob().status in ['pending', 'accepted'];
+      allow update: if (manager(resource.data.providerId) && resource.data.status != 'accepted' && validQuote() && request.resource.data.version == resource.data.version + 1 && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inspectionFee', 'servicePrice', 'total', 'scope', 'status', 'version', 'updatedAt']) && quoteJob().status in ['pending', 'accepted']) || (owns(resource.data.customerId) && job(resource.data.jobType, resource.data.jobId).status in ['pending', 'accepted'] && resource.data.status == 'pending' && request.resource.data.status in ['accepted', 'declined'] && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']));
+    }
+    match /reviews/{id} {
+      function completedJob() {
+        let data = request.resource.data;
+        let source = job(data.jobType, data.jobId);
+        return source.status == 'completed' && owns(source.get('customerId', source.get('homeownerId', ''))) && source.providerId == data.providerId;
+      }
+      function ownedVisit() {
+        let visit = get(/databases/$(database)/documents/maintenanceHistory/$(request.resource.data.jobId)).data;
+        return owns(visit.userId) && !visit.keys().hasAny(['jobId', 'bookingId']) && visit.get('providerId', '') == request.resource.data.providerId;
+      }
+      allow read: if signedIn();
+      allow create: if owns(request.resource.data.homeownerId) && request.resource.data.stars is int && request.resource.data.stars >= 1 && request.resource.data.stars <= 5 && id == request.auth.uid + '_' + request.resource.data.jobType + '_' + request.resource.data.jobId && (completedJob() || ownedVisit());
+      allow update, delete: if false;
+    }
+  }
+}

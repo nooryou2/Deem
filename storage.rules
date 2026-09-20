@@ -1,0 +1,13 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /attachments/{ownerId}/{providerId}/{fileId} {
+      function owner() { return request.auth != null && request.auth.uid == ownerId; }
+      function providerTeam() { return request.auth != null && providerId != 'private' && (request.auth.uid == providerId || (firestore.exists(/databases/(default)/documents/employees/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/employees/$(request.auth.uid)).data.providerId == providerId)); }
+      allow read: if owner() || providerTeam();
+      allow create: if owner() && request.resource.size <= 5 * 1024 * 1024 && request.resource.contentType.matches('image/(jpeg|png|webp)|application/pdf');
+      allow delete: if owner();
+      allow update: if false;
+    }
+  }
+}
