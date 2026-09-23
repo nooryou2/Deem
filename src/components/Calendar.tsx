@@ -1,4 +1,5 @@
 import { useLanguage } from '@/i18n/LanguageContext';
+import { fmtNumber } from '@/i18n/locale';
 // src/components/Calendar.tsx
 import Text from '@/components/app-text';
 import { colors,radius,spacing,typography } from '@/theme/theme';
@@ -94,7 +95,7 @@ export default function Calendar({
           <Text style={styles.navArrow}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.monthLabel}>
-          {t(MONTHS[viewMonth])} {viewYear}
+          {t(MONTHS[viewMonth])} {fmtNumber(viewYear, false)}
         </Text>
         <TouchableOpacity onPress={nextMonth} style={styles.navBtn} hitSlop={10}>
           <Text style={styles.navArrow}>›</Text>
@@ -152,7 +153,7 @@ export default function Calendar({
                     isBlocked && styles.dayTextBlocked,
                   ]}
                 >
-                  {day}
+                  {fmtNumber(day)}
                 </Text>
               </View>
               {isMarked && !isSelected ? (

@@ -1,4 +1,5 @@
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useItemName } from '@/hooks/useItemName';
 // src/screens/MaintenanceListScreen.tsx
 import ChipSelector from '@/components/ChipSelector';
 import EmptyState from '@/components/EmptyState';
@@ -41,6 +42,7 @@ const FILTERS: {
 
 export default function MaintenanceListScreen({ navigation, route }: Props) {
   const { t } = useLanguage();
+  const itemName = useItemName();
   const { items, loading } = useMaintenanceItems();
   const [filter, setFilter] = useState<FilterValue>(route.params?.filter ?? 'all');
   const [search, setSearch] = useState('');
@@ -65,7 +67,7 @@ export default function MaintenanceListScreen({ navigation, route }: Props) {
     }
     // Text search on name and notes
     if (query) {
-      const haystack = `${item.name} ${item.notes ?? ''}`.toLowerCase();
+      const haystack = `${item.name} ${itemName(item.name)} ${item.notes ?? ''}`.toLowerCase();
       if (!haystack.includes(query)) return false;
     }
     return true;
@@ -115,7 +117,7 @@ export default function MaintenanceListScreen({ navigation, route }: Props) {
               title={query ? 'No matches' : 'No maintenance items here'}
               subtitle={
                 query
-                  ? `Nothing matches "${search.trim()}".`
+                  ? t('Nothing matches "{query}".', { query: search.trim() })
                   : filter === 'all'
                     ? 'Your maintenance items will appear here.'
                     : 'Nothing in this category right now.'

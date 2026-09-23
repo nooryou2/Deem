@@ -1,5 +1,6 @@
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/i18n/LanguageContext';
+import HeaderBack from '@/components/HeaderBack';
 // src/navigation/ProviderNavigator.tsx
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -11,6 +12,7 @@ import EmployeeDetailScreen from '@/screens/provider/EmployeeDetailScreen';
 import EmployeeWorkloadScreen from '@/screens/provider/EmployeeWorkloadScreen';
 import ManagerProfileScreen from '@/screens/provider/ManagerProfileScreen';
 import ProviderAreasScreen from '@/screens/provider/ProviderAreasScreen';
+import ProviderReviewsScreen from '@/screens/provider/ProviderReviewsScreen';
 import ProviderDashboardScreen from '@/screens/provider/ProviderDashboardScreen';
 import ProviderProfileScreen from '@/screens/provider/ProviderProfileScreen';
 import ProviderRequestsScreen from '@/screens/provider/ProviderRequestsScreen';
@@ -33,6 +35,7 @@ export type ProviderStackParamList = {
   EmployeeDetail: { employee: Employee };
   EmployeeWorkload: { employee: Employee };
   ProviderAreas: undefined;
+  ProviderReviews: { providerId: string };
 };
 
 const Tab = createBottomTabNavigator<ProviderStackParamList>();
@@ -53,7 +56,7 @@ function HeaderLogo() {
       style={{
         width: 42,
         height: 42,
-        marginLeft: spacing.md,
+        marginStart: spacing.md,
       }}
       resizeMode="contain"
     />
@@ -169,7 +172,10 @@ export default function ProviderNavigator() {
   const { t } = useLanguage();
   return (
     <Stack.Navigator
-      screenOptions={{
+      screenOptions={({ navigation }) => ({
+        // Only shown where there is somewhere to go back to.
+        headerLeft: () =>
+          navigation.canGoBack() ? <HeaderBack onPress={() => navigation.goBack()} /> : undefined,
         headerTitleAlign: 'center',
         headerRight: () => <LanguageSwitcher />,
         headerBackTitle: t('Back'),
@@ -183,7 +189,7 @@ export default function ProviderNavigator() {
           backgroundColor: colors.surface,
         },
         headerTintColor: colors.textPrimary,
-      }}
+      })}
     >
       <Stack.Screen
         name="ProviderTabs"
@@ -209,6 +215,11 @@ export default function ProviderNavigator() {
         }}
       />
 
+      <Stack.Screen
+        name="ProviderReviews"
+        component={ProviderReviewsScreen}
+        options={{ title: t('Reviews') }}
+      />
       <Stack.Screen
         name="ProviderAreas"
         component={ProviderAreasScreen}

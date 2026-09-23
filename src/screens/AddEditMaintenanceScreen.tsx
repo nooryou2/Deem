@@ -160,7 +160,7 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
       } else if (code === 'unavailable' || code === 'failed-precondition') {
         setError('Cannot reach the database. Check your connection or that Firestore is set up.');
       } else if (message) {
-        setError(`Could not save: ${message}`);
+        setError(t('Could not save: {message}', { message }));
       } else {
         setError('Could not save this item. Please try again.');
       }
@@ -171,9 +171,9 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
 
   function confirmDiscard() {
     if (name.trim() && !isEditing) {
-      Alert.alert('Discard changes?', 'Your unsaved item will be lost.', [
-        { text: 'Keep editing', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
+      Alert.alert(t('Discard changes?'), t('Your unsaved item will be lost.'), [
+        { text: t('Keep editing'), style: 'cancel' },
+        { text: t('Discard'), style: 'destructive', onPress: () => navigation.goBack() },
       ]);
     } else {
       navigation.goBack();

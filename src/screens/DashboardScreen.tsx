@@ -1,6 +1,8 @@
 import Button from '@/components/Button';
 import { useCustomerJobs } from '@/hooks/useCustomerJobs';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { fmtNumber } from '@/i18n/locale';
+import { formatFriendlyDate, formatTimeSlot } from '@/utils/dateCalculations';
 // src/screens/DashboardScreen.tsx
 import EmptyState from '@/components/EmptyState';
 import MaintenanceCard from '@/components/MaintenanceCard';
@@ -105,11 +107,11 @@ export default function DashboardScreen({ navigation }: Props) {
         <Text style={styles.sectionTitle}>{t('Next appointment')}</Text>
         <Text style={{ color: colors.textSecondary }}>
           {nextJob
-            ? `${nextJob.serviceType} · ${nextJob.preferredDate?.slice(0, 10)} · ${nextJob.timeSlot ?? ''}`
+            ? `${nextJob.serviceType} · ${formatFriendlyDate(nextJob.preferredDate)}${nextJob.timeSlot ? ` · ${formatTimeSlot(nextJob.timeSlot)}` : ''}`
             : t('No scheduled appointments')}
         </Text>
         <Text style={{ color: colors.textPrimary }}>
-          {t('Active requests')}: {jobsLoading ? '…' : activeJobs.length}
+          {t('Active requests')}: {jobsLoading ? '…' : fmtNumber(activeJobs.length)}
         </Text>
         {!!jobsError && <Text style={{ color: colors.danger }}>{t(jobsError)}</Text>}
         <Button
@@ -172,7 +174,7 @@ export default function DashboardScreen({ navigation }: Props) {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{t('Needs Attention')}</Text>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{priorityItems.length}</Text>
+          <Text style={styles.badgeText}>{fmtNumber(priorityItems.length)}</Text>
         </View>
       </View>
 
@@ -228,7 +230,7 @@ const styles = StyleSheet.create({
   },
   wave: {
     fontSize: 16,
-    marginLeft: 6,
+    marginStart: 6,
   },
   mainTitle: {
     fontSize: 26,

@@ -1,5 +1,5 @@
 import { useLanguage } from '@/i18n/LanguageContext';
-import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
+import { formatFriendlyDate, formatTimeSlot } from '@/utils/dateCalculations';
 // src/screens/provider/ProviderRequestsScreen.tsx
 import Text from '@/components/app-text';
 import { useCompanyId } from '@/hooks/useCompanyId';
@@ -99,7 +99,7 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Request', msg);
+    else Alert.alert(t('Request'), msg);
   }
 
   async function changeStatus(req: ServiceRequest, status: ServiceRequestStatus) {
@@ -114,7 +114,7 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
       setRequests((prev) => prev.map((r) => (r.id === req.id ? { ...r, status } : r)));
     } catch (e) {
       console.log('updateRequestStatus failed:', e);
-      notify('Could not update the request. Please try again.');
+      notify(t('Could not update the request. Please try again.'));
     } finally {
       setBusyId(null);
     }
@@ -178,7 +178,7 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
                     <Text style={styles.customer}>{item.homeownerName}</Text>
                     {(item as any).isBooking && (item as any).preferredDate ? (
                       <Text style={styles.bookingWhen}>
-                        📅 {(item as any).preferredDate} · {prettyTime((item as any).timeSlot)}
+                        📅 {formatFriendlyDate((item as any).preferredDate)} · {formatTimeSlot((item as any).timeSlot)}
                       </Text>
                     ) : null}
                     {item.assignedEmployeeName ? (
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     ...softShadow,
   },
   cardTop: { flexDirection: 'row', alignItems: 'center' },
-  cardChevron: { fontSize: 24, color: UI.muted, marginLeft: 8 },
+  cardChevron: { fontSize: 24, color: UI.muted, marginStart: 8 },
   assignedTo: { fontSize: 12, color: '#6D28D9', fontWeight: '600', marginTop: 3 },
   bookingWhen: { fontSize: 12, color: UI.brand, fontWeight: '700', marginTop: 3 },
   icon: {
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginEnd: 14,
   },
   statusPill: {
     alignSelf: 'flex-start',

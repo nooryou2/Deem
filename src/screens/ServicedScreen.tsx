@@ -1,4 +1,5 @@
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useItemName } from '@/hooks/useItemName';
 // src/screens/ServicedScreen.tsx
 //
 // A log of every completed service visit. A recurring task appears once per
@@ -23,6 +24,7 @@ type Props = NativeStackScreenProps<MainStackParamList, 'Serviced'>;
 
 export default function ServicedScreen({ navigation }: Props) {
   const { t } = useLanguage();
+  const itemName = useItemName();
   const { user } = useAuth();
   const [entries, setEntries] = useState<ServiceLogEntry[]>([]);
   const [reviewedJobs, setReviewedJobs] = useState<string[]>([]);
@@ -88,7 +90,7 @@ export default function ServicedScreen({ navigation }: Props) {
                   <Ionicons name="checkmark-done" size={20} color={colors.completed} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{item.maintenanceItemName}</Text>
+                  <Text style={styles.name}>{itemName(item.maintenanceItemName)}</Text>
                   <Text style={styles.date}>
                     {t('Serviced')} {formatFriendlyDate(item.completedDate)}
                   </Text>
@@ -139,7 +141,7 @@ export default function ServicedScreen({ navigation }: Props) {
             </Text>
             <Text style={styles.emptySub}>
               {search
-                ? `Nothing matches "${search}".`
+                ? t('Nothing matches "{query}".', { query: search })
                 : t('When you mark a task complete, each visit appears here.')}
             </Text>
           </View>

@@ -1,12 +1,15 @@
 // src/screens/admin/AdminSettingsScreen.tsx
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Text from '@/components/app-text';
+import { useLanguage } from '@/i18n/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/Button';
 import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
 
 export default function AdminSettingsScreen() {
+  const { t } = useLanguage();
   const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = React.useState(false);
 
@@ -21,30 +24,30 @@ export default function AdminSettingsScreen() {
 
   function confirmLogout() {
     if (Platform.OS === 'web') {
-      if (window.confirm('Log out?')) doLogout();
+      if (window.confirm(t('Log out?'))) doLogout();
       return;
     }
-    Alert.alert('Log out?', '', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: doLogout },
+    Alert.alert(t('Log out?'), '', [
+      { text: t('Cancel'), style: 'cancel' },
+      { text: t('Log Out'), style: 'destructive', onPress: doLogout },
     ]);
   }
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.container}>
-      <Text style={styles.pageTitle}>Settings</Text>
-      <Text style={styles.pageSub}>Manage application settings</Text>
+      <Text style={styles.pageTitle}>{t('Settings')}</Text>
+      <Text style={styles.pageSub}>{t('Manage application settings')}</Text>
 
-      <Text style={styles.sectionTitle}>Admin Account</Text>
+      <Text style={styles.sectionTitle}>{t('Admin Account')}</Text>
       <View style={styles.card}>
-        <Row label="Name" value={user?.displayName || 'Admin'} />
-        <Row label="Email" value={user?.email || '—'} last />
+        <Row label={t('Name')} value={user?.displayName || t('Admin')} />
+        <Row label={t('Email')} value={user?.email || '—'} last />
       </View>
 
-      <Text style={styles.sectionTitle}>Application Information</Text>
+      <Text style={styles.sectionTitle}>{t('Application Information')}</Text>
       <View style={styles.card}>
-        <Row label="Application name" value="Deem" />
-        <Row label="Version" value="1.0.0" last />
+        <Row label={t('Application name')} value="Deem" />
+        <Row label={t('Version')} value="1.0.0" last />
       </View>
 
       <View style={styles.note}>
@@ -55,7 +58,7 @@ export default function AdminSettingsScreen() {
       </View>
 
       <Button
-        label="Log Out"
+        label={t('Log Out')}
         variant="danger"
         onPress={confirmLogout}
         loading={loggingOut}

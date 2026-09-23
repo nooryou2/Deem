@@ -1,4 +1,5 @@
 import { useLanguage } from '@/i18n/LanguageContext';
+import { fmtNumber } from '@/i18n/locale';
 import Text from '@/components/app-text';
 // src/components/LocationPicker.tsx
 //
@@ -182,7 +183,7 @@ export default function LocationPicker({ value, onChange, onLoaded, showMapLink 
             />
 
             <Text style={styles.sheetCount}>
-              {t('Saved locations')}: {locations.length}
+              {t('Saved locations')}: {fmtNumber(locations.length)}
             </Text>
           </View>
         </View>
@@ -230,7 +231,7 @@ const styles = StyleSheet.create({
 
   menu: {
     position: 'absolute',
-    right: spacing.sm,
+    end: spacing.sm,
     top: '100%',
     zIndex: 20,
     backgroundColor: colors.surface,

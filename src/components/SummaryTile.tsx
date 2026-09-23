@@ -1,4 +1,5 @@
 import { useLanguage } from '@/i18n/LanguageContext';
+import { fmtNumber } from '@/i18n/locale';
 // src/components/SummaryTile.tsx
 import Text from '@/components/app-text';
 import { radius,shadow,spacing } from '@/theme/theme';
@@ -22,7 +23,7 @@ export default function SummaryTile({ label, value, color, backgroundColor, onPr
       activeOpacity={onPress ? 0.8 : 1}
       disabled={!onPress}
     >
-      <Text style={[styles.value, { color }]}>{value}</Text>
+      <Text style={[styles.value, { color }]}>{fmtNumber(value)}</Text>
       <Text style={[styles.label, { color }]}>{t(label)}</Text>
     </TouchableOpacity>
   );

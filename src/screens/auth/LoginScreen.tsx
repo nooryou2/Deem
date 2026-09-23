@@ -1,16 +1,15 @@
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import DirectionalArrow from '@/components/DirectionalArrow';
 import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/auth/LoginScreen.tsx
 import Button from '@/components/Button';
 import GoogleButton from '@/components/GoogleButton';
 import InputField from '@/components/InputField';
-import RoleSelector from '@/components/RoleSelector';
 import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
 import type { AuthStackParamList } from '@/navigation/AuthNavigator';
 import { getAuthErrorMessage } from '@/services/authService';
 import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
-import { UserRole } from '@/types';
 import { getEmailError } from '@/utils/validation';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useState } from 'react';
@@ -31,7 +30,6 @@ export default function LoginScreen({ navigation }: Props) {
   const { login, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('homeowner');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [formError, setFormError] = useState('');
@@ -41,9 +39,15 @@ export default function LoginScreen({ navigation }: Props) {
     setFormError('');
     setGoogleLoading(true);
     try {
-      await loginWithGoogle(role);
-    } catch (error) {
-      setFormError(getAuthErrorMessage(error, 'login'));
+      await loginWithGoogle(['homeowner']);
+    } catch (error: any) {
+      setFormError(
+        error?.message === 'ROLE_NOT_ALLOWED'
+          ? error.actualRole === 'admin'
+            ? 'This is an admin account. Please use the admin sign-in page.'
+            : 'This is a service provider account. Please use the service provider sign-in page.'
+          : getAuthErrorMessage(error, 'login')
+      );
     } finally {
       setGoogleLoading(false);
     }
@@ -65,9 +69,15 @@ export default function LoginScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      await login(email.trim(), password, role);
-    } catch (error) {
-      setFormError(getAuthErrorMessage(error, 'login'));
+      await login(email.trim(), password, ['homeowner']);
+    } catch (error: any) {
+      setFormError(
+        error?.message === 'ROLE_NOT_ALLOWED'
+          ? error.actualRole === 'admin'
+            ? 'This is an admin account. Please use the admin sign-in page.'
+            : 'This is a service provider account. Please use the service provider sign-in page.'
+          : getAuthErrorMessage(error, 'login')
+      );
     } finally {
       setLoading(false);
     }
@@ -79,14 +89,17 @@ export default function LoginScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <LanguageSwitcher />
-        <TouchableOpacity
-          accessibilityRole="button"
-          onPress={() => navigation.navigate('Landing')}
-          style={{ alignSelf: 'center', padding: 12, marginBottom: 12 }}
-        >
-          <Text style={styles.linkText}>{t('العودة إلى الرئيسية ←')}</Text>
-        </TouchableOpacity>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('Landing')}
+            style={styles.backLink}
+          >
+            <DirectionalArrow kind="back" size={16} color={colors.primary} />
+            <Text style={styles.linkText}>{t('العودة إلى الرئيسية')}</Text>
+          </TouchableOpacity>
+          <LanguageSwitcher style={{ alignSelf: 'center' }} />
+        </View>
         <View style={styles.header}>
           <Image
             source={require('../../../assets/logo.png')}
@@ -100,8 +113,6 @@ export default function LoginScreen({ navigation }: Props) {
           <Text style={styles.subtitle}>{t('Login to your account')}</Text>
 
           <View style={{ marginTop: spacing.lg }}>
-            <Text style={styles.roleLabel}>{t('I am a')}</Text>
-            <RoleSelector value={role} onChange={setRole} />
 
             <InputField
               label={t('Email')}
@@ -157,6 +168,15 @@ export default function LoginScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // Back link at the start, language at the end. The row follows the reading
+  // direction, so the two swap sides in Arabic on their own.
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  backLink: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 12 },
   flex: { flex: 1, backgroundColor: colors.background },
   container: {
     flexGrow: 1,
@@ -175,7 +195,6 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   subtitle: { ...typography.bodySecondary, marginTop: spacing.xs },
-  roleLabel: { ...typography.bodySecondary, fontWeight: '600', marginBottom: spacing.sm },
   error: { color: colors.danger, marginBottom: spacing.md, fontSize: 13 },
   forgotLink: { alignSelf: 'flex-end', marginBottom: spacing.lg },
   linkText: { color: colors.primary, fontWeight: '600', fontSize: 14 },

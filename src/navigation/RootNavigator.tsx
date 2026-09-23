@@ -1,20 +1,58 @@
 // src/navigation/RootNavigator.tsx
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import Text from '@/components/app-text';
+import Button from '@/components/Button';
+import { useLanguage } from '@/i18n/LanguageContext';
+import { readInviteFromUrl } from '@/services/inviteService';
 import { useAuth } from '@/context/AuthContext';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 import ProviderNavigator from './ProviderNavigator';
 import EmployeeNavigator from './EmployeeNavigator';
 import AdminNavigator from './AdminNavigator';
-import { colors } from '@/theme/theme';
+import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
+
+/**
+ * Shown when someone opens a provider invitation while already signed in.
+ * The sign-up page is only for signed-out visitors, so without this the link
+ * would quietly drop them into their existing account instead.
+ */
+function InviteWhileSignedIn() {
+  const { user, logout } = useAuth();
+  const { t } = useLanguage();
+  return (
+    <View style={styles.loading}>
+      <View style={styles.noticeCard}>
+        <Ionicons name="mail-open-outline" size={36} color={colors.primary} style={{ alignSelf: 'center' }} />
+        <Text style={styles.noticeTitle}>{t('Provider invitation')}</Text>
+        <Text style={styles.noticeBody}>
+          {t('You are signed in as {email}. To accept this invitation and create a service provider account, log out first.', { email: user?.email ?? '' })}
+        </Text>
+        <Button label={t('Log out and continue')} onPress={logout} style={{ marginTop: spacing.lg }} />
+        <Button
+          label={t('Stay signed in')}
+          variant="secondary"
+          onPress={() => {
+            // Leave the invitation page and return to the normal app.
+            if (Platform.OS === 'web') window.location.replace('/');
+          }}
+          style={{ marginTop: spacing.sm }}
+        />
+      </View>
+    </View>
+  );
+}
 
 export default function RootNavigator() {
-  const { user, role, privilege, roleLoading, initializing } = useAuth();
+  const { user, role, privilege, roleLoading, initializing, providerSignupActive } = useAuth();
 
-  // Wait for auth to resolve, and for the role to load once logged in.
-  if (initializing || (user && roleLoading)) {
+  // Wait for auth to resolve, and for the role to load once logged in. Not
+  // while a provider is signing up: that would unmount the sign-up page and
+  // lose the form and any error mid-attempt.
+  if (initializing || (user && roleLoading && !providerSignupActive)) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -26,9 +64,13 @@ export default function RootNavigator() {
   // interface (minus profile editing). Workers get the limited employee view.
   const isManager = role === 'employee' && privilege === 'manager';
 
+  if (user && !providerSignupActive && role !== 'provider' && readInviteFromUrl() !== null) {
+    return <InviteWhileSignedIn />;
+  }
+
   return (
     <NavigationContainer>
-      {!user ? (
+      {!user || providerSignupActive ? (
         <AuthNavigator />
       ) : role === 'admin' ? (
         <AdminNavigator />
@@ -53,5 +95,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
+    padding: spacing.lg,
   },
+  noticeCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    ...shadow.card,
+  },
+  noticeTitle: { ...typography.h2, textAlign: 'center', marginTop: spacing.md },
+  noticeBody: { ...typography.bodySecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: 21 },
 });

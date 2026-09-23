@@ -23,12 +23,12 @@ export default function EmployeeProfileScreen() {
 
   function confirmLogout() {
     if (Platform.OS === 'web') {
-      if (window.confirm('Log out?')) doLogout();
+      if (window.confirm(t('Log out?'))) doLogout();
       return;
     }
-    Alert.alert('Log out?', 'You can always log back in anytime.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: doLogout },
+    Alert.alert(t('Log out?'), t('You can always log back in anytime.'), [
+      { text: t('Cancel'), style: 'cancel' },
+      { text: t('Log Out'), style: 'destructive', onPress: doLogout },
     ]);
   }
 
@@ -40,8 +40,8 @@ export default function EmployeeProfileScreen() {
             {(user?.displayName || user?.email || '?').charAt(0).toUpperCase()}
           </Text>
         </View>
-        <Text style={typography.h3}>{user?.displayName || 'Employee'}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
+        <Text style={typography.h3}>{user?.displayName || t('Employee')}</Text>
+        <Text ltr style={styles.email}>{user?.email}</Text>
         <View style={styles.privBadge}>
           <Text style={styles.privText}>
             {privilege === 'manager' ? t('Manager') : t('Worker')}

@@ -6,6 +6,7 @@ import QuoteCard from '@/components/quote-card';
 import { useCustomerJobs } from '@/hooks/useCustomerJobs';
 import { useLanguage } from '@/i18n/LanguageContext';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
+import { formatFriendlyDate, formatTimeSlot } from '@/utils/dateCalculations';
 import { colors,radius,typography } from '@/theme/theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
@@ -54,7 +55,7 @@ export default function CustomerRequestsScreen({
           <Text style={typography.bodySecondary}>{job.providerName}</Text>
           {!!job.preferredDate && (
             <Text style={typography.body}>
-              {job.preferredDate.slice(0, 10)} · {job.timeSlot ?? ''}
+              {formatFriendlyDate(job.preferredDate)}{job.timeSlot ? ` · ${formatTimeSlot(job.timeSlot)}` : ''}
             </Text>
           )}
           {!!job.location && (

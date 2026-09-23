@@ -1,4 +1,5 @@
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useItemName } from '@/hooks/useItemName';
 // src/components/MaintenanceCard.tsx
 import Text from '@/components/app-text';
 import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
@@ -19,32 +20,33 @@ interface Props {
 
 // Badge for tasks created from a calendar booking, showing where that booking
 // stands with the provider.
-const BOOKING_META: Record<BookingStatus, { label: string; color: string; tint: string }> = {
-  pending: { label: '🕓 Awaiting confirmation', color: '#B45309', tint: '#FEF3C7' },
-  accepted: { label: '✓ Booking confirmed', color: '#1D4ED8', tint: '#DBEAFE' },
-  in_progress: { label: '🔧 Service in progress', color: '#6D28D9', tint: '#EDE9FE' },
-  completed: { label: '✓ Service completed', color: '#15803D', tint: '#DCFCE7' },
-  declined: { label: '✕ Booking declined', color: '#B91C1C', tint: '#FEE2E2' },
+const BOOKING_META: Record<BookingStatus, { label: string; icon: string; color: string; tint: string }> = {
+  pending: { label: 'Awaiting confirmation', icon: '🕓', color: '#B45309', tint: '#FEF3C7' },
+  accepted: { label: 'Booking confirmed', icon: '✓', color: '#1D4ED8', tint: '#DBEAFE' },
+  in_progress: { label: 'Service in progress', icon: '🔧', color: '#6D28D9', tint: '#EDE9FE' },
+  completed: { label: 'Service completed', icon: '✓', color: '#15803D', tint: '#DCFCE7' },
+  declined: { label: 'Booking declined', icon: '✕', color: '#B91C1C', tint: '#FEE2E2' },
 };
 
 // Provider-request badge styling.
-const REQ_META: Record<ServiceRequestStatus, { label: string; color: string; tint: string }> = {
-  pending: { label: '🕓 Provider requested', color: '#B45309', tint: '#FEF3C7' },
-  accepted: { label: '👍 Provider accepted', color: '#1D4ED8', tint: '#DBEAFE' },
-  in_progress: { label: '🔧 Service in progress', color: '#6D28D9', tint: '#EDE9FE' },
-  completed: { label: '✅ Serviced by provider', color: '#15803D', tint: '#DCFCE7' },
-  declined: { label: '✕ Provider declined', color: '#B91C1C', tint: '#FEE2E2' },
+const REQ_META: Record<ServiceRequestStatus, { label: string; icon: string; color: string; tint: string }> = {
+  pending: { label: 'Provider requested', icon: '🕓', color: '#B45309', tint: '#FEF3C7' },
+  accepted: { label: 'Provider accepted', icon: '👍', color: '#1D4ED8', tint: '#DBEAFE' },
+  in_progress: { label: 'Service in progress', icon: '🔧', color: '#6D28D9', tint: '#EDE9FE' },
+  completed: { label: 'Serviced by provider', icon: '✅', color: '#15803D', tint: '#DCFCE7' },
+  declined: { label: 'Provider declined', icon: '✕', color: '#B91C1C', tint: '#FEE2E2' },
 };
 
 export default function MaintenanceCard({ item, onPress }: Props) {
-  const { t } = useLanguage();
+  const { t, tp } = useLanguage();
+  const itemName = useItemName();
   const days = daysUntil(item.nextServiceDate);
   const dueCopy =
     item.status === 'overdue'
-      ? `${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} overdue`
+      ? tp('daysOverdue', Math.abs(days))
       : days === 0
-        ? 'Due today'
-        : `Due in ${days} day${days === 1 ? '' : 's'}`;
+        ? t('Due today')
+        : tp('dueInDays', days);
 
   const reqMeta = item.requestStatus ? REQ_META[item.requestStatus] : null;
   const bookMeta = item.bookingStatus ? BOOKING_META[item.bookingStatus] : null;
@@ -60,7 +62,7 @@ export default function MaintenanceCard({ item, onPress }: Props) {
 
         <View style={styles.content}>
           <Text style={typography.h3} numberOfLines={1}>
-            {item.name}
+            {itemName(item.name)}
           </Text>
           <Text style={styles.meta}>
             {t(FREQUENCY_LABELS[item.frequency])}
@@ -97,14 +99,14 @@ export default function MaintenanceCard({ item, onPress }: Props) {
       {/* Booking state, when this task came from a calendar booking */}
       {bookMeta && (
         <View style={[styles.reqBadge, { backgroundColor: bookMeta.tint }]}>
-          <Text style={[styles.reqBadgeText, { color: bookMeta.color }]}>{t(bookMeta.label)}</Text>
+          <Text style={[styles.reqBadgeText, { color: bookMeta.color }]}>{bookMeta.icon} {t(bookMeta.label)}</Text>
         </View>
       )}
 
       {/* Provider-request indicator (only when a request exists) */}
       {reqMeta && (
         <View style={[styles.reqBadge, { backgroundColor: reqMeta.tint }]}>
-          <Text style={[styles.reqBadgeText, { color: reqMeta.color }]}>{t(reqMeta.label)}</Text>
+          <Text style={[styles.reqBadgeText, { color: reqMeta.color }]}>{reqMeta.icon} {t(reqMeta.label)}</Text>
         </View>
       )}
     </TouchableOpacity>

@@ -1,7 +1,11 @@
 // src/screens/admin/AdminUsersScreen.tsx
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DirectionalArrow from '@/components/DirectionalArrow';
+import Text from '@/components/app-text';
+import { useLanguage } from '@/i18n/LanguageContext';
+import { fmtNumber } from '@/i18n/locale';
 import { useFocusEffect } from '@react-navigation/native';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -28,6 +32,7 @@ const ROLE_STYLE: Record<string, { bg: string; color: string }> = {
 };
 
 export default function AdminUsersScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -63,9 +68,9 @@ export default function AdminUsersScreen({ navigation }: Props) {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Users</Text>
-        <Text style={styles.pageSub}>Manage and view registered users</Text>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search by name or email…" />
+        <Text style={styles.pageTitle}>{t('Users')}</Text>
+        <Text style={styles.pageSub}>{t('Manage and view registered users')}</Text>
+        <SearchBar value={search} onChangeText={setSearch} placeholder={t('Search by name or email…')} />
 
         <View style={styles.chipRow}>
           {ROLE_FILTERS.map((r) => {
@@ -78,7 +83,7 @@ export default function AdminUsersScreen({ navigation }: Props) {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.chipText, on && styles.chipTextOn]}>
-                  {r === 'all' ? 'All Roles' : r.charAt(0).toUpperCase() + r.slice(1)}
+                  {t(r === 'all' ? 'All Roles' : r.charAt(0).toUpperCase() + r.slice(1))}
                 </Text>
               </TouchableOpacity>
             );
@@ -86,7 +91,7 @@ export default function AdminUsersScreen({ navigation }: Props) {
         </View>
 
         <Text style={styles.count}>
-          {filtered.length} of {users.length} users
+          {t('Showing')} {fmtNumber(filtered.length)} / {fmtNumber(users.length)}
         </Text>
       </View>
 
@@ -109,21 +114,21 @@ export default function AdminUsersScreen({ navigation }: Props) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.email} numberOfLines={1}>
+                <Text ltr style={styles.email} numberOfLines={1}>
                   {item.email}
                 </Text>
                 <Text style={styles.meta}>
-                  {item.itemCount} item{item.itemCount === 1 ? '' : 's'} ·{' '}
+                  {fmtNumber(item.itemCount)} {t('items')} ·{' '}
                   {formatFriendlyDate(item.createdAt)}
                 </Text>
               </View>
               <View style={{ alignItems: 'flex-end', gap: 6 }}>
                 <View style={[styles.rolePill, { backgroundColor: roleMeta.bg }]}>
                   <Text style={[styles.rolePillText, { color: roleMeta.color }]}>
-                    {item.role}
+                    {t(item.role.charAt(0).toUpperCase() + item.role.slice(1))}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                <DirectionalArrow kind="forward" shape="chevron" size={18} color={colors.textMuted} />
               </View>
             </TouchableOpacity>
           );
@@ -131,7 +136,7 @@ export default function AdminUsersScreen({ navigation }: Props) {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="people-outline" size={40} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No users found</Text>
+            <Text style={styles.emptyTitle}>{t('No users found')}</Text>
           </View>
         }
       />

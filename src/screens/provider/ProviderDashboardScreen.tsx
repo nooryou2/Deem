@@ -7,6 +7,7 @@ import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
 import { fetchBookingsAsRequests } from '@/services/bookingService';
 import { fetchRequestsForProvider } from '@/services/requestService';
 import { ServiceRequest } from '@/types';
+import { formatFriendlyDate, formatTimeSlot } from '@/utils/dateCalculations';
 import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
@@ -153,7 +154,7 @@ export default function ProviderDashboardScreen({ navigation }: Props) {
                 <Text style={styles.apptCustomer}>{req.homeownerName}</Text>
                 {(req as any).isBooking && (req as any).preferredDate ? (
                   <Text style={styles.apptWhen}>
-                    {(req as any).preferredDate} · {(req as any).timeSlot}
+                    {formatFriendlyDate((req as any).preferredDate)} · {formatTimeSlot((req as any).timeSlot)}
                   </Text>
                 ) : null}
               </View>
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 15, color: UI.body },
   nameRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, marginBottom: 20 },
   managerName: { fontSize: 13, color: '#64748B', marginTop: -12, marginBottom: 16 },
-  name: { fontSize: 24, fontWeight: '800', color: UI.title, marginRight: 10 },
+  name: { fontSize: 24, fontWeight: '800', color: UI.title, marginEnd: 10 },
   verifiedBadge: {
     backgroundColor: '#FCE7D6',
     paddingHorizontal: 10,
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginEnd: 14,
   },
   apptService: { fontSize: 15, fontWeight: '700', color: UI.title },
   apptCustomer: { fontSize: 13, color: UI.body, marginTop: 1 },

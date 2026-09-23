@@ -1,8 +1,9 @@
 import LocationPicker from '@/components/LocationPicker';
 import AttachmentPicker from '@/components/attachment-picker';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { fmtNumber } from '@/i18n/locale';
 import type { Attachment } from '@/types';
-import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
+import { formatTimeSlot as prettyTime, formatFriendlyDate } from '@/utils/dateCalculations';
 // src/screens/BookingScreen.tsx
 //
 // Booking runs as a three-step flow:
@@ -152,7 +153,7 @@ export default function BookingScreen({ navigation, route }: Props) {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Booking', msg);
+    else Alert.alert(t('Booking'), msg);
   }
 
   // 'custom' is a catch-all used elsewhere in the app; it isn't a bookable
@@ -222,13 +223,13 @@ export default function BookingScreen({ navigation, route }: Props) {
       if (e?.message === 'APPLIANCE_BUSY') {
         notify(t('This appliance already has an active request.'));
       } else if (e?.message === 'SLOT_TAKEN') {
-        notify('Sorry, that slot was just taken. Please pick another.');
+        notify(t('Sorry, that slot was just taken. Please pick another.'));
         const res = await getAvailableSlots(providerId, selectedDate);
         setSlots(res.slots);
         setSelectedSlot(null);
         setStep(1);
       } else {
-        notify('Could not confirm the booking. Please try again.');
+        notify(t('Could not confirm the booking. Please try again.'));
       }
     } finally {
       setSubmitting(false);
@@ -252,7 +253,7 @@ export default function BookingScreen({ navigation, route }: Props) {
         </View>
         <Text style={styles.successTitle}>{t('Request sent')}</Text>
         <Text style={styles.successSub}>
-          {t('Your provider will confirm the appointment.')} {bookedSummary.date} ·{' '}
+          {t('Your provider will confirm the appointment.')} {formatFriendlyDate(bookedSummary.date)} ·{' '}
           {prettyTime(bookedSummary.slot)}
         </Text>
 
@@ -494,13 +495,13 @@ export default function BookingScreen({ navigation, route }: Props) {
                     {(selectedProvider.appliances ?? [])
                       .slice(0, 2)
                       .map((a) => t(applianceLabel(a)))
-                      .join(' · ') || 'General Home Support'}
+                      .join(' · ') || t('General Home Support')}
                   </Text>
                   {selectedProvider.rating && selectedProvider.rating.count > 0 ? (
                     <View style={styles.provRating}>
                       <StarRating value={selectedProvider.rating.averageStars} readonly size={13} />
                       <Text style={styles.provRatingText}>
-                        {selectedProvider.rating.averageStars.toFixed(1)} (
+                        {fmtNumber(Number(selectedProvider.rating.averageStars.toFixed(1)))} (
                         {selectedProvider.rating.count})
                       </Text>
                     </View>
@@ -526,7 +527,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                 ) : filteredProviders.length === 0 ? (
                   <Text style={styles.emptyNote}>
                     {providerQuery
-                      ? `No providers match "${providerQuery}".`
+                      ? t('No providers match "{query}".', { query: providerQuery })
                       : t('No providers cover your area yet.')}
                   </Text>
                 ) : (
@@ -572,13 +573,13 @@ export default function BookingScreen({ navigation, route }: Props) {
                               ) : null}
                             </View>
                             <Text style={styles.provSpecialty} numberOfLines={1}>
-                              {specialties || 'General Home Support'}
+                              {specialties || t('General Home Support')}
                             </Text>
                             {p.rating && p.rating.count > 0 ? (
                               <View style={styles.provRating}>
                                 <StarRating value={p.rating.averageStars} readonly size={13} />
                                 <Text style={styles.provRatingText}>
-                                  {p.rating.averageStars.toFixed(1)} ({p.rating.count})
+                                  {fmtNumber(Number(p.rating.averageStars.toFixed(1)))} ({fmtNumber(p.rating.count)})
                                 </Text>
                               </View>
                             ) : (

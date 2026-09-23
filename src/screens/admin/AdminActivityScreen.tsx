@@ -1,7 +1,12 @@
 // src/screens/admin/AdminActivityScreen.tsx
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DirectionalArrow from '@/components/DirectionalArrow';
+import Text from '@/components/app-text';
+import { useLanguage } from '@/i18n/LanguageContext';
+import { fmtNumber } from '@/i18n/locale';
+import { useItemName } from '@/hooks/useItemName';
 import { useFocusEffect } from '@react-navigation/native';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -29,6 +34,8 @@ const STATUS_STYLE: Record<string, { label: string; color: string; bg: string }>
 };
 
 export default function AdminActivityScreen({ navigation }: Props) {
+  const { t } = useLanguage();
+  const itemName = useItemName();
   const [items, setItems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -64,9 +71,9 @@ export default function AdminActivityScreen({ navigation }: Props) {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Maintenance Records</Text>
-        <Text style={styles.pageSub}>All maintenance activity across users</Text>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search by item or user…" />
+        <Text style={styles.pageTitle}>{t('Maintenance Records')}</Text>
+        <Text style={styles.pageSub}>{t('All maintenance activity across users')}</Text>
+        <SearchBar value={search} onChangeText={setSearch} placeholder={t('Search by item or user…')} />
 
         <View style={styles.chipRow}>
           {STATUS_FILTERS.map((f) => {
@@ -88,7 +95,7 @@ export default function AdminActivityScreen({ navigation }: Props) {
                     on && (meta ? { color: meta.color, fontWeight: '700' } : styles.chipTextOn),
                   ]}
                 >
-                  {meta ? meta.label : 'All Status'}
+                  {t(meta ? meta.label : 'All Status')}
                 </Text>
               </TouchableOpacity>
             );
@@ -96,7 +103,7 @@ export default function AdminActivityScreen({ navigation }: Props) {
         </View>
 
         <Text style={styles.count}>
-          Showing {filtered.length} of {items.length} records
+          {t('Showing')} {fmtNumber(filtered.length)} / {fmtNumber(items.length)}
         </Text>
       </View>
 
@@ -114,23 +121,23 @@ export default function AdminActivityScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('AdminItemDetail', { item })}
             >
               <View style={{ flex: 1 }}>
-                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.name}>{itemName(item.name)}</Text>
                 <Text style={styles.sub}>
-                  {item.ownerName} · {CATEGORY_LABELS[item.category] ?? 'Service'}
+                  {item.ownerName} · {t(CATEGORY_LABELS[item.category] ?? 'Service')}
                 </Text>
-                <Text style={styles.date}>Due {formatFriendlyDate(item.nextServiceDate)}</Text>
+                <Text style={styles.date}>{t('Due')}: {formatFriendlyDate(item.nextServiceDate)}</Text>
               </View>
               <View style={[styles.pill, { backgroundColor: meta.bg }]}>
-                <Text style={[styles.pillText, { color: meta.color }]}>{meta.label}</Text>
+                <Text style={[styles.pillText, { color: meta.color }]}>{t(meta.label)}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              <DirectionalArrow kind="forward" shape="chevron" size={18} color={colors.textMuted} />
             </TouchableOpacity>
           );
         }}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="document-text-outline" size={40} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No records found</Text>
+            <Text style={styles.emptyTitle}>{t('No records found')}</Text>
           </View>
         }
       />

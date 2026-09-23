@@ -1,4 +1,5 @@
 import { useLanguage } from '@/i18n/LanguageContext';
+import { fmtNumber } from '@/i18n/locale';
 // src/screens/ProvidersScreen.tsx
 //
 // A browsable directory of the service providers who cover the homeowner's
@@ -15,6 +16,7 @@ import { ProviderProfile,SavedLocation } from '@/types';
 import { APPLIANCES,applianceIcon,applianceLabel } from '@/utils/appliances';
 import { areaLabel,distanceKm } from '@/utils/areas';
 import { Ionicons } from '@expo/vector-icons';
+import DirectionalArrow from '@/components/DirectionalArrow';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -58,7 +60,7 @@ const SORTS: { key: SortKey; label: string }[] = [
 type RankedProvider = ProviderProfile & { distance: number | null };
 
 export default function ProvidersScreen({ navigation }: Props) {
-  const { t } = useLanguage();
+  const { t, tp } = useLanguage();
   const { user } = useAuth();
   const { providers, loading } = useAreaFilteredProviders();
 
@@ -209,9 +211,7 @@ export default function ProvidersScreen({ navigation }: Props) {
 
         <View style={styles.metaRow}>
           <Text style={styles.count}>
-            {ranked.length}
-            {t('provider')} {ranked.length === 1 ? '' : t('s')}
-            {t('found')}
+            {tp('providersFound', ranked.length)}
           </Text>
           <TouchableOpacity
             style={styles.sortTrigger}
@@ -219,7 +219,7 @@ export default function ProvidersScreen({ navigation }: Props) {
             activeOpacity={0.7}
           >
             <Text style={styles.sortTriggerText}>
-              {t('Sort by:')} {SORTS.find((x) => x.key === sort)?.label}
+              {t('Sort by:')} {t(SORTS.find((x) => x.key === sort)?.label ?? '')}
             </Text>
             <Ionicons
               name={openMenu === 'sort' ? 'chevron-up' : 'chevron-down'}
@@ -257,8 +257,8 @@ export default function ProvidersScreen({ navigation }: Props) {
               {services.length === 0
                 ? t('Service')
                 : services.length === 1
-                  ? applianceLabel(services[0])
-                  : `${services.length} services`}
+                  ? t(applianceLabel(services[0]))
+                  : tp('services', services.length)}
             </Text>
             <Ionicons
               name={openMenu === 'services' ? 'chevron-up' : 'chevron-down'}
@@ -272,7 +272,7 @@ export default function ProvidersScreen({ navigation }: Props) {
             onPress={() => setOpenMenu((m) => (m === 'rating' ? null : 'rating'))}
             activeOpacity={0.7}
           >
-            <Text style={styles.pillText}>{minStars > 0 ? `${minStars}+ stars` : t('Rating')}</Text>
+            <Text style={styles.pillText}>{minStars > 0 ? t('{count}+ stars', { count: minStars }) : t('Rating')}</Text>
             <Ionicons
               name={openMenu === 'rating' ? 'chevron-up' : 'chevron-down'}
               size={14}
@@ -302,7 +302,7 @@ export default function ProvidersScreen({ navigation }: Props) {
             {SORTS.map((s) => (
               <MenuRow
                 key={s.key}
-                label={s.label}
+                label={t(s.label)}
                 selected={sort === s.key}
                 onPress={() => {
                   setSort(s.key);
@@ -325,7 +325,7 @@ export default function ProvidersScreen({ navigation }: Props) {
               return (
                 <MenuRow
                   key={a.id}
-                  label={`${applianceIcon(a.id)}  ${a.label}`}
+                  label={`${applianceIcon(a.id)}  ${t(a.label)}`}
                   selected={on}
                   // Multi-select: tapping toggles rather than replacing.
                   onPress={() =>
@@ -350,7 +350,7 @@ export default function ProvidersScreen({ navigation }: Props) {
             {RATING_FILTERS.map((f) => (
               <MenuRow
                 key={f.value}
-                label={f.label}
+                label={t(f.label)}
                 selected={minStars === f.value}
                 onPress={() => {
                   setMinStars(f.value);
@@ -398,7 +398,7 @@ export default function ProvidersScreen({ navigation }: Props) {
               return (
                 <MenuRow
                   key={a.id}
-                  label={`${applianceIcon(a.id)}  ${a.label}`}
+                  label={`${applianceIcon(a.id)}  ${t(a.label)}`}
                   selected={on}
                   onPress={() =>
                     setServices((prev) => (on ? prev.filter((x) => x !== a.id) : [...prev, a.id]))
@@ -418,7 +418,7 @@ export default function ProvidersScreen({ navigation }: Props) {
             {RATING_FILTERS.map((f) => (
               <MenuRow
                 key={f.value}
-                label={f.label}
+                label={t(f.label)}
                 selected={minStars === f.value}
                 onPress={() => setMinStars(f.value)}
               />
@@ -549,7 +549,7 @@ export default function ProvidersScreen({ navigation }: Props) {
                       <>
                         <StarRating value={item.rating.averageStars} readonly size={13} />
                         <Text style={styles.statText}>
-                          {item.rating.averageStars.toFixed(1)} ({item.rating.count})
+                          {fmtNumber(Number(item.rating.averageStars.toFixed(1)))} ({fmtNumber(item.rating.count)})
                         </Text>
                       </>
                     ) : (
@@ -561,23 +561,23 @@ export default function ProvidersScreen({ navigation }: Props) {
                           name="location-outline"
                           size={13}
                           color={colors.textMuted}
-                          style={{ marginLeft: spacing.sm }}
+                          style={{ marginStart: spacing.sm }}
                         />
                         <Text style={styles.statText}>
                           {item.distance < 1
-                            ? `${Math.round(item.distance * 1000)} m away`
-                            : `${item.distance.toFixed(1)} km away`}
+                            ? t('{distance} m away', { distance: Math.round(item.distance * 1000) })
+                            : t('{distance} km away', { distance: Number(item.distance.toFixed(1)) })}
                         </Text>
                       </>
                     )}
                   </View>
 
                   <Text style={styles.services} numberOfLines={1}>
-                    {services || 'General home services'}
+                    {services || t('General home services')}
                   </Text>
                 </View>
 
-                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                <DirectionalArrow kind="forward" shape="chevron" size={20} color={colors.textMuted} />
               </View>
             </TouchableOpacity>
           );
@@ -609,7 +609,7 @@ function MenuRow({
   selected: boolean;
   onPress: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, tp } = useLanguage();
   return (
     <TouchableOpacity style={styles.menuRow} onPress={onPress} activeOpacity={0.7}>
       <Text style={[styles.menuRowText, selected && styles.menuRowTextOn]}>{t(label)}</Text>

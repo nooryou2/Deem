@@ -29,7 +29,7 @@ View,
 type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderAreas'>;
 
 export default function ProviderAreasScreen({ navigation }: Props) {
-  const { t } = useLanguage();
+  const { t, tp } = useLanguage();
   const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -55,7 +55,7 @@ export default function ProviderAreasScreen({ navigation }: Props) {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Areas', msg);
+    else Alert.alert(t('Areas'), msg);
   }
 
   // Dropping a pin suggests the surrounding area — the provider still confirms,
@@ -97,10 +97,10 @@ export default function ProviderAreasScreen({ navigation }: Props) {
         areas,
         coords ? { lat: coords.lat, lng: coords.lng } : null,
       );
-      notify('Your coverage was saved.');
+      notify(t('Your coverage was saved.'));
       navigation.goBack();
     } catch {
-      notify('Could not save. Please try again.');
+      notify(t('Could not save. Please try again.'));
     } finally {
       setSaving(false);
     }
@@ -230,7 +230,7 @@ export default function ProviderAreasScreen({ navigation }: Props) {
                     }
                   >
                     <Text style={styles.expandText}>
-                      {allOn ? t('All neighborhoods') : `${group.areas.length} areas`}
+                      {allOn ? t('All neighborhoods') : tp('areas', group.areas.length)}
                     </Text>
                     <Ionicons
                       name={isOpen ? 'chevron-up' : 'chevron-down'}

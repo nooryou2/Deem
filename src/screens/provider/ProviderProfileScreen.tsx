@@ -1,4 +1,5 @@
 import { useLanguage } from '@/i18n/LanguageContext';
+import { fmtNumber } from '@/i18n/locale';
 // src/screens/provider/ProviderProfileScreen.tsx
 //
 // The provider's own profile: how they appear to homeowners, what they service,
@@ -23,6 +24,7 @@ import { ProviderRating } from '@/types';
 import { APPLIANCES,applianceIcon } from '@/utils/appliances';
 import { AREAS,GOVERNORATES,areaLabel } from '@/utils/areas';
 import { Ionicons } from '@expo/vector-icons';
+import DirectionalArrow from '@/components/DirectionalArrow';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -45,7 +47,7 @@ type Props = CompositeScreenProps<
 >;
 
 export default function ProviderProfileScreen({ navigation }: Props) {
-  const { t } = useLanguage();
+  const { t, tp, language } = useLanguage();
   const { user, logout } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -87,7 +89,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Profile', msg);
+    else Alert.alert(t('Profile'), msg);
   }
 
   async function saveServices(next: string[], nextOther: string) {
@@ -99,7 +101,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
       setOtherText(nextOther);
       setServicesOpen(false);
     } catch {
-      notify('Could not save your services.');
+      notify(t('Could not save your services.'));
     } finally {
       setSaving(false);
     }
@@ -113,7 +115,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
       setBio(draftBio.trim());
       setBioOpen(false);
     } catch {
-      notify('Could not save your bio.');
+      notify(t('Could not save your bio.'));
     } finally {
       setSaving(false);
     }
@@ -127,7 +129,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
       setAddress(draftAddress.trim());
       setAddressOpen(false);
     } catch {
-      notify('Could not save your address.');
+      notify(t('Could not save your address.'));
     } finally {
       setSaving(false);
     }
@@ -144,19 +146,19 @@ export default function ProviderProfileScreen({ navigation }: Props) {
 
   function confirmLogout() {
     if (Platform.OS === 'web') {
-      if (window.confirm('Log out? You can always log back in anytime.')) doLogout();
+      if (window.confirm(t('Log out? You can always log back in anytime.'))) doLogout();
       return;
     }
-    Alert.alert('Log out?', 'You can always log back in anytime.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: doLogout },
+    Alert.alert(t('Log out?'), t('You can always log back in anytime.'), [
+      { text: t('Cancel'), style: 'cancel' },
+      { text: t('Log Out'), style: 'destructive', onPress: doLogout },
     ]);
   }
 
   // Firebase records when the account was created, so "Joined" needs no extra
   // field of its own.
   const joined = user?.metadata?.creationTime
-    ? new Date(user.metadata.creationTime).toLocaleDateString(undefined, {
+    ? new Date(user.metadata.creationTime).toLocaleDateString(language === 'ar' ? 'ar-BH' : 'en-GB', {
         month: 'short',
         year: 'numeric',
       })
@@ -188,17 +190,22 @@ export default function ProviderProfileScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <Text style={styles.name}>{user?.displayName || 'Service Provider'}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
+        <Text style={styles.name}>{user?.displayName || t('Service Provider')}</Text>
+        <Text ltr style={styles.email}>{user?.email}</Text>
 
         {rating && rating.count > 0 ? (
-          <View style={styles.ratingRow}>
+          <TouchableOpacity
+            style={styles.ratingRow}
+            activeOpacity={0.6}
+            accessibilityRole="button"
+            onPress={() => user && navigation.navigate('ProviderReviews', { providerId: user.uid })}
+          >
             <StarRating value={rating.averageStars} readonly size={16} />
             <Text style={styles.ratingText}>
-              {rating.averageStars.toFixed(1)} ({rating.count}
-              {t('review')} {rating.count === 1 ? '' : t('s')})
+              {fmtNumber(Number(rating.averageStars.toFixed(1)))}{' '}
+              <Text style={styles.ratingCount}>({tp('reviews', rating.count)})</Text>
             </Text>
-          </View>
+          </TouchableOpacity>
         ) : (
           <Text style={styles.noRating}>{t('No reviews yet')}</Text>
         )}
@@ -248,7 +255,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
       </View>
       <View style={styles.card}>
         <Text style={bio ? styles.bioText : styles.placeholderText}>
-          {bio || 'Add a short description so homeowners know what you do.'}
+          {bio || t('Add a short description so homeowners know what you do.')}
         </Text>
       </View>
 
@@ -275,7 +282,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
             <View key={a} style={styles.serviceTile}>
               <Text style={styles.serviceIcon}>{applianceIcon(a)}</Text>
               <Text style={styles.serviceLabel} numberOfLines={2}>
-                {areaLabelSafe(a)}
+                {t(areaLabelSafe(a))}
               </Text>
             </View>
           ))}
@@ -302,7 +309,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
           <Text style={styles.linkTitle}>
             {serviceAreas.length === 0
               ? t('No areas selected')
-              : `${serviceAreas.length} area${serviceAreas.length === 1 ? '' : 's'} selected`}
+              : tp('areasSelected', serviceAreas.length)}
           </Text>
           <Text style={styles.linkSub} numberOfLines={1}>
             {coveredGovernorates.length > 0
@@ -310,7 +317,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
               : t('Tap to choose where you work')}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        <DirectionalArrow kind="forward" shape="chevron" size={20} color={colors.textMuted} />
       </TouchableOpacity>
 
       {/* Address */}
@@ -335,7 +342,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
           <Ionicons name="business-outline" size={20} color={colors.primary} />
         </View>
         <Text style={[address ? styles.linkTitle : styles.placeholderText, { flex: 1 }]}>
-          {address || 'No address added yet'}
+          {address || t('No address added yet')}
         </Text>
       </View>
 
@@ -515,6 +522,8 @@ const styles = StyleSheet.create({
   email: { ...typography.caption, marginTop: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm },
   ratingText: { ...typography.caption, fontWeight: '600' },
+  // Same gold as the stars it sits beside.
+  ratingCount: { color: '#E8A33D', fontWeight: '700' },
   noRating: { ...typography.caption, marginTop: spacing.sm },
 
   statStrip: {

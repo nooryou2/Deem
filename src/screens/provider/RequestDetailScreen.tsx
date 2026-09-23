@@ -89,7 +89,7 @@ export default function RequestDetailScreen({ route }: Props) {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Request', msg);
+    else Alert.alert(t('Request'), msg);
   }
 
   async function setStatus(status: ServiceRequestStatus) {
@@ -125,9 +125,9 @@ export default function RequestDetailScreen({ route }: Props) {
       }
       setReq((r) => ({ ...r, assignedEmployeeId: emp.uid, assignedEmployeeName: emp.name }));
       setAssignOpen(false);
-      notify(`Assigned to ${emp.name}.`);
+      notify(t('Assigned to {name}.', { name: emp.name }));
     } catch (e) {
-      notify('Could not assign employee.');
+      notify(t('Could not assign employee.'));
     } finally {
       setBusy(false);
     }
@@ -383,11 +383,11 @@ export default function RequestDetailScreen({ route }: Props) {
 }
 
 function Row({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
-  const { t } = useLanguage();
+  const { t, rtl } = useLanguage();
   return (
     <View style={[styles.row, last && { borderBottomWidth: 0 }]}>
       <Text style={styles.rowLabel}>{t(label)}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
+      <Text style={[styles.rowValue, { textAlign: rtl ? 'left' : 'right' }]}>{value}</Text>
     </View>
   );
 }
@@ -518,8 +518,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: '600',
     flexShrink: 1,
-    textAlign: 'right',
-    marginLeft: spacing.md,
+    marginStart: spacing.md,
   },
   actionRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
@@ -546,7 +545,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginEnd: spacing.md,
   },
   empAvatarText: { color: colors.white, fontWeight: '700' },
   empName: { ...typography.body, fontWeight: '600' },

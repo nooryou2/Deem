@@ -1,5 +1,6 @@
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/i18n/LanguageContext';
+import HeaderBack from '@/components/HeaderBack';
 // src/navigation/EmployeeNavigator.tsx
 import EmployeeJobsScreen from '@/screens/employee/EmployeeJobsScreen';
 import EmployeeProfileScreen from '@/screens/employee/EmployeeProfileScreen';
@@ -63,7 +64,10 @@ export default function EmployeeNavigator() {
   const { t } = useLanguage();
   return (
     <Stack.Navigator
-      screenOptions={{
+      screenOptions={({ navigation }) => ({
+        // Only shown where there is somewhere to go back to.
+        headerLeft: () =>
+          navigation.canGoBack() ? <HeaderBack onPress={() => navigation.goBack()} /> : undefined,
         headerTitleAlign: 'center',
         headerRight: () => <LanguageSwitcher />,
         headerBackTitle: t('Back'),
@@ -71,7 +75,7 @@ export default function EmployeeNavigator() {
         headerShadowVisible: false,
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.textPrimary,
-      }}
+      })}
     >
       <Stack.Screen name="EmployeeTabs" component={EmployeeTabs} options={{ headerShown: false }} />
       <Stack.Screen

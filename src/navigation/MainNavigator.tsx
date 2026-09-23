@@ -1,5 +1,6 @@
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/i18n/LanguageContext';
+import HeaderBack from '@/components/HeaderBack';
 import CustomerRequestsScreen from '@/screens/customer-requests-screen';
 // src/navigation/MainNavigator.tsx
 import AddEditMaintenanceScreen from '@/screens/AddEditMaintenanceScreen';
@@ -63,7 +64,7 @@ function HeaderLogo() {
   return (
     <Image
       source={require('../../assets/logo.png')}
-      style={{ width: 42, height: 42, marginLeft: spacing.md }}
+      style={{ width: 42, height: 42, marginStart: spacing.md }}
       resizeMode="contain"
     />
   );
@@ -127,7 +128,10 @@ export default function MainNavigator() {
   return (
     <Stack.Navigator
       initialRouteName="MainTabs"
-      screenOptions={{
+      screenOptions={({ navigation }) => ({
+        // Only shown where there is somewhere to go back to.
+        headerLeft: () =>
+          navigation.canGoBack() ? <HeaderBack onPress={() => navigation.goBack()} /> : undefined,
         headerTitleAlign: 'center',
         headerRight: () => <LanguageSwitcher />,
         headerBackTitle: t('Back'),
@@ -135,7 +139,7 @@ export default function MainNavigator() {
         headerShadowVisible: false,
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.textPrimary,
-      }}
+      })}
     >
       <Stack.Screen
         name="ProviderDetail"

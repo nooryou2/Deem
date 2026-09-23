@@ -61,7 +61,7 @@ export default function ProviderTeamScreen({ navigation }: Props) {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Team', msg);
+    else Alert.alert(t('Team'), msg);
   }
 
   function resetForm() {
@@ -96,7 +96,7 @@ export default function ProviderTeamScreen({ navigation }: Props) {
       });
       setModalOpen(false);
       resetForm();
-      notify(`${name.trim()} was added. They can log in with the email and password you set.`);
+      notify(t('{name} was added. They can log in with the email and password you set.', { name: name.trim() }));
       load();
     } catch (e) {
       setError(getAuthErrorMessage(e, 'register'));
@@ -137,7 +137,7 @@ export default function ProviderTeamScreen({ navigation }: Props) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.empName}>{emp.name}</Text>
-                <Text style={styles.empEmail}>{emp.email}</Text>
+                <Text ltr style={styles.empEmail}>{emp.email}</Text>
               </View>
               <View
                 style={[
@@ -276,14 +276,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginEnd: spacing.md,
   },
   avatarText: { color: colors.white, fontWeight: '700', fontSize: 18 },
   empName: { ...typography.body, fontWeight: '700' },
   empEmail: { ...typography.caption, marginTop: 2 },
   privBadge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.pill },
   privText: { fontSize: 11, fontWeight: '700' },
-  chevron: { fontSize: 22, color: colors.textMuted, marginLeft: spacing.sm },
+  chevron: { fontSize: 22, color: colors.textMuted, marginStart: spacing.sm },
 
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { fontSize: 40, marginBottom: spacing.sm },
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
 
   fab: {
     position: 'absolute',
-    right: spacing.lg,
+    end: spacing.lg,
     bottom: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',

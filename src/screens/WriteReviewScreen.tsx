@@ -47,7 +47,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Review', msg);
+    else Alert.alert(t('Review'), msg);
   }
 
   async function handleSubmit() {
@@ -72,7 +72,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
         comment: comment.trim(),
         servicedDate: route.params.servicedDate,
       });
-      notify('Thanks for your review!');
+      notify(t('Thanks for your review!'));
       navigation.goBack();
     } catch (e) {
       console.log('submitReview failed:', e);

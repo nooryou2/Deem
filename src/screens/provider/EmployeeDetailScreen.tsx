@@ -23,7 +23,7 @@ export default function EmployeeDetailScreen({ navigation, route }: Props) {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Employee', msg);
+    else Alert.alert(t('Employee'), msg);
   }
 
   async function handleSave() {
@@ -35,7 +35,7 @@ export default function EmployeeDetailScreen({ navigation, route }: Props) {
     setSaving(true);
     try {
       await updateEmployee(emp.uid, { name, privilege });
-      notify('Employee updated.');
+      notify(t('Employee updated.'));
       navigation.goBack();
     } catch (e) {
       setError('Could not save changes. Please try again.');
@@ -49,10 +49,10 @@ export default function EmployeeDetailScreen({ navigation, route }: Props) {
       setSaving(true);
       try {
         await removeEmployee(emp.uid);
-        notify(`${emp.name} was removed from your team.`);
+        notify(t('{name} was removed from your team.', { name: emp.name }));
         navigation.goBack();
       } catch (e) {
-        notify('Could not remove employee.');
+        notify(t('Could not remove employee.'));
       } finally {
         setSaving(false);
       }
@@ -60,14 +60,14 @@ export default function EmployeeDetailScreen({ navigation, route }: Props) {
   }
 
   function confirmRemove() {
-    const msg = `Remove ${emp.name} from your team? They will no longer be able to log in as an employee or receive assignments.`;
+    const msg = t('Remove {name} from your team? They will no longer be able to log in as an employee or receive assignments.', { name: emp.name });
     if (Platform.OS === 'web') {
       if (window.confirm(msg)) performRemove();
       return;
     }
-    Alert.alert('Remove employee?', msg, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: performRemove },
+    Alert.alert(t('Remove employee?'), msg, [
+      { text: t('Cancel'), style: 'cancel' },
+      { text: t('Remove'), style: 'destructive', onPress: performRemove },
     ]);
   }
 
@@ -77,7 +77,7 @@ export default function EmployeeDetailScreen({ navigation, route }: Props) {
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{emp.name.charAt(0).toUpperCase()}</Text>
         </View>
-        <Text style={styles.email}>{emp.email}</Text>
+        <Text ltr style={styles.email}>{emp.email}</Text>
       </View>
 
       <InputField label={t('Full Name')} value={name} onChangeText={setName} />

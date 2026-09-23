@@ -1,5 +1,6 @@
 import AttachmentPicker from '@/components/attachment-picker';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useItemName } from '@/hooks/useItemName';
 import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
 // src/screens/MaintenanceDetailScreen.tsx
 import Button from '@/components/Button';
@@ -47,7 +48,8 @@ type Props = NativeStackScreenProps<MainStackParamList, 'MaintenanceDetail'>;
 
 
 export default function MaintenanceDetailScreen({ navigation, route }: Props) {
-  const { t } = useLanguage();
+  const { t, tp } = useLanguage();
+  const itemName = useItemName();
   const { user } = useAuth();
   const { items } = useMaintenanceItems();
   const itemFromList = items.find((i) => i.id === route.params.itemId);
@@ -179,9 +181,9 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
     } catch (e) {
       console.log('Mark complete FAILED:', e);
       if (Platform.OS === 'web') {
-        window.alert('Could not mark complete: ' + ((e as Error)?.message ?? e));
+        window.alert(t('Could not mark this item complete. Please try again.'));
       } else {
-        Alert.alert('Error', 'Could not mark this item complete. Please try again.');
+        Alert.alert(t('Error'), t('Could not mark this item complete. Please try again.'));
       }
     } finally {
       setBusy(false);
@@ -197,9 +199,9 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
     } catch (e) {
       console.log('Delete FAILED:', e);
       if (Platform.OS === 'web') {
-        window.alert('Could not delete: ' + ((e as Error)?.message ?? e));
+        window.alert(t('Could not delete this item. Please try again.'));
       } else {
-        Alert.alert('Error', 'Could not delete this item. Please try again.');
+        Alert.alert(t('Error'), t('Could not delete this item. Please try again.'));
       }
     } finally {
       setBusy(false);
@@ -210,16 +212,16 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
     // react-native-web doesn't render Alert.alert buttons, so use the browser's
     // native confirm() on web and the RN Alert on native.
     if (Platform.OS === 'web') {
-      const ok = window.confirm(`Delete "${currentItem.name}"? This cannot be undone.`);
+      const ok = window.confirm(t('Delete "{name}"? This cannot be undone.', { name: currentItem.name }));
       if (ok) performDelete();
       return;
     }
     Alert.alert(
-      'Delete this item?',
-      `"${currentItem.name}" and its history will be permanently removed.`,
+      t('Delete this item?'),
+      t('"{name}" and its history will be permanently removed.', { name: currentItem.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: performDelete },
+        { text: t('Cancel'), style: 'cancel' },
+        { text: t('Delete'), style: 'destructive', onPress: performDelete },
       ],
     );
   }
@@ -228,7 +230,7 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
     <ScrollView style={styles.flex} contentContainerStyle={styles.container}>
       <View style={styles.headerCard}>
         <Text style={styles.icon}>{CATEGORY_ICONS[item.category]}</Text>
-        <Text style={typography.h2}>{item.name}</Text>
+        <Text style={typography.h2}>{itemName(item.name)}</Text>
         <Text style={styles.category}>{t(CATEGORY_LABELS[item.category])}</Text>
         <View style={{ marginTop: spacing.sm }}>
           {isUnconfirmed ? (
@@ -466,7 +468,7 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
               (new Date(entry.completedDate).getTime() - new Date(older.completedDate).getTime()) /
                 86400000,
             );
-            gapLabel = days >= 0 ? `${days} day${days === 1 ? '' : 's'} after previous` : '';
+            gapLabel = days >= 0 ? tp('daysAfterPrevious', days) : '';
           } else {
             gapLabel = 'First recorded service';
           }
@@ -491,7 +493,7 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
-  const { t } = useLanguage();
+  const { t, tp } = useLanguage();
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{t(label)}</Text>

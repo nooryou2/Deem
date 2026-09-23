@@ -1,4 +1,5 @@
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import DirectionalArrow from '@/components/DirectionalArrow';
 import Text from '@/components/app-text';
 import { useLanguage } from '@/i18n/LanguageContext';
 import type { AuthStackParamList } from '@/navigation/AuthNavigator';
@@ -44,7 +45,7 @@ export default function LandingScreen({ navigation }: Props) {
   const [servicesY, setServicesY] = useState(0);
   const [stepsY, setStepsY] = useState(0);
   const go = () => navigation.navigate('Register');
-  const action = (label: string, onPress: () => void, light = false) => (
+  const action = (label: string, onPress: () => void, light = false, arrow = false) => (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
@@ -54,7 +55,15 @@ export default function LandingScreen({ navigation }: Props) {
         (pressed || hovered) && { opacity: 0.8 },
       ]}
     >
-      <Text style={[s.buttonText, light && { color: colors.textPrimary }]}>{t(label)}</Text>
+      <View style={s.arrowRow}>
+        <Text style={[s.buttonText, light && { color: colors.textPrimary }]}>{t(label)}</Text>
+        {arrow ? (
+          <DirectionalArrow
+            kind="forward"
+            color={light ? colors.textPrimary : colors.white}
+          />
+        ) : null}
+      </View>
     </Pressable>
   );
   return (
@@ -120,7 +129,7 @@ export default function LandingScreen({ navigation }: Props) {
               )}
             </Text>
             <View style={s.actions}>
-              {action('ابدأ العناية بمنزلك  ←', go)}
+              {action('ابدأ العناية بمنزلك', go, false, true)}
               {action(
                 'اكتشف خدماتنا',
                 () => scroll.current?.scrollTo({ y: servicesY, animated: true }),
@@ -211,7 +220,10 @@ export default function LandingScreen({ navigation }: Props) {
                   <Text style={s.tag}>{t(service.tag)}</Text>
                   <Text style={s.serviceTitle}>{t(service.title)}</Text>
                   <Text style={s.serviceText}>{t(service.text)}</Text>
-                  <Text style={s.serviceLink}>{t('ابدأ الآن ←')}</Text>
+                  <View style={s.arrowRow}>
+                    <Text style={s.serviceLink}>{t('ابدأ الآن')}</Text>
+                    <DirectionalArrow kind="forward" size={14} color={colors.primary} />
+                  </View>
                 </View>
               </Pressable>
             ))}
@@ -251,7 +263,7 @@ export default function LandingScreen({ navigation }: Props) {
             </Text>
             <Text style={s.ctaText}>{t('ابدأ بتنظيم صيانة منزلك مع ديم اليوم.')}</Text>
           </View>
-          {action('أنشئ حسابك  ←', go)}
+          {action('أنشئ حسابك', go, false, true)}
         </View>
         <View style={s.footer}>
           <Image
@@ -262,7 +274,10 @@ export default function LandingScreen({ navigation }: Props) {
           />
           <Text style={s.note}>{t('اهتمام بالبيت، وراحة لأهله.')}</Text>
           <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Login')}>
-            <Text style={s.navText}>{t('الدخول إلى حسابك ←')}</Text>
+            <View style={s.arrowRow}>
+              <Text style={s.navText}>{t('الدخول إلى حسابك')}</Text>
+              <DirectionalArrow kind="forward" size={14} color={colors.primary} />
+            </View>
           </Pressable>
         </View>
       </View>
@@ -270,6 +285,9 @@ export default function LandingScreen({ navigation }: Props) {
   );
 }
 const s = StyleSheet.create({
+  // Label and arrow side by side. The row follows the reading direction, so in
+  // Arabic the arrow lands on the left without any special casing.
+  arrowRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   page: { flex: 1, backgroundColor: colors.background },
   wrap: { width: '100%', maxWidth: 1440, alignSelf: 'center' },
   nav: {

@@ -72,7 +72,7 @@ export default function EmergencyScreen() {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Emergency Request', msg);
+    else Alert.alert(t('Emergency Request'), msg);
   }
 
   function togglePending(id: string) {
@@ -126,7 +126,7 @@ export default function EmergencyScreen() {
         appliances: chosenAppliances,
       });
       setSelectedProvider(null);
-      notify(`Emergency request sent to ${selectedProvider.name}.`);
+      notify(t('Emergency request sent to {name}.', { name: selectedProvider.name }));
       // Refresh and show the homeowner their requests.
       if (user) {
         const all = await fetchRequestsForHomeowner(user.uid);
@@ -135,7 +135,7 @@ export default function EmergencyScreen() {
       setTab('requests');
     } catch (e) {
       console.log('emergency request failed:', e);
-      notify('Could not send the request. Please try again.');
+      notify(t('Could not send the request. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -226,7 +226,7 @@ export default function EmergencyScreen() {
               <Text style={styles.topTitle}>{t('Find help fast')}</Text>
               <Text style={styles.topSub}>
                 {activeFilter.length > 0
-                  ? `Showing providers for: ${activeFilter.map((a) => t(applianceLabel(a))).join(', ')}`
+                  ? t('Showing providers for: {list}', { list: activeFilter.map((a) => t(applianceLabel(a))).join('، ') })
                   : t('Select the appliances that need fixing.')}
               </Text>
             </View>

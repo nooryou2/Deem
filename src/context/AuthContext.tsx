@@ -1,6 +1,6 @@
 // src/context/AuthContext.tsx
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { onAuthStateChanged, getRedirectResult, type User } from 'firebase/auth';
+import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
+import { onAuthStateChanged, getRedirectResult, deleteUser, type User } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import {
   loginUser,
@@ -12,13 +12,13 @@ import {
 import {
   saveUserRole,
   getUserRole,
-  saveProviderServiceAreas,
   saveHomeownerAreas,
   saveSavedLocations,
 } from '@/services/roleService';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { UserRole, EmployeePrivilege } from '@/types';
+import { redeemInvite } from '@/services/inviteService';
 
 interface AuthContextValue {
   user: User | null;
@@ -29,15 +29,33 @@ interface AuthContextValue {
   privilege: EmployeePrivilege | null;
   employerId: string | null;
   companyName: string | null;
-  login: (email: string, password: string, selectedRole: UserRole) => Promise<void>;
-  loginWithGoogle: (selectedRole: UserRole) => Promise<void>;
+  /**
+   * `allowed` restricts which roles may sign in here, keeping the homeowner,
+   * provider and admin entrances separate. An account with the wrong role is
+   * signed straight back out and ROLE_NOT_ALLOWED is thrown.
+   */
+  login: (email: string, password: string, allowed?: UserRole[]) => Promise<void>;
+  loginWithGoogle: (allowed?: UserRole[]) => Promise<void>;
+  /** Public signup. Always creates a homeowner. */
   register: (
     name: string,
     email: string,
     password: string,
-    selectedRole: UserRole,
     areas?: string[],
     coords?: { lat: number; lng: number } | null
+  ) => Promise<void>;
+  /** True while an invited provider's account is being created. */
+  providerSignupActive: boolean;
+  /** Invite-only provider signup. The invite token is required. */
+  registerProvider: (
+    token: string,
+    form: {
+      businessName: string;
+      email: string;
+      password: string;
+      appliances: string[];
+      address: string;
+    }
   ) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -46,6 +64,15 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // Set while an invited provider's account is being created. Creating the
+  // Firebase account fires the auth listener immediately — before the provider
+  // records exist — and the listener would otherwise default the new account
+  // to homeowner. The rules then (correctly) refuse to change that role, which
+  // would leave every invited provider stuck as a homeowner.
+  const providerSignupInFlight = useRef(false);
+  // Mirrors the ref as state so the navigator can keep the sign-up page
+  // mounted (and its form and any error visible) for the whole attempt.
+  const [providerSignupActive, setProviderSignupActive] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [roleLoading, setRoleLoading] = useState(false);
@@ -95,17 +122,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (firebaseUser) {
         // Load the stored role whenever auth state resolves (login, refresh…).
         setRoleLoading(true);
+        // Read the flag *before* awaiting, so a signup that finishes while the
+        // role is loading can't slip through and get defaulted to homeowner.
+        const deferToProviderSignup = providerSignupInFlight.current;
         let stored = await getUserRole(firebaseUser.uid);
-        // A user arriving back from a Google *redirect* has no role yet (the
-        // in-app selection was lost when the page navigated away). Give them
-        // the default so they land somewhere sensible; they can change it later.
-        if (!stored) {
-          await saveUserRole(firebaseUser.uid, 'homeowner', firebaseUser.displayName ?? '');
-          stored = 'homeowner';
+        if (!stored && deferToProviderSignup) {
+          // registerProvider is creating this account's role and will set it.
+        } else {
+          // A brand-new account with no role (e.g. first Google sign-in) is a
+          // homeowner: that's the only role the public app can create.
+          if (!stored) {
+            await saveUserRole(firebaseUser.uid, 'homeowner', firebaseUser.displayName ?? '');
+            stored = 'homeowner';
+          }
+          setRole(stored);
+          if (stored === 'employee') await loadEmployeeContext(firebaseUser.uid);
+          setRoleLoading(false);
         }
-        setRole(stored);
-        if (stored === 'employee') await loadEmployeeContext(firebaseUser.uid);
-        setRoleLoading(false);
       } else {
         setRole(null);
         setPrivilege(null);
@@ -124,53 +157,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role,
       roleLoading,
       initializing,
+      providerSignupActive,
       privilege,
       employerId,
       companyName,
-      login: async (email, password, selectedRole) => {
+      login: async (email, password, allowed) => {
         const loggedIn = await loginUser(email, password);
-        // Trust the stored role if present; otherwise fall back to the choice
-        // made on the login screen. We never overwrite an existing stored role
-        // with the login-screen selection — the stored one is authoritative.
-        const stored = await getUserRole(loggedIn.uid);
-        if (stored) {
-          setRole(stored);
-          if (stored === 'employee') await loadEmployeeContext(loggedIn.uid);
-        } else {
-          await saveUserRole(loggedIn.uid, selectedRole, loggedIn.displayName ?? '');
-          setRole(selectedRole);
+        // The stored role is authoritative. An account with none is treated as
+        // a homeowner — the public app can't create any other role.
+        const stored = (await getUserRole(loggedIn.uid)) ?? 'homeowner';
+
+        if (allowed && !allowed.includes(stored)) {
+          // Wrong entrance: don't leave them signed in.
+          await logoutUser();
+          const err = new Error('ROLE_NOT_ALLOWED');
+          (err as any).actualRole = stored;
+          throw err;
         }
+
+        if (stored === 'homeowner' && !(await getUserRole(loggedIn.uid))) {
+          await saveUserRole(loggedIn.uid, 'homeowner', loggedIn.displayName ?? '');
+        }
+        setRole(stored);
+        if (stored === 'employee') await loadEmployeeContext(loggedIn.uid);
       },
-      loginWithGoogle: async (selectedRole) => {
+      loginWithGoogle: async (allowed) => {
         const signedIn = await signInWithGoogle();
-        // Same role rule as email login: an existing stored role wins; a
-        // brand-new Google account gets the role picked on the auth screen.
+        // Same rule as email login: a stored role wins; a new account is a
+        // homeowner. Providers can't sign up with Google — only by invite.
         const stored = await getUserRole(signedIn.uid);
+        if (stored && allowed && !allowed.includes(stored)) {
+          await logoutUser();
+          const err = new Error('ROLE_NOT_ALLOWED');
+          (err as any).actualRole = stored;
+          throw err;
+        }
         if (stored) {
           setRole(stored);
           if (stored === 'employee') await loadEmployeeContext(signedIn.uid);
         } else {
-          await saveUserRole(signedIn.uid, selectedRole, signedIn.displayName ?? '');
-          setRole(selectedRole);
+          await saveUserRole(signedIn.uid, 'homeowner', signedIn.displayName ?? '');
+          setRole('homeowner');
         }
       },
-      register: async (name, email, password, selectedRole, areas = [], coords = null) => {
+      register: async (name, email, password, areas = [], coords = null) => {
         const created = await registerUser(name, email, password);
-        await saveUserRole(created.uid, selectedRole, name);
+        await saveUserRole(created.uid, 'homeowner', name);
 
         // Both areas and the map pin are optional at signup — whatever the user
         // gave us is stored, and anything missing can be added later from their
         // profile.
-        if (selectedRole === 'provider') {
-          if (areas.length > 0 || coords) {
-            await saveProviderServiceAreas(
-              created.uid,
-              '',
-              areas,
-              coords ? { lat: coords.lat, lng: coords.lng } : null
-            );
-          }
-        } else {
+        {
           if (areas.length > 0) {
             await saveHomeownerAreas(created.uid, areas);
           }
@@ -190,7 +227,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ]);
           }
         }
-        setRole(selectedRole);
+        setRole('homeowner');
+      },
+      registerProvider: async (token, form) => {
+        providerSignupInFlight.current = true;
+        setProviderSignupActive(true);
+        setRoleLoading(true);
+        let created: User | null = null;
+        try {
+          created = await registerUser(form.businessName, form.email, form.password);
+          await redeemInvite({
+            token,
+            uid: created.uid,
+            email: form.email,
+            businessName: form.businessName,
+            appliances: form.appliances,
+            address: form.address,
+          });
+          setRole('provider');
+        } catch (e) {
+          // If the invite couldn't be redeemed, remove the half-made login so
+          // it can't later sign in and be treated as something it isn't.
+          if (created) {
+            try {
+              await deleteUser(created);
+            } catch {
+              // Best effort; without a provider record it can only ever be a
+              // homeowner, never a provider.
+            }
+          }
+          throw e;
+        } finally {
+          providerSignupInFlight.current = false;
+          setProviderSignupActive(false);
+          setRoleLoading(false);
+        }
       },
       logout: async () => {
         await logoutUser();
@@ -203,7 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await resetPasswordService(email);
       },
     }),
-    [user, role, roleLoading, initializing, privilege, employerId, companyName]
+    [user, role, roleLoading, initializing, providerSignupActive, privilege, employerId, companyName]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

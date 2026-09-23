@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '@/i18n/LanguageContext';
 import { colors } from '@/theme/theme';
 
 interface Props {
@@ -13,8 +14,11 @@ interface Props {
 }
 
 export default function StarRating({ value, onChange, size = 32, readonly = false }: Props) {
+  const { rtl } = useLanguage();
   return (
-    <View style={styles.row}>
+    // A rating always reads left-to-right, so a 4.5 shows the half star on the
+    // right in both languages.
+    <View style={[styles.row, rtl && styles.rowRtl]}>
       {[1, 2, 3, 4, 5].map((star) => {
         // Half-fill support for averages like 4.5 in read-only mode.
         const filled = value >= star;
@@ -41,4 +45,5 @@ export default function StarRating({ value, onChange, size = 32, readonly = fals
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 6 },
+  rowRtl: { flexDirection: 'row-reverse' },
 });

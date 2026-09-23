@@ -2,7 +2,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -12,6 +11,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Text from '@/components/app-text';
+import { useLanguage } from '@/i18n/LanguageContext';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   fetchTemplates,
@@ -34,6 +35,7 @@ const FREQUENCIES: ServiceFrequency[] = [
 ];
 
 export default function AdminTemplatesScreen() {
+  const { t } = useLanguage();
   const [templates, setTemplates] = useState<AdminTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -57,20 +59,20 @@ export default function AdminTemplatesScreen() {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Templates', msg);
+    else Alert.alert(t('Templates'), msg);
   }
 
-  function openEditor(t?: AdminTemplate) {
-    setEditing(t ?? null);
-    setName(t?.name ?? '');
-    setCategory(t?.category ?? 'ac');
-    setFrequency(t?.defaultFrequency ?? 'every_6_months');
+  function openEditor(tpl?: AdminTemplate) {
+    setEditing(tpl ?? null);
+    setName(tpl?.name ?? '');
+    setCategory(tpl?.category ?? 'ac');
+    setFrequency(tpl?.defaultFrequency ?? 'every_6_months');
     setEditorOpen(true);
   }
 
   async function save() {
     if (!name.trim()) {
-      notify('Please give the template a name.');
+      notify(t('Please give the template a name.'));
       return;
     }
     setSaving(true);
@@ -87,45 +89,45 @@ export default function AdminTemplatesScreen() {
       setEditorOpen(false);
       load();
     } catch {
-      notify('Could not save the template.');
+      notify(t('Could not save the template.'));
     } finally {
       setSaving(false);
     }
   }
 
-  async function toggleActive(t: AdminTemplate) {
+  async function toggleActive(tpl: AdminTemplate) {
     try {
-      await updateTemplate(t.id, { active: !t.active });
+      await updateTemplate(tpl.id, { active: !tpl.active });
       setTemplates((prev) =>
-        prev.map((x) => (x.id === t.id ? { ...x, active: !x.active } : x))
+        prev.map((x) => (x.id === tpl.id ? { ...x, active: !x.active } : x))
       );
     } catch {
-      notify('Could not update the template.');
+      notify(t('Could not update the template.'));
     }
   }
 
-  function confirmDelete(t: AdminTemplate) {
+  function confirmDelete(tpl: AdminTemplate) {
     const run = async () => {
       try {
-        await deleteTemplate(t.id);
-        setTemplates((prev) => prev.filter((x) => x.id !== t.id));
+        await deleteTemplate(tpl.id);
+        setTemplates((prev) => prev.filter((x) => x.id !== tpl.id));
       } catch {
-        notify('Could not delete the template.');
+        notify(t('Could not delete the template.'));
       }
     };
     if (Platform.OS === 'web') {
-      if (window.confirm(`Delete "${t.name}"?`)) run();
+      if (window.confirm(`${t('Delete')} "${tpl.name}"?`)) run();
       return;
     }
-    Alert.alert('Delete template?', t.name, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: run },
+    Alert.alert(t('Delete template?'), tpl.name, [
+      { text: t('Cancel'), style: 'cancel' },
+      { text: t('Delete'), style: 'destructive', onPress: run },
     ]);
   }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return q ? templates.filter((t) => t.name.toLowerCase().includes(q)) : templates;
+    return q ? templates.filter((x) => x.name.toLowerCase().includes(q)) : templates;
   }, [templates, search]);
 
   if (loading) {
@@ -139,26 +141,26 @@ export default function AdminTemplatesScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Maintenance Templates</Text>
-        <Text style={styles.pageSub}>Manage default maintenance templates</Text>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search templates…" />
+        <Text style={styles.pageTitle}>{t('Maintenance Templates')}</Text>
+        <Text style={styles.pageSub}>{t('Manage default maintenance templates')}</Text>
+        <SearchBar value={search} onChangeText={setSearch} placeholder={t('Search templates…')} />
         <TouchableOpacity style={styles.addBtn} activeOpacity={0.85} onPress={() => openEditor()}>
           <Ionicons name="add" size={17} color={colors.white} />
-          <Text style={styles.addBtnText}>Add Template</Text>
+          <Text style={styles.addBtnText}>{t('Add Template')}</Text>
         </TouchableOpacity>
       </View>
 
       <FlatList
         data={filtered}
-        keyExtractor={(t) => t.id}
+        keyExtractor={(x) => x.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.sub}>
-                {CATEGORY_LABELS[item.category] ?? 'Service'} ·{' '}
-                {FREQUENCY_LABELS[item.defaultFrequency] ?? item.defaultFrequency}
+                {t(CATEGORY_LABELS[item.category] ?? 'Service')} ·{' '}
+                {t(FREQUENCY_LABELS[item.defaultFrequency] ?? item.defaultFrequency)}
               </Text>
             </View>
 
@@ -168,7 +170,7 @@ export default function AdminTemplatesScreen() {
               activeOpacity={0.7}
             >
               <Text style={[styles.statusText, item.active ? styles.activeText : styles.inactiveText]}>
-                {item.active ? 'Active' : 'Inactive'}
+                {t(item.active ? 'Active' : 'Inactive')}
               </Text>
             </TouchableOpacity>
 
@@ -183,7 +185,7 @@ export default function AdminTemplatesScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="albums-outline" size={40} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No templates yet</Text>
+            <Text style={styles.emptyTitle}>{t('No templates yet')}</Text>
             <Text style={styles.emptySub}>
               Templates give users a starting point when adding an appliance.
             </Text>
@@ -196,17 +198,17 @@ export default function AdminTemplatesScreen() {
         <View style={styles.sheetBackdrop}>
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>
-              {editing ? 'Edit Template' : 'Add Template'}
+              {t(editing ? 'Edit Template' : 'Add Template')}
             </Text>
 
             <InputField
-              label="Template name"
-              placeholder="e.g. AC Filter Cleaning"
+              label={t('Template name')}
+              placeholder={t('e.g. AC Filter Cleaning')}
               value={name}
               onChangeText={setName}
             />
 
-            <Text style={styles.fieldLabel}>Category</Text>
+            <Text style={styles.fieldLabel}>{t('Category')}</Text>
             <View style={styles.chipWrap}>
               {Object.entries(CATEGORY_LABELS)
                 .filter(([v]) => v !== 'custom')
@@ -218,13 +220,13 @@ export default function AdminTemplatesScreen() {
                       style={[styles.chip, on && styles.chipOn]}
                       onPress={() => setCategory(value as MaintenanceCategory)}
                     >
-                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{label}</Text>
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{t(label)}</Text>
                     </TouchableOpacity>
                   );
                 })}
             </View>
 
-            <Text style={styles.fieldLabel}>Default frequency</Text>
+            <Text style={styles.fieldLabel}>{t('Default frequency')}</Text>
             <View style={styles.chipWrap}>
               {FREQUENCIES.map((f) => {
                 const on = frequency === f;
@@ -235,7 +237,7 @@ export default function AdminTemplatesScreen() {
                     onPress={() => setFrequency(f)}
                   >
                     <Text style={[styles.chipText, on && styles.chipTextOn]}>
-                      {FREQUENCY_LABELS[f] ?? f}
+                      {t(FREQUENCY_LABELS[f] ?? f)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -244,12 +246,12 @@ export default function AdminTemplatesScreen() {
 
             <View style={styles.sheetActions}>
               <Button
-                label="Cancel"
+                label={t('Cancel')}
                 variant="secondary"
                 onPress={() => setEditorOpen(false)}
                 style={{ flex: 1 }}
               />
-              <Button label="Save" onPress={save} loading={saving} style={{ flex: 1 }} />
+              <Button label={t('Save')} onPress={save} loading={saving} style={{ flex: 1 }} />
             </View>
           </View>
         </View>

@@ -1,4 +1,5 @@
 import { useLanguage } from '@/i18n/LanguageContext';
+import { fmtNumber } from '@/i18n/locale';
 // src/components/AreaSelector.tsx
 import Text from '@/components/app-text';
 import { colors,radius,spacing,typography } from '@/theme/theme';
@@ -22,7 +23,7 @@ export default function AreaSelector({
   startCollapsed = true,
   searchable = false,
 }: Props) {
-  const { t } = useLanguage();
+  const { t, tp } = useLanguage();
   const allGroups = areasByGovernorate();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
@@ -74,9 +75,7 @@ export default function AreaSelector({
 
       {searchable && selected.length > 0 && (
         <Text style={styles.selectedCount}>
-          {selected.length}
-          {t('area')} {selected.length === 1 ? '' : t('s')}
-          {t('selected')}
+          {tp('areasSelected', selected.length)}
         </Text>
       )}
 
@@ -109,7 +108,7 @@ export default function AreaSelector({
               <Text style={styles.groupTitle}>{group.governorate}</Text>
               {chosen.length > 0 && (
                 <View style={styles.countPill}>
-                  <Text style={styles.countText}>{chosen.length}</Text>
+                  <Text style={styles.countText}>{fmtNumber(chosen.length)}</Text>
                 </View>
               )}
               <View style={{ flex: 1 }} />
@@ -134,7 +133,7 @@ export default function AreaSelector({
                           name="checkmark"
                           size={13}
                           color={colors.primary}
-                          style={{ marginRight: 4 }}
+                          style={{ marginEnd: 4 }}
                         />
                       )}
                       <Text style={[styles.chipText, on && styles.chipTextOn]}>

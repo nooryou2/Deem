@@ -14,6 +14,7 @@ import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
 import { MAX_SAVED_LOCATIONS,SavedLocation } from '@/types';
 import { areaLabel } from '@/utils/areas';
 import { Ionicons } from '@expo/vector-icons';
+import DirectionalArrow from '@/components/DirectionalArrow';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useCallback,useState } from 'react';
@@ -49,7 +50,7 @@ export default function MyLocationsScreen({ navigation }: Props) {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Locations', msg);
+    else Alert.alert(t('Locations'), msg);
   }
 
   async function persist(next: SavedLocation[]) {
@@ -60,14 +61,14 @@ export default function MyLocationsScreen({ navigation }: Props) {
       setLocations(next);
     } catch (e) {
       console.log('save locations failed:', e);
-      notify('Could not save. Please try again.');
+      notify(t('Could not save. Please try again.'));
     } finally {
       setBusy(false);
     }
   }
 
   function confirmDelete(loc: SavedLocation) {
-    const msg = `Remove "${loc.label}"?`;
+    const msg = t('Remove "{name}"?', { name: loc.label });
     const doDelete = () => {
       const next = locations.filter((l) => l.id !== loc.id);
       // If we removed the default, promote the first remaining one.
@@ -78,9 +79,9 @@ export default function MyLocationsScreen({ navigation }: Props) {
       if (window.confirm(msg)) doDelete();
       return;
     }
-    Alert.alert('Remove location?', msg, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: doDelete },
+    Alert.alert(t('Remove location?'), msg, [
+      { text: t('Cancel'), style: 'cancel' },
+      { text: t('Remove'), style: 'destructive', onPress: doDelete },
     ]);
   }
 
@@ -141,7 +142,7 @@ export default function MyLocationsScreen({ navigation }: Props) {
                     </Text>
                   ) : null}
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                <DirectionalArrow kind="forward" shape="chevron" size={20} color={colors.textMuted} />
               </TouchableOpacity>
 
               <View style={styles.cardActions}>
@@ -169,7 +170,7 @@ export default function MyLocationsScreen({ navigation }: Props) {
 
       <View style={styles.footer}>
         <Button
-          label={atLimit ? `Limit of ${MAX_SAVED_LOCATIONS} reached` : 'Add a Location'}
+          label={atLimit ? t('Limit of {max} reached', { max: MAX_SAVED_LOCATIONS }) : t('Add a Location')}
           onPress={() => navigation.navigate('SetLocation', {})}
           disabled={atLimit}
         />
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginEnd: spacing.md,
   },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   label: { ...typography.body, fontWeight: '700' },

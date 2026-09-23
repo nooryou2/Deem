@@ -1,7 +1,10 @@
 // src/screens/admin/AdminItemDetailScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Text from '@/components/app-text';
+import { useLanguage } from '@/i18n/LanguageContext';
+import { useItemName } from '@/hooks/useItemName';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { fetchHistory } from '@/services/maintenanceService';
 import { getMaintenanceStatus, formatFriendlyDate } from '@/utils/dateCalculations';
@@ -19,6 +22,8 @@ const STATUS_STYLE: Record<string, { label: string; color: string; bg: string }>
 };
 
 export default function AdminItemDetailScreen({ route }: Props) {
+  const { t } = useLanguage();
+  const itemName = useItemName();
   const { item } = route.params;
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,38 +46,38 @@ export default function AdminItemDetailScreen({ route }: Props) {
           <Ionicons name="cube-outline" size={24} color={colors.primary} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.sub}>{CATEGORY_LABELS[item.category] ?? 'Service'}</Text>
+          <Text style={styles.name}>{itemName(item.name)}</Text>
+          <Text style={styles.sub}>{t(CATEGORY_LABELS[item.category] ?? 'Service')}</Text>
           <View style={[styles.pill, { backgroundColor: meta.bg }]}>
-            <Text style={[styles.pillText, { color: meta.color }]}>{meta.label}</Text>
+            <Text style={[styles.pillText, { color: meta.color }]}>{t(meta.label)}</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.infoCard}>
         {(item as any).ownerName ? (
-          <Row label="Owner" value={(item as any).ownerName} />
+          <Row label={t('Owner')} value={(item as any).ownerName} />
         ) : null}
-        <Row label="Next Maintenance" value={formatFriendlyDate(item.nextServiceDate)} />
+        <Row label={t('Next Maintenance')} value={formatFriendlyDate(item.nextServiceDate)} />
         <Row
-          label="Frequency"
-          value={FREQUENCY_LABELS[item.frequency] ?? item.frequency}
+          label={t('Frequency')}
+          value={t(FREQUENCY_LABELS[item.frequency] ?? item.frequency)}
         />
         <Row
-          label="Last Serviced"
-          value={item.lastServiceDate ? formatFriendlyDate(item.lastServiceDate) : 'Not yet recorded'}
+          label={t('Last Serviced')}
+          value={item.lastServiceDate ? formatFriendlyDate(item.lastServiceDate) : t('Not yet recorded')}
           last={!item.notes}
         />
-        {item.notes ? <Row label="Notes" value={item.notes} last /> : null}
+        {item.notes ? <Row label={t('Notes')} value={item.notes} last /> : null}
       </View>
 
       {/* History */}
-      <Text style={styles.sectionTitle}>Completion History</Text>
+      <Text style={styles.sectionTitle}>{t('Completion History')}</Text>
       {loading ? (
         <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.lg }} />
       ) : history.length === 0 ? (
         <View style={styles.card}>
-          <Text style={typography.bodySecondary}>No completions recorded yet.</Text>
+          <Text style={typography.bodySecondary}>{t('No completions recorded yet.')}</Text>
         </View>
       ) : (
         <View style={styles.timeline}>
@@ -86,7 +91,7 @@ export default function AdminItemDetailScreen({ route }: Props) {
               </View>
               <View style={styles.timelineBody}>
                 <Text style={styles.timelineDate}>{formatFriendlyDate(h.completedDate)}</Text>
-                <Text style={styles.timelineText}>Maintenance completed</Text>
+                <Text style={styles.timelineText}>{t('Maintenance completed')}</Text>
               </View>
             </View>
           ))}
@@ -97,10 +102,11 @@ export default function AdminItemDetailScreen({ route }: Props) {
 }
 
 function Row({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
+  const { rtl } = useLanguage();
   return (
     <View style={[styles.row, last && { borderBottomWidth: 0 }]}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
+      <Text style={[styles.rowValue, { textAlign: rtl ? 'left' : 'right' }]}>{value}</Text>
     </View>
   );
 }
@@ -152,7 +158,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   rowLabel: { ...typography.bodySecondary, flex: 1 },
-  rowValue: { ...typography.body, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
+  rowValue: { ...typography.body, fontWeight: '600', flexShrink: 1 },
 
   sectionTitle: { ...typography.h3, marginBottom: spacing.sm },
   card: {

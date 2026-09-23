@@ -2,16 +2,14 @@ import Button from '@/components/Button';
 import GoogleButton from '@/components/GoogleButton';
 import InputField from '@/components/InputField';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import StepIndicator from '@/components/StepIndicator';
+import DirectionalArrow from '@/components/DirectionalArrow';
 import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/i18n/LanguageContext';
 import type { AuthStackParamList } from '@/navigation/AuthNavigator';
 import { getAuthErrorMessage } from '@/services/authService';
 import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
-import { UserRole } from '@/types';
 import { getEmailError,getPasswordError } from '@/utils/validation';
-import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useState } from 'react';
 import {
@@ -26,31 +24,14 @@ View,
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
-const STEPS = ['Select Role', 'Personal Info'];
 
-const ROLES: {
-  value: UserRole;
-  label: string;
-  sub: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}[] = [
-  { value: 'homeowner', label: 'Homeowner', sub: 'Manage my home', icon: 'home-outline' },
-  {
-    value: 'provider',
-    label: 'Service Provider',
-    sub: 'Offer services',
-    icon: 'construct-outline',
-  },
-];
 
 export default function RegisterScreen({ navigation }: Props) {
   const { t } = useLanguage();
   const { register, loginWithGoogle } = useAuth();
 
-  const [step, setStep] = useState(0);
 
   // Step 1
-  const [role, setRole] = useState<UserRole>('homeowner');
 
   // Step 2
   const [name, setName] = useState('');
@@ -66,7 +47,7 @@ export default function RegisterScreen({ navigation }: Props) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [formError, setFormError] = useState('');
 
-  /** Validates step 2 and reports whether it's safe to continue. */
+  /** Validates the form and reports whether it's safe to submit. */
   function validateDetails(): boolean {
     setNameError('');
     setEmailError('');
@@ -95,17 +76,12 @@ export default function RegisterScreen({ navigation }: Props) {
     return ok;
   }
 
-  function handleContinue() {
-    setFormError('');
-    if (step === 1 && !validateDetails()) return;
-    setStep((s) => s + 1);
-  }
 
   async function handleGoogle() {
     setFormError('');
     setGoogleLoading(true);
     try {
-      await loginWithGoogle(role);
+      await loginWithGoogle();
     } catch (error) {
       setFormError(getAuthErrorMessage(error, 'register'));
     } finally {
@@ -115,14 +91,10 @@ export default function RegisterScreen({ navigation }: Props) {
 
   async function handleFinish() {
     setFormError('');
-    // Re-check in case the user edited details then jumped forward.
-    if (!validateDetails()) {
-      setStep(1);
-      return;
-    }
+    if (!validateDetails()) return;
     setLoading(true);
     try {
-      await register(name, email.trim(), password, role, [], null);
+      await register(name, email.trim(), password, [], null);
     } catch (error) {
       setFormError(getAuthErrorMessage(error, 'register'));
     } finally {
@@ -136,7 +108,17 @@ export default function RegisterScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><TouchableOpacity accessibilityRole="button" onPress={() => navigation.navigate('Landing')}><Text style={styles.linkText}>{t('Back to home ←')}</Text></TouchableOpacity><LanguageSwitcher /></View>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('Landing')}
+            style={styles.backLink}
+          >
+            <DirectionalArrow kind="back" size={16} color={colors.primary} />
+            <Text style={styles.linkText}>{t('Back to home')}</Text>
+          </TouchableOpacity>
+          <LanguageSwitcher style={{ alignSelf: 'center' }} />
+        </View>
         <Image
           source={require('../../../assets/logo.png')}
           style={styles.logo}
@@ -146,54 +128,20 @@ export default function RegisterScreen({ navigation }: Props) {
         <Text style={styles.stepHint}>
           {t('You can add your home location when requesting a service.')}
         </Text>
-        <StepIndicator steps={STEPS} current={step} />
-
         <View style={styles.card}>
-          {/* ---------- STEP 1: Role ---------- */}
-          {step === 0 && (
-            <>
-              <Text style={styles.stepTitle}>{t('I want to sign up as')}</Text>
-              <View style={styles.roleRow}>
-                {ROLES.map((opt) => {
-                  const on = role === opt.value;
-                  return (
-                    <TouchableOpacity
-                      key={opt.value}
-                      style={[styles.roleCard, on && styles.roleCardOn]}
-                      onPress={() => setRole(opt.value)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons
-                        name={opt.icon}
-                        size={26}
-                        color={on ? colors.primary : colors.textSecondary}
-                      />
-                      <Text style={[styles.roleLabel, on && styles.roleLabelOn]}>
-                        {t(opt.label)}
-                      </Text>
-                      <Text style={[styles.roleSub, on && styles.roleSubOn]}>{t(opt.sub)}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+          <GoogleButton
+            label={t('Sign up with Google')}
+            onPress={handleGoogle}
+            loading={googleLoading}
+          />
 
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>{t('or')}</Text>
-                <View style={styles.dividerLine} />
-              </View>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{t('or')}</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
-              <GoogleButton
-                label={t('Sign up with Google')}
-                onPress={handleGoogle}
-                loading={googleLoading}
-              />
-            </>
-          )}
-
-          {/* ---------- STEP 2: Personal info ---------- */}
-          {step === 1 && (
-            <>
+          <>
               <Text style={styles.stepTitle}>{t('Personal Info')}</Text>
               <InputField
                 label={t('Full Name')}
@@ -244,31 +192,18 @@ export default function RegisterScreen({ navigation }: Props) {
                 error={confirmError}
               />
             </>
-          )}
 
           {formError ? <Text style={styles.error}>{t(formError)}</Text> : null}
         </View>
 
         {/* Footer navigation */}
         <View style={styles.footer}>
-          {step > 0 && (
-            <Button
-              label={t('Back')}
-              variant="secondary"
-              onPress={() => setStep((s) => s - 1)}
-              style={{ flex: 1 }}
-            />
-          )}
-          {step < 1 ? (
-            <Button label={t('Continue')} onPress={handleContinue} style={{ flex: 1 }} />
-          ) : (
-            <Button
-              label={t('Create Account')}
-              onPress={handleFinish}
-              loading={loading}
-              style={{ flex: 1 }}
-            />
-          )}
+          <Button
+            label={t('Create Account')}
+            onPress={handleFinish}
+            loading={loading}
+            style={{ flex: 1 }}
+          />
         </View>
 
         <View style={styles.loginRow}>
@@ -283,6 +218,15 @@ export default function RegisterScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // Back link at the start, language at the end. The row follows the reading
+  // direction, so the two swap sides in Arabic on their own.
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  backLink: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 12 },
   flex: { flex: 1, backgroundColor: colors.background },
   container: {
     flexGrow: 1,
@@ -303,22 +247,6 @@ const styles = StyleSheet.create({
   stepTitle: { ...typography.h3, marginBottom: spacing.sm },
   stepHint: { ...typography.caption, marginBottom: spacing.md },
 
-  roleRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
-  roleCard: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.sm,
-    alignItems: 'center',
-    gap: 6,
-  },
-  roleCardOn: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  roleLabel: { ...typography.body, fontWeight: '700' },
-  roleLabelOn: { color: colors.primary },
-  roleSub: { ...typography.caption },
-  roleSubOn: { color: colors.primary },
 
   areaLabel: {
     ...typography.bodySecondary,

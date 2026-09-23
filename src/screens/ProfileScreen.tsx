@@ -1,4 +1,3 @@
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/ProfileScreen.tsx
 import AreaSelector from '@/components/AreaSelector';
@@ -11,6 +10,7 @@ import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
 import { MAX_SAVED_LOCATIONS } from '@/types';
 import { areaLabel } from '@/utils/areas';
 import { Ionicons } from '@expo/vector-icons';
+import DirectionalArrow from '@/components/DirectionalArrow';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -45,16 +45,16 @@ export default function ProfileScreen({ navigation }: Props) {
   async function handleSaveAreas() {
     if (!user) return;
     if (areas.length === 0) {
-      if (Platform.OS === 'web') window.alert('Please select at least one area.');
-      else Alert.alert('Areas', 'Please select at least one area.');
+      if (Platform.OS === 'web') window.alert(t('Please select at least one area.'));
+      else Alert.alert(t('Areas'), t('Please select at least one area.'));
       return;
     }
     setSavingAreas(true);
     try {
       await saveHomeownerAreas(user.uid, areas);
       setEditingAreas(false);
-      if (Platform.OS === 'web') window.alert('Your areas were updated.');
-      else Alert.alert('Areas', 'Your areas were updated.');
+      if (Platform.OS === 'web') window.alert(t('Your areas were updated.'));
+      else Alert.alert(t('Areas'), t('Your areas were updated.'));
     } catch (e) {
       console.log('saveHomeownerAreas failed:', e);
     } finally {
@@ -69,9 +69,9 @@ export default function ProfileScreen({ navigation }: Props) {
     } catch (e) {
       console.log('Logout failed:', e);
       if (Platform.OS === 'web') {
-        window.alert('Could not log out. Please try again.');
+        window.alert(t('Could not log out. Please try again.'));
       } else {
-        Alert.alert('Error', 'Could not log out. Please try again.');
+        Alert.alert(t('Error'), t('Could not log out. Please try again.'));
       }
     } finally {
       setLoggingOut(false);
@@ -82,27 +82,26 @@ export default function ProfileScreen({ navigation }: Props) {
     // react-native-web doesn't render Alert.alert buttons, so use the browser's
     // native confirm() on web and the RN Alert on native.
     if (Platform.OS === 'web') {
-      const ok = window.confirm('Log out? You can always log back in anytime.');
+      const ok = window.confirm(t('Log out? You can always log back in anytime.'));
       if (ok) doLogout();
       return;
     }
-    Alert.alert('Log out?', 'You can always log back in anytime.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: doLogout },
+    Alert.alert(t('Log out?'), t('You can always log back in anytime.'), [
+      { text: t('Cancel'), style: 'cancel' },
+      { text: t('Log Out'), style: 'destructive', onPress: doLogout },
     ]);
   }
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.container}>
-      <LanguageSwitcher />
       <View style={styles.card}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
             {(user?.displayName || user?.email || '?').charAt(0).toUpperCase()}
           </Text>
         </View>
-        <Text style={typography.h3}>{user?.displayName || 'Deem User'}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
+        <Text style={typography.h3}>{user?.displayName || t('Deem User')}</Text>
+        <Text ltr style={styles.email}>{user?.email}</Text>
       </View>
 
       {/* My areas — drives which providers this homeowner can see */}
@@ -156,11 +155,11 @@ export default function ProfileScreen({ navigation }: Props) {
             <Text style={styles.menuLabel}>{t('My Locations')}</Text>
             <Text style={styles.menuSub}>
               {locationCount > 0
-                ? `${locationCount} of ${MAX_SAVED_LOCATIONS} saved`
+                ? t('{count} of {max} saved', { count: locationCount, max: MAX_SAVED_LOCATIONS })
                 : t('Set where technicians should come')}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          <DirectionalArrow kind="forward" shape="chevron" size={20} color={colors.textMuted} />
         </TouchableOpacity>
 
         <View style={styles.menuDivider} />
@@ -177,7 +176,7 @@ export default function ProfileScreen({ navigation }: Props) {
             <Text style={styles.menuLabel}>{t('Serviced')}</Text>
             <Text style={styles.menuSub}>{t("Items you've already had serviced")}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          <DirectionalArrow kind="forward" shape="chevron" size={20} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
 
@@ -228,9 +227,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginEnd: spacing.md,
   },
-  menuDivider: { height: 1, backgroundColor: colors.border, marginLeft: 68 },
+  menuDivider: { height: 1, backgroundColor: colors.border, marginStart: 68 },
   menuLabel: { ...typography.body, fontWeight: '600' },
   areaCard: {
     backgroundColor: colors.surface,

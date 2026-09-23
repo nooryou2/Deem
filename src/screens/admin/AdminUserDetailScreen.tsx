@@ -1,7 +1,12 @@
 // src/screens/admin/AdminUserDetailScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DirectionalArrow from '@/components/DirectionalArrow';
+import Text from '@/components/app-text';
+import { useLanguage } from '@/i18n/LanguageContext';
+import { fmtNumber } from '@/i18n/locale';
+import { useItemName } from '@/hooks/useItemName';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { fetchUser, fetchItemsForUser } from '@/services/adminService';
 import { getMaintenanceStatus, formatFriendlyDate } from '@/utils/dateCalculations';
@@ -19,6 +24,8 @@ const STATUS_STYLE: Record<string, { label: string; color: string; bg: string }>
 };
 
 export default function AdminUserDetailScreen({ route, navigation }: Props) {
+  const { t } = useLanguage();
+  const itemName = useItemName();
   const { userId } = route.params;
   const [user, setUser] = useState<AdminUser | null>(null);
   const [items, setItems] = useState<MaintenanceItem[]>([]);
@@ -45,7 +52,7 @@ export default function AdminUserDetailScreen({ route, navigation }: Props) {
   if (!user) {
     return (
       <View style={styles.center}>
-        <Text style={typography.bodySecondary}>User not found.</Text>
+        <Text style={typography.bodySecondary}>{t('User not found.')}</Text>
       </View>
     );
   }
@@ -69,33 +76,33 @@ export default function AdminUserDetailScreen({ route, navigation }: Props) {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{user.name}</Text>
-          <Text style={styles.email}>{user.email}</Text>
+          <Text ltr style={styles.email}>{user.email}</Text>
           <View style={styles.badgeRow}>
             <View style={styles.rolePill}>
-              <Text style={styles.rolePillText}>{user.role}</Text>
+              <Text style={styles.rolePillText}>{t(user.role.charAt(0).toUpperCase() + user.role.slice(1))}</Text>
             </View>
-            <Text style={styles.joined}>Joined {formatFriendlyDate(user.createdAt)}</Text>
+            <Text style={styles.joined}>{t('Joined')}: {formatFriendlyDate(user.createdAt)}</Text>
           </View>
         </View>
       </View>
 
       {/* Summary */}
-      <Text style={styles.sectionTitle}>Maintenance Summary</Text>
+      <Text style={styles.sectionTitle}>{t('Maintenance Summary')}</Text>
       <View style={styles.statRow}>
-        <Stat value={items.length} label="Total" color={colors.textPrimary} />
-        <Stat value={counts.upcoming} label="Upcoming" color="#026AA2" />
-        <Stat value={counts.due_soon} label="Due Soon" color="#B54708" />
-        <Stat value={counts.overdue} label="Overdue" color="#D92D20" />
-        <Stat value={counts.completed} label="Done" color="#079455" />
+        <Stat value={items.length} label={t('Total')} color={colors.textPrimary} />
+        <Stat value={counts.upcoming} label={t('Upcoming')} color="#026AA2" />
+        <Stat value={counts.due_soon} label={t('Due Soon')} color="#B54708" />
+        <Stat value={counts.overdue} label={t('Overdue')} color="#D92D20" />
+        <Stat value={counts.completed} label={t('Done')} color="#079455" />
       </View>
 
       {/* Items */}
       <Text style={[styles.sectionTitle, { marginTop: spacing.xl }]}>
-        Maintenance Items ({items.length})
+        {t('Maintenance Items')} ({items.length})
       </Text>
       {items.length === 0 ? (
         <View style={styles.card}>
-          <Text style={typography.bodySecondary}>This user has no items yet.</Text>
+          <Text style={typography.bodySecondary}>{t('This user has no items yet.')}</Text>
         </View>
       ) : (
         items.map((item) => {
@@ -113,16 +120,16 @@ export default function AdminUserDetailScreen({ route, navigation }: Props) {
               }
             >
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{item.name}</Text>
+                <Text style={styles.rowTitle}>{itemName(item.name)}</Text>
                 <Text style={styles.rowSub}>
-                  {CATEGORY_LABELS[item.category] ?? 'Service'} ·{' '}
+                  {t(CATEGORY_LABELS[item.category] ?? 'Service')} ·{' '}
                   {formatFriendlyDate(item.nextServiceDate)}
                 </Text>
               </View>
               <View style={[styles.pill, { backgroundColor: meta.bg }]}>
-                <Text style={[styles.pillText, { color: meta.color }]}>{meta.label}</Text>
+                <Text style={[styles.pillText, { color: meta.color }]}>{t(meta.label)}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              <DirectionalArrow kind="forward" shape="chevron" size={18} color={colors.textMuted} />
             </TouchableOpacity>
           );
         })
@@ -134,7 +141,7 @@ export default function AdminUserDetailScreen({ route, navigation }: Props) {
 function Stat({ value, label, color }: { value: number; label: string; color: string }) {
   return (
     <View style={styles.stat}>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text style={[styles.statValue, { color }]}>{fmtNumber(value)}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );

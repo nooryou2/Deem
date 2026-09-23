@@ -65,21 +65,21 @@ export default function SetLocationScreen({ navigation, route }: Props) {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Location', msg);
+    else Alert.alert(t('Location'), msg);
   }
 
   async function handleSave() {
     if (!user) return;
     if (!coords) {
-      notify('Please drop a pin on the map first.');
+      notify(t('Please drop a pin on the map first.'));
       return;
     }
     if (!area) {
-      notify('Please choose the area your home is in.');
+      notify(t('Please choose the area your home is in.'));
       return;
     }
     if (!label.trim()) {
-      notify('Please give this place a name, e.g. Home or Chalet.');
+      notify(t('Please give this place a name, e.g. Home or Chalet.'));
       return;
     }
 
@@ -103,7 +103,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
         : [...existing, entry];
 
       if (next.length > MAX_SAVED_LOCATIONS) {
-        notify(`You can save up to ${MAX_SAVED_LOCATIONS} locations.`);
+        notify(t('You can save up to {max} locations.', { max: MAX_SAVED_LOCATIONS }));
         setSaving(false);
         return;
       }
@@ -113,7 +113,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
       navigation.goBack();
     } catch (e) {
       console.log('save location failed:', e);
-      notify('Could not save your location. Please try again.');
+      notify(t('Could not save your location. Please try again.'));
     } finally {
       setSaving(false);
     }

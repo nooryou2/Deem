@@ -17,6 +17,7 @@ import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
 import { Booking,BookingStatus,ProviderAvailability } from '@/types';
 import { CATEGORY_ICONS } from '@/utils/maintenanceTemplates';
 import { Ionicons } from '@expo/vector-icons';
+import DirectionalArrow from '@/components/DirectionalArrow';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -96,7 +97,7 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
 
   function notify(msg: string) {
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Schedule', msg);
+    else Alert.alert(t('Schedule'), msg);
   }
 
   const bookedDates = Array.from(
@@ -121,7 +122,7 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
       await updateBookingStatus(b.id, status);
       setBookings((prev) => prev.map((x) => (x.id === b.id ? { ...x, status } : x)));
     } catch {
-      notify('Could not update booking.');
+      notify(t('Could not update booking.'));
     } finally {
       setBusy(false);
     }
@@ -200,14 +201,9 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
                     <Text style={styles.bookingCustomer}>{b.customerName}</Text>
                   </View>
                   <View style={[styles.statusPill, statusStyle(b.status).pill]}>
-                    <Text style={[styles.statusText, statusStyle(b.status).text]}>{b.status}</Text>
+                    <Text style={[styles.statusText, statusStyle(b.status).text]}>{t(STATUS_LABELS[b.status] ?? b.status)}</Text>
                   </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={colors.textMuted}
-                    style={{ marginLeft: 4 }}
-                  />
+                  <DirectionalArrow kind="forward" shape="chevron" size={18} color={colors.textMuted} style={{ marginStart: 4 }} />
                 </TouchableOpacity>
                 {b.description ? <Text style={styles.bookingDesc}>{b.description}</Text> : null}
 
@@ -289,7 +285,11 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
                         onPress={() => saveHours({ ...availability, slotMinutes: mins })}
                       >
                         <Text style={[styles.slotOptText, on && styles.slotOptTextOn]}>
-                          {mins < 60 ? `${mins}m` : `${mins / 60}h${mins % 60 ? '30' : ''}`}
+                          {mins < 60
+                            ? t('{n} min', { n: mins })
+                            : mins % 60
+                              ? t('{h} hr {m} min', { h: Math.floor(mins / 60), m: mins % 60 })
+                              : t('{h} hr', { h: mins / 60 })}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -333,6 +333,14 @@ function HourStepper({
   );
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pending',
+  accepted: 'Accepted',
+  in_progress: 'In Progress',
+  completed: 'Completed',
+  declined: 'Declined',
+};
+
 function statusStyle(status: string) {
   switch (status) {
     case 'accepted':
@@ -370,7 +378,7 @@ const styles = StyleSheet.create({
   modeText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
   modeTextOn: { color: colors.primary },
   gearBtn: {
-    marginLeft: spacing.md,
+    marginStart: spacing.md,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -391,7 +399,7 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   bookingHeader: { flexDirection: 'row', alignItems: 'center' },
-  bookingIcon: { fontSize: 22, marginRight: spacing.md },
+  bookingIcon: { fontSize: 22, marginEnd: spacing.md },
   bookingTime: { ...typography.body, fontWeight: '700' },
   bookingCustomer: { ...typography.caption, marginTop: 2 },
   statusPill: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.pill },
