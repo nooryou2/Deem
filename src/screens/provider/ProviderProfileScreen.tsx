@@ -10,6 +10,7 @@ import Button from '@/components/Button';
 import InputField from '@/components/InputField';
 import StarRating from '@/components/StarRating';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
 import { getProviderRating } from '@/services/reviewService';
@@ -32,9 +33,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useCallback,useState } from 'react';
 import {
 ActivityIndicator,
-Alert,
 Modal,
-Platform,
 ScrollView,
 StyleSheet,
 TouchableOpacity,
@@ -48,6 +47,7 @@ type Props = CompositeScreenProps<
 
 export default function ProviderProfileScreen({ navigation }: Props) {
   const { t, tp, language } = useLanguage();
+  const dialog = useDialog();
   const { user, logout } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -88,8 +88,7 @@ export default function ProviderProfileScreen({ navigation }: Props) {
   useFocusEffect(load);
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Profile'), msg);
+    dialog.alert(msg);
   }
 
   async function saveServices(next: string[], nextOther: string) {
@@ -145,14 +144,14 @@ export default function ProviderProfileScreen({ navigation }: Props) {
   }
 
   function confirmLogout() {
-    if (Platform.OS === 'web') {
-      if (window.confirm(t('Log out? You can always log back in anytime.'))) doLogout();
-      return;
-    }
-    Alert.alert(t('Log out?'), t('You can always log back in anytime.'), [
-      { text: t('Cancel'), style: 'cancel' },
-      { text: t('Log Out'), style: 'destructive', onPress: doLogout },
-    ]);
+    dialog
+      .confirm({
+        title: 'Log out?',
+        message: 'You can always log back in anytime.',
+        confirmLabel: 'Log Out',
+        destructive: true,
+      })
+      .then((ok) => ok && doLogout());
   }
 
   // Firebase records when the account was created, so "Joined" needs no extra

@@ -12,12 +12,16 @@
       "resizeMode": "contain",
       "backgroundColor": "#FBF9F6"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.deem.app",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -26,16 +30,22 @@
         "backgroundColor": "#FBF9F6"
       },
       "package": "com.deem.app",
-      "permissions": ["NOTIFICATIONS", "SCHEDULE_EXACT_ALARM"]
+      "permissions": [
+        "NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/logo.png"
     },
-    "plugins": ["expo-notifications"],
+    "plugins": [
+      "expo-notifications"
+    ],
     "extra": {
       "eas": {
-        "projectId": "REPLACE_WITH_YOUR_EAS_PROJECT_ID"
+        "projectId": "0167ebbb-d7cc-47ba-9870-218f73644bcd"
       }
-    }
+    },
+    "owner": "nooryou1"
   }
 }

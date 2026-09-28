@@ -8,6 +8,7 @@ import Button from '@/components/Button';
 import InputField from '@/components/InputField';
 import MapPicker,{ LatLng } from '@/components/MapPicker';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
 import { getSavedLocations,saveSavedLocations } from '@/services/roleService';
@@ -17,12 +18,13 @@ import { AREAS,areaLabel,nearestArea } from '@/utils/areas';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useEffect,useState } from 'react';
-import { Alert,Platform,ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
+import { ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'SetLocation'>;
 
 export default function SetLocationScreen({ navigation, route }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const { user } = useAuth();
   const editingId = route.params?.locationId ?? null;
   const [label, setLabel] = useState('');
@@ -64,8 +66,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
   }, [user, editingId]);
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Location'), msg);
+    dialog.alert(msg);
   }
 
   async function handleSave() {

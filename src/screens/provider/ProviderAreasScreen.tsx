@@ -7,6 +7,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import Button from '@/components/Button';
 import MapPicker,{ LatLng } from '@/components/MapPicker';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
 import { getProviderProfile,saveProviderServiceAreas } from '@/services/roleService';
@@ -17,8 +18,6 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useEffect,useMemo,useState } from 'react';
 import {
 ActivityIndicator,
-Alert,
-Platform,
 ScrollView,
 StyleSheet,
 TextInput,
@@ -30,6 +29,7 @@ type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderAreas'>;
 
 export default function ProviderAreasScreen({ navigation }: Props) {
   const { t, tp } = useLanguage();
+  const dialog = useDialog();
   const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -54,8 +54,7 @@ export default function ProviderAreasScreen({ navigation }: Props) {
   }, [user]);
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Areas'), msg);
+    dialog.alert(msg);
   }
 
   // Dropping a pin suggests the surrounding area — the provider still confirms,

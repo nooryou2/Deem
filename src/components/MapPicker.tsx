@@ -1,3 +1,4 @@
+import { useDialog } from '@/components/AppDialog';
 import { useLanguage } from '@/i18n/LanguageContext';
 // src/components/MapPicker.tsx
 //
@@ -186,6 +187,7 @@ export default function MapPicker({
   readonly = false,
 }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const center = value ?? DEFAULT_CENTER;
   const frameRef = useRef<any>(null);
   const [locating, setLocating] = useState(false);
@@ -254,11 +256,11 @@ export default function MapPicker({
         },
         () => {
           setLocating(false);
-          if (Platform.OS === 'web') {
-            window.alert(
-              'Could not get your location. Please allow location access, or drop the pin manually.',
-            );
-          }
+          dialog.alert({
+            title: 'Location unavailable',
+            message: 'Could not get your location. Please allow location access, or drop the pin manually.',
+            tone: 'warning',
+          });
         },
         { enableHighAccuracy: true, timeout: 10000 },
       );

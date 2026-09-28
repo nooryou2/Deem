@@ -7,11 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
-  Platform,
-  Alert,
-} from 'react-native';
+  } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -36,6 +35,7 @@ const FREQUENCIES: ServiceFrequency[] = [
 
 export default function AdminTemplatesScreen() {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const [templates, setTemplates] = useState<AdminTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -58,8 +58,7 @@ export default function AdminTemplatesScreen() {
   useFocusEffect(load);
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Templates'), msg);
+    dialog.alert(msg);
   }
 
   function openEditor(tpl?: AdminTemplate) {
@@ -115,14 +114,14 @@ export default function AdminTemplatesScreen() {
         notify(t('Could not delete the template.'));
       }
     };
-    if (Platform.OS === 'web') {
-      if (window.confirm(`${t('Delete')} "${tpl.name}"?`)) run();
-      return;
-    }
-    Alert.alert(t('Delete template?'), tpl.name, [
-      { text: t('Cancel'), style: 'cancel' },
-      { text: t('Delete'), style: 'destructive', onPress: run },
-    ]);
+    dialog
+      .confirm({
+        title: 'Delete template?',
+        message: tpl.name,
+        confirmLabel: 'Delete',
+        destructive: true,
+      })
+      .then((ok) => ok && run());
   }
 
   const filtered = useMemo(() => {
@@ -302,7 +301,7 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 10, fontWeight: '700' },
   activeText: { color: '#079455' },
   inactiveText: { color: colors.textSecondary },
-  iconBtn: { marginLeft: 4 },
+  iconBtn: { marginStart: 4 },
 
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyTitle: { ...typography.h3, marginTop: spacing.sm },

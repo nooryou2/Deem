@@ -1,5 +1,6 @@
 // App.tsx
 import SplashScreen from '@/components/SplashScreen';
+import { DialogProvider } from '@/components/AppDialog';
 import { AuthProvider } from '@/context/AuthContext';
 import { LanguageProvider, useLanguage } from '@/i18n/LanguageContext';
 import RootNavigator from '@/navigation/RootNavigator';
@@ -40,11 +41,13 @@ export default function App() {
       <SafeAreaProvider>
         <LanguageProvider>
           <DirectionRoot>
-            <AuthProvider>
-              <StatusBar style="dark" />
-              <RootNavigator />
-              {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
-            </AuthProvider>
+            <DialogProvider>
+              <AuthProvider>
+                <StatusBar style="dark" />
+                <RootNavigator />
+                {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+              </AuthProvider>
+            </DialogProvider>
           </DirectionRoot>
         </LanguageProvider>
       </SafeAreaProvider>

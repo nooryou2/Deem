@@ -7,6 +7,7 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   browserPopupRedirectResolver,
   type User,
 } from 'firebase/auth';
@@ -25,6 +26,27 @@ import { auth } from '@/config/firebase';
  * If the popup itself is unavailable (blocked, or an embedded webview), we fall
  * back to a full-page redirect, which always works.
  */
+/**
+ * True when Firebase's auth domain is the same origin as the app.
+ *
+ * The redirect flow hands the session back through an iframe on the auth
+ * domain. If that's a different origin (the default
+ * `<project>.firebaseapp.com`), browsers block the storage it needs and the
+ * user comes back silently signed out. Same origin, and redirect works — which
+ * matters on phones, where pop-ups are routinely blocked.
+ */
+export function canUseRedirect(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  const domain = auth.config?.authDomain ?? '';
+  return !!domain && domain === window.location.hostname;
+}
+
+/** Phones block pop-ups far more aggressively than desktops. */
+function isMobileBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
 export async function signInWithGoogle(): Promise<User> {
   if (Platform.OS !== 'web') {
     throw new Error('GOOGLE_NATIVE_UNSUPPORTED');
@@ -33,11 +55,15 @@ export async function signInWithGoogle(): Promise<User> {
   // Always show the account chooser rather than silently reusing a session.
   provider.setCustomParameters({ prompt: 'select_account' });
 
-  // Popup only, deliberately. The redirect fallback cannot work here: it relies
-  // on a cross-origin iframe between this app's domain and the Firebase auth
-  // domain, and since June 2024 browsers that partition third-party storage
-  // (every current mobile browser) silently return the user unauthenticated.
-  // Firebase's own guidance is to use signInWithPopup instead.
+  // On a phone, prefer redirect — but only when it can actually work (see
+  // canUseRedirect). Otherwise fall back to a pop-up, which at least reports a
+  // clear error if the browser blocks it.
+  if (isMobileBrowser() && canUseRedirect()) {
+    await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
+    // The page navigates away; the result is picked up on return.
+    throw new Error('REDIRECTING');
+  }
+
   const credential = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
   return credential.user;
 }

@@ -1,5 +1,6 @@
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
+import { Platform } from 'react-native';
 import { onAuthStateChanged, getRedirectResult, deleteUser, type User } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import {
@@ -63,6 +64,31 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+const ALLOWED_ROLES_KEY = 'deem.auth.allowedRoles';
+export const AUTH_ERROR_KEY = 'deem.auth.error';
+
+function safeSessionGet(key: string): string | null {
+  try {
+    return typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+}
+export function safeSessionSet(key: string, value: string): void {
+  try {
+    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, value);
+  } catch {
+    // Storage unavailable; the message simply won't persist across the redirect.
+  }
+}
+export function safeSessionRemove(key: string): void {
+  try {
+    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(key);
+  } catch {
+    // Nothing to clean up.
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Set while an invited provider's account is being created. Creating the
   // Firebase account fires the auth listener immediately — before the provider
@@ -113,7 +139,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Completes a redirect sign-in that was already in flight before the app
   // switched to popup-only. Harmless when there's nothing pending.
   useEffect(() => {
-    getRedirectResult(auth).catch((e) => console.log('No pending redirect:', e?.code));
+    // Web only: getRedirectResult doesn't exist in Firebase's React Native
+    // build, and calling it there crashes the app on startup.
+    if (Platform.OS !== 'web' || typeof getRedirectResult !== 'function') return;
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (!result?.user) return;
+        // A redirect leaves the page, so the entrance's role restriction is
+        // stashed before leaving and enforced here on the way back.
+        const raw = safeSessionGet(ALLOWED_ROLES_KEY);
+        safeSessionRemove(ALLOWED_ROLES_KEY);
+        if (!raw) return;
+        const allowed = JSON.parse(raw) as UserRole[];
+        const stored = (await getUserRole(result.user.uid)) ?? 'homeowner';
+        if (!allowed.includes(stored)) {
+          await logoutUser();
+          safeSessionSet(
+            AUTH_ERROR_KEY,
+            stored === 'homeowner'
+              ? 'This is a homeowner account. Please sign in on the main DEEM page.'
+              : stored === 'admin'
+                ? 'This is an admin account. Please use the admin sign-in page.'
+                : 'This is a service provider account. Please use the service provider sign-in page.'
+          );
+        }
+      })
+      .catch((e) => console.log('No pending redirect:', e?.code));
   }, []);
 
   useEffect(() => {
@@ -182,7 +233,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (stored === 'employee') await loadEmployeeContext(loggedIn.uid);
       },
       loginWithGoogle: async (allowed) => {
-        const signedIn = await signInWithGoogle();
+        // Stashed before signing in: on mobile this may redirect away and come
+        // back on a fresh page load.
+        if (allowed) safeSessionSet(ALLOWED_ROLES_KEY, JSON.stringify(allowed));
+        let signedIn;
+        try {
+          signedIn = await signInWithGoogle();
+        } catch (e: any) {
+          if (e?.message !== 'REDIRECTING') safeSessionRemove(ALLOWED_ROLES_KEY);
+          throw e;
+        }
+        safeSessionRemove(ALLOWED_ROLES_KEY);
         // Same rule as email login: a stored role wins; a new account is a
         // homeowner. Providers can't sign up with Google — only by invite.
         const stored = await getUserRole(signedIn.uid);

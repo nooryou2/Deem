@@ -19,6 +19,7 @@ import InputField from '@/components/InputField';
 import StarRating from '@/components/StarRating';
 import StepIndicator from '@/components/StepIndicator';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import { useAreaFilteredProviders } from '@/hooks/useAreaFilteredProviders';
 import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
@@ -34,8 +35,6 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -60,6 +59,7 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export default function BookingScreen({ navigation, route }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const { user } = useAuth();
   const { allProviders, loading: loadingProviders } = useAreaFilteredProviders();
   const { items: myAppliances } = useMaintenanceItems();
@@ -152,8 +152,7 @@ export default function BookingScreen({ navigation, route }: Props) {
   }, [route.params?.itemId, myAppliances.length]);
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Booking'), msg);
+    dialog.alert(msg);
   }
 
   // 'custom' is a catch-all used elsewhere in the app; it isn't a bookable

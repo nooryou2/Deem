@@ -3,18 +3,20 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import Button from '@/components/Button';
 import InputField from '@/components/InputField';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
 import { removeEmployee,updateEmployee } from '@/services/employeeService';
 import { colors,radius,spacing,typography } from '@/theme/theme';
 import { EmployeePrivilege } from '@/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useState } from 'react';
-import { Alert,Platform,ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
+import { ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'EmployeeDetail'>;
 
 export default function EmployeeDetailScreen({ navigation, route }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const emp = route.params.employee;
   const [name, setName] = useState(emp.name);
   const [privilege, setPrivilege] = useState<EmployeePrivilege>(emp.privilege);
@@ -22,8 +24,7 @@ export default function EmployeeDetailScreen({ navigation, route }: Props) {
   const [error, setError] = useState('');
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Employee'), msg);
+    dialog.alert(msg);
   }
 
   async function handleSave() {
@@ -61,14 +62,9 @@ export default function EmployeeDetailScreen({ navigation, route }: Props) {
 
   function confirmRemove() {
     const msg = t('Remove {name} from your team? They will no longer be able to log in as an employee or receive assignments.', { name: emp.name });
-    if (Platform.OS === 'web') {
-      if (window.confirm(msg)) performRemove();
-      return;
-    }
-    Alert.alert(t('Remove employee?'), msg, [
-      { text: t('Cancel'), style: 'cancel' },
-      { text: t('Remove'), style: 'destructive', onPress: performRemove },
-    ]);
+    dialog
+      .confirm({ title: 'Remove employee?', message: msg, confirmLabel: 'Remove', destructive: true })
+      .then((ok) => ok && performRemove());
   }
 
   return (

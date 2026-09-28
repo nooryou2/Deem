@@ -7,6 +7,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 
 import Button from '@/components/Button';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
 import { getSavedLocations,saveSavedLocations } from '@/services/roleService';
@@ -20,8 +21,6 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useCallback,useState } from 'react';
 import {
 ActivityIndicator,
-Alert,
-Platform,
 ScrollView,
 StyleSheet,
 TouchableOpacity,
@@ -32,6 +31,7 @@ type Props = NativeStackScreenProps<MainStackParamList, 'MyLocations'>;
 
 export default function MyLocationsScreen({ navigation }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const { user } = useAuth();
   const [locations, setLocations] = useState<SavedLocation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,8 +49,7 @@ export default function MyLocationsScreen({ navigation }: Props) {
   useFocusEffect(load);
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Locations'), msg);
+    dialog.alert(msg);
   }
 
   async function persist(next: SavedLocation[]) {
@@ -75,14 +74,9 @@ export default function MyLocationsScreen({ navigation }: Props) {
       if (loc.isDefault && next.length > 0) next[0] = { ...next[0], isDefault: true };
       persist(next);
     };
-    if (Platform.OS === 'web') {
-      if (window.confirm(msg)) doDelete();
-      return;
-    }
-    Alert.alert(t('Remove location?'), msg, [
-      { text: t('Cancel'), style: 'cancel' },
-      { text: t('Remove'), style: 'destructive', onPress: doDelete },
-    ]);
+    dialog
+      .confirm({ title: 'Remove location?', message: msg, confirmLabel: 'Remove', destructive: true })
+      .then((ok) => ok && doDelete());
   }
 
   function makeDefault(loc: SavedLocation) {

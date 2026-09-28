@@ -1,4 +1,5 @@
 import AttachmentPicker from '@/components/attachment-picker';
+import { useDialog } from '@/components/AppDialog';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useItemName } from '@/hooks/useItemName';
 import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
@@ -33,9 +34,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useEffect,useState } from 'react';
 import {
-Alert,
 Modal,
-Platform,
 ScrollView,
 StyleSheet,
 TouchableOpacity,
@@ -49,6 +48,7 @@ type Props = NativeStackScreenProps<MainStackParamList, 'MaintenanceDetail'>;
 
 export default function MaintenanceDetailScreen({ navigation, route }: Props) {
   const { t, tp } = useLanguage();
+  const dialog = useDialog();
   const itemName = useItemName();
   const { user } = useAuth();
   const { items } = useMaintenanceItems();
@@ -180,11 +180,7 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
       if (refreshed) setLocalItem(refreshed);
     } catch (e) {
       console.log('Mark complete FAILED:', e);
-      if (Platform.OS === 'web') {
-        window.alert(t('Could not mark this item complete. Please try again.'));
-      } else {
-        Alert.alert(t('Error'), t('Could not mark this item complete. Please try again.'));
-      }
+      dialog.alert({ title: 'Error', message: 'Could not mark this item complete. Please try again.', tone: 'error' });
     } finally {
       setBusy(false);
     }
@@ -198,32 +194,21 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
       navigation.goBack();
     } catch (e) {
       console.log('Delete FAILED:', e);
-      if (Platform.OS === 'web') {
-        window.alert(t('Could not delete this item. Please try again.'));
-      } else {
-        Alert.alert(t('Error'), t('Could not delete this item. Please try again.'));
-      }
+      dialog.alert({ title: 'Error', message: 'Could not delete this item. Please try again.', tone: 'error' });
     } finally {
       setBusy(false);
     }
   }
 
   function handleDelete() {
-    // react-native-web doesn't render Alert.alert buttons, so use the browser's
-    // native confirm() on web and the RN Alert on native.
-    if (Platform.OS === 'web') {
-      const ok = window.confirm(t('Delete "{name}"? This cannot be undone.', { name: currentItem.name }));
-      if (ok) performDelete();
-      return;
-    }
-    Alert.alert(
-      t('Delete this item?'),
-      t('"{name}" and its history will be permanently removed.', { name: currentItem.name }),
-      [
-        { text: t('Cancel'), style: 'cancel' },
-        { text: t('Delete'), style: 'destructive', onPress: performDelete },
-      ],
-    );
+    dialog
+      .confirm({
+        title: 'Delete this item?',
+        message: t('"{name}" and its history will be permanently removed.', { name: currentItem.name }),
+        confirmLabel: 'Delete',
+        destructive: true,
+      })
+      .then((ok) => ok && performDelete());
   }
 
   return (
@@ -553,7 +538,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: colors.completed,
-    marginRight: spacing.md,
+    marginEnd: spacing.md,
   },
   historyDate: { ...typography.body, fontWeight: '600' },
   historyGap: { ...typography.caption, marginTop: 2 },

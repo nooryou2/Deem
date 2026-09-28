@@ -11,12 +11,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
-  Alert,
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import InputField from '@/components/InputField';
 import Button from '@/components/Button';
 import { useAuth } from '@/context/AuthContext';
@@ -47,6 +47,7 @@ const STATUS_STYLE: Record<InviteStatus, { label: string; color: string; bg: str
 export default function AdminInvitesScreen() {
   const { user } = useAuth();
   const { t, tp } = useLanguage();
+  const dialog = useDialog();
 
   const [invites, setInvites] = useState<ProviderInvite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,8 +69,7 @@ export default function AdminInvitesScreen() {
   useFocusEffect(load);
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Invitations'), msg);
+    dialog.alert(msg);
   }
 
   async function handleCreate() {
@@ -139,14 +139,14 @@ export default function AdminInvitesScreen() {
       }
     };
     const msg = t('Revoke this invitation? The link will stop working immediately.');
-    if (Platform.OS === 'web') {
-      if (window.confirm(msg)) run();
-      return;
-    }
-    Alert.alert(t('Revoke invitation?'), msg, [
-      { text: t('Cancel'), style: 'cancel' },
-      { text: t('Revoke'), style: 'destructive', onPress: run },
-    ]);
+    dialog
+      .confirm({
+        title: 'Revoke invitation?',
+        message: 'Revoke this invitation? The link will stop working immediately.',
+        confirmLabel: 'Revoke',
+        destructive: true,
+      })
+      .then((ok) => ok && run());
   }
 
   return (

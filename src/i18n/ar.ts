@@ -266,6 +266,10 @@ export const ar: Record<string, string> = {
   'Could not save changes. Please try again.': 'تعذّر حفظ التغييرات. يرجى المحاولة مرة أخرى.',
   '{count} of {max} saved': 'تم حفظ {count} من {max}',
   'No reviews yet. Reviews appear here after customers rate a completed service.': 'لا توجد تقييمات بعد. تظهر التقييمات هنا بعد أن يقيّم العملاء خدمة مكتملة.',
+  // ---- Dialogs ----
+  'Location Saved!': 'تم حفظ الموقع!',
+  'Location unavailable': 'تعذّر تحديد الموقع',
+  'Could not get your location. Please allow location access, or drop the pin manually.': 'تعذّر تحديد موقعك. يرجى السماح بالوصول إلى الموقع أو تحديده يدويًا على الخريطة.',
   // ---- Staff sign-in ----
   'Homeowners sign in on the main DEEM page.': 'يسجّل أصحاب المنازل الدخول من صفحة ديم الرئيسية.',
   'Service Provider Sign In': 'تسجيل دخول مزوّد الخدمة',
@@ -575,6 +579,7 @@ Object.assign(ar, {
   'Service date': 'تاريخ الخدمة',
   'Service for': 'صيانة',
   'Service in progress': 'الخدمة قيد التنفيذ',
+  'Awaiting confirmation': 'بانتظار القبول',
   'Serviced by you': 'أجريت الصيانة بنفسك',
   'Services offered': 'الخدمات المتاحة',
   'Services you offer': 'الخدمات التي تقدمها',

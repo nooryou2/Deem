@@ -1,4 +1,5 @@
 import AttachmentPicker from '@/components/attachment-picker';
+import { useDialog } from '@/components/AppDialog';
 import { useLanguage } from '@/i18n/LanguageContext';
 import type { Attachment } from '@/types';
 import { isISODate } from '@/utils/bookingValidation';
@@ -23,7 +24,7 @@ import {
 } from '@/utils/maintenanceTemplates';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AddEditMaintenance'>;
 
@@ -40,6 +41,7 @@ const FREQUENCY_OPTIONS = Object.entries(FREQUENCY_LABELS).map(([value, label]) 
 
 export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const { user } = useAuth();
   const { items } = useMaintenanceItems();
   const editingId = route.params?.itemId;
@@ -171,10 +173,15 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
 
   function confirmDiscard() {
     if (name.trim() && !isEditing) {
-      Alert.alert(t('Discard changes?'), t('Your unsaved item will be lost.'), [
-        { text: t('Keep editing'), style: 'cancel' },
-        { text: t('Discard'), style: 'destructive', onPress: () => navigation.goBack() },
-      ]);
+      dialog
+        .confirm({
+          title: 'Discard changes?',
+          message: 'Your unsaved item will be lost.',
+          confirmLabel: 'Discard',
+          cancelLabel: 'Keep editing',
+          destructive: true,
+        })
+        .then((ok) => ok && navigation.goBack());
     } else {
       navigation.goBack();
     }

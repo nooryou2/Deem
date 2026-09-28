@@ -1,3 +1,4 @@
+import { useDialog } from '@/components/AppDialog';
 import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/employee/EmployeeProfileScreen.tsx
 import Button from '@/components/Button';
@@ -5,10 +6,11 @@ import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
 import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
 import React,{ useState } from 'react';
-import { Alert,Platform,StyleSheet,View } from 'react-native';
+import { StyleSheet,View } from 'react-native';
 
 export default function EmployeeProfileScreen() {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const { user, logout, privilege } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -21,15 +23,14 @@ export default function EmployeeProfileScreen() {
     }
   }
 
-  function confirmLogout() {
-    if (Platform.OS === 'web') {
-      if (window.confirm(t('Log out?'))) doLogout();
-      return;
-    }
-    Alert.alert(t('Log out?'), t('You can always log back in anytime.'), [
-      { text: t('Cancel'), style: 'cancel' },
-      { text: t('Log Out'), style: 'destructive', onPress: doLogout },
-    ]);
+  async function confirmLogout() {
+    const ok = await dialog.confirm({
+      title: 'Log out?',
+      message: 'You can always log back in anytime.',
+      confirmLabel: 'Log Out',
+      destructive: true,
+    });
+    if (ok) doLogout();
   }
 
   return (

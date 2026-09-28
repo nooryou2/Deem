@@ -3,6 +3,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import Button from '@/components/Button';
 import InputField from '@/components/InputField';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import { useCompanyId } from '@/hooks/useCompanyId';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
@@ -17,9 +18,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useCallback,useState } from 'react';
 import {
 ActivityIndicator,
-Alert,
 Modal,
-Platform,
 ScrollView,
 StyleSheet,
 TouchableOpacity,
@@ -33,6 +32,7 @@ type Props = CompositeScreenProps<
 
 export default function ProviderTeamScreen({ navigation }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const { user, role } = useAuth();
   const companyId = useCompanyId();
   const isManager = role === 'employee'; // a manager viewing the provider UI
@@ -60,8 +60,7 @@ export default function ProviderTeamScreen({ navigation }: Props) {
   useFocusEffect(load);
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Team'), msg);
+    dialog.alert(msg);
   }
 
   function resetForm() {

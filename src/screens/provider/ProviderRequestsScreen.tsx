@@ -2,6 +2,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { formatFriendlyDate, formatTimeSlot } from '@/utils/dateCalculations';
 // src/screens/provider/ProviderRequestsScreen.tsx
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import { useCompanyId } from '@/hooks/useCompanyId';
 import { fetchBookingsAsRequests,updateBookingStatus } from '@/services/bookingService';
 import { fetchRequestsForProvider,updateRequestStatus } from '@/services/requestService';
@@ -12,9 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import React,{ useCallback,useState } from 'react';
 import {
 ActivityIndicator,
-Alert,
 FlatList,
-Platform,
 ScrollView,
 StyleSheet,
 TouchableOpacity,
@@ -72,6 +71,7 @@ type Props = CompositeScreenProps<
 
 export default function ProviderRequestsScreen({ navigation }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const companyId = useCompanyId();
   const [filter, setFilter] = useState<FilterValue>('all');
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -98,8 +98,7 @@ export default function ProviderRequestsScreen({ navigation }: Props) {
   useFocusEffect(load);
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Request'), msg);
+    dialog.alert(msg);
   }
 
   async function changeStatus(req: ServiceRequest, status: ServiceRequestStatus) {

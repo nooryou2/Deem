@@ -8,13 +8,14 @@ import Button from '@/components/Button';
 import InputField from '@/components/InputField';
 import StarRating from '@/components/StarRating';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
 import { submitReview } from '@/services/reviewService';
 import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useState } from 'react';
-import { Alert,Platform,ScrollView,StyleSheet,View } from 'react-native';
+import { ScrollView,StyleSheet,View } from 'react-native';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'WriteReview'>;
 
@@ -37,6 +38,7 @@ function scoreLabel(stars: number): string {
 
 export default function WriteReviewScreen({ navigation, route }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const { user } = useAuth();
   const { providerId, providerName, jobId, jobType, serviceName } = route.params;
 
@@ -46,8 +48,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
   const [error, setError] = useState('');
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Review'), msg);
+    dialog.alert(msg);
   }
 
   async function handleSubmit() {

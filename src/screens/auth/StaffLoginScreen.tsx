@@ -22,7 +22,7 @@ import Text from '@/components/app-text';
 import InputField from '@/components/InputField';
 import Button from '@/components/Button';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth, AUTH_ERROR_KEY, safeSessionRemove } from '@/context/AuthContext';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { getAuthErrorMessage } from '@/services/authService';
 import { getEmailError } from '@/utils/validation';
@@ -55,6 +55,19 @@ export default function StaffLoginScreen({ route, navigation }: Props) {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [formError, setFormError] = useState('');
+
+  // A redirect sign-in that was rejected leaves its reason here.
+  React.useEffect(() => {
+    try {
+      const msg = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(AUTH_ERROR_KEY) : null;
+      if (msg) {
+        setFormError(msg);
+        safeSessionRemove(AUTH_ERROR_KEY);
+      }
+    } catch {
+      // Storage unavailable; nothing to show.
+    }
+  }, []);
   const [loading, setLoading] = useState(false);
 
   async function handleLogin() {
@@ -73,6 +86,7 @@ export default function StaffLoginScreen({ route, navigation }: Props) {
     try {
       await login(email.trim(), password, mode.allowed);
     } catch (e: any) {
+      if (e?.message === 'REDIRECTING') return;
       if (e?.message === 'ROLE_NOT_ALLOWED') {
         setFormError(
           e.actualRole === 'homeowner'

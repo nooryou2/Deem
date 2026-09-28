@@ -6,7 +6,7 @@ import Button from '@/components/Button';
 import GoogleButton from '@/components/GoogleButton';
 import InputField from '@/components/InputField';
 import Text from '@/components/app-text';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth, AUTH_ERROR_KEY, safeSessionRemove } from '@/context/AuthContext';
 import type { AuthStackParamList } from '@/navigation/AuthNavigator';
 import { getAuthErrorMessage } from '@/services/authService';
 import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
@@ -33,6 +33,19 @@ export default function LoginScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [formError, setFormError] = useState('');
+
+  // A redirect sign-in that was rejected leaves its reason here.
+  React.useEffect(() => {
+    try {
+      const msg = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(AUTH_ERROR_KEY) : null;
+      if (msg) {
+        setFormError(msg);
+        safeSessionRemove(AUTH_ERROR_KEY);
+      }
+    } catch {
+      // Storage unavailable; nothing to show.
+    }
+  }, []);
   const [emailError, setEmailError] = useState('');
 
   async function handleGoogle() {
@@ -41,6 +54,7 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       await loginWithGoogle(['homeowner']);
     } catch (error: any) {
+      if (error?.message === 'REDIRECTING') return;
       setFormError(
         error?.message === 'ROLE_NOT_ALLOWED'
           ? error.actualRole === 'admin'
@@ -71,6 +85,7 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       await login(email.trim(), password, ['homeowner']);
     } catch (error: any) {
+      if (error?.message === 'REDIRECTING') return;
       setFormError(
         error?.message === 'ROLE_NOT_ALLOWED'
           ? error.actualRole === 'admin'

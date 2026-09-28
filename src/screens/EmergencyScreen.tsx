@@ -5,6 +5,7 @@ import Button from '@/components/Button';
 import SearchBar from '@/components/SearchBar';
 import ServiceProgressTracker from '@/components/ServiceProgressTracker';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import { useAreaFilteredProviders } from '@/hooks/useAreaFilteredProviders';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
@@ -19,9 +20,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React,{ useCallback,useMemo,useState } from 'react';
 import {
 ActivityIndicator,
-Alert,
 Modal,
-Platform,
 ScrollView,
 StyleSheet,
 TouchableOpacity,
@@ -30,6 +29,7 @@ View,
 
 export default function EmergencyScreen() {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   // Only providers who cover the homeowner's area.
@@ -71,8 +71,7 @@ export default function EmergencyScreen() {
   );
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Emergency Request'), msg);
+    dialog.alert(msg);
   }
 
   function togglePending(id: string) {
@@ -469,7 +468,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: 10,
     borderRadius: radius.pill,
-    marginLeft: spacing.md,
+    marginStart: spacing.md,
   },
   filterBtnText: { color: colors.white, fontWeight: '700' },
   searchRow: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
@@ -491,7 +490,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginEnd: spacing.md,
   },
   avatarText: { color: colors.white, fontWeight: '700', fontSize: 18 },
   providerName: { ...typography.body, fontWeight: '700' },
@@ -532,7 +531,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   detailChipOn: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  detailChipIcon: { fontSize: 15, marginRight: 6 },
+  detailChipIcon: { fontSize: 15, marginEnd: 6 },
   detailChipLabel: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   detailChipLabelOn: { color: colors.primary },
   otherNote: { ...typography.bodySecondary, marginTop: spacing.md, fontStyle: 'italic' },

@@ -6,6 +6,7 @@ import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
 import Button from '@/components/Button';
 import MapPicker from '@/components/MapPicker';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
 import { assignEmployeeToBooking,updateBookingStatus } from '@/services/bookingService';
@@ -25,9 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useEffect,useState } from 'react';
 import {
-Alert,
 Modal,
-Platform,
 ScrollView,
 StyleSheet,
 TouchableOpacity,
@@ -49,6 +48,7 @@ const STATUS_META: Record<ServiceRequestStatus, { label: string; color: string; 
 
 export default function RequestDetailScreen({ route }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const { user, role, privilege } = useAuth();
   const [req, setReq] = useState<ServiceRequest>(route.params.request);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -88,8 +88,7 @@ export default function RequestDetailScreen({ route }: Props) {
   }, [canManage, user, role, route.params.request.providerId]);
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Request'), msg);
+    dialog.alert(msg);
   }
 
   async function setStatus(status: ServiceRequestStatus) {

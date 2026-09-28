@@ -5,6 +5,7 @@ import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
 import Button from '@/components/Button';
 import Calendar from '@/components/Calendar';
 import Text from '@/components/app-text';
+import { useDialog } from '@/components/AppDialog';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
 import {
 fetchProviderBookings,
@@ -24,9 +25,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useCallback,useState } from 'react';
 import {
-Alert,
 Modal,
-Platform,
 ScrollView,
 StyleSheet,
 TouchableOpacity,
@@ -75,6 +74,7 @@ type Props = CompositeScreenProps<
 
 export default function ProviderScheduleScreen({ navigation }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const companyId = useCompanyId();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [availability, setAvailability] = useState<ProviderAvailability | null>(null);
@@ -96,8 +96,7 @@ export default function ProviderScheduleScreen({ navigation }: Props) {
   useFocusEffect(load);
 
   function notify(msg: string) {
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(t('Schedule'), msg);
+    dialog.alert(msg);
   }
 
   const bookedDates = Array.from(

@@ -1,3 +1,4 @@
+import { useDialog } from '@/components/AppDialog';
 import { useLanguage } from '@/i18n/LanguageContext';
 // src/screens/ProfileScreen.tsx
 import AreaSelector from '@/components/AreaSelector';
@@ -15,7 +16,7 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useEffect,useState } from 'react';
-import { Alert,Platform,ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
+import { ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<MainStackParamList, 'Profile'>,
@@ -24,6 +25,7 @@ type Props = CompositeScreenProps<
 
 export default function ProfileScreen({ navigation }: Props) {
   const { t } = useLanguage();
+  const dialog = useDialog();
   const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
   const [areas, setAreas] = useState<string[]>([]);
@@ -45,16 +47,14 @@ export default function ProfileScreen({ navigation }: Props) {
   async function handleSaveAreas() {
     if (!user) return;
     if (areas.length === 0) {
-      if (Platform.OS === 'web') window.alert(t('Please select at least one area.'));
-      else Alert.alert(t('Areas'), t('Please select at least one area.'));
+      dialog.alert({ title: 'Areas', message: 'Please select at least one area.', tone: 'warning' });
       return;
     }
     setSavingAreas(true);
     try {
       await saveHomeownerAreas(user.uid, areas);
       setEditingAreas(false);
-      if (Platform.OS === 'web') window.alert(t('Your areas were updated.'));
-      else Alert.alert(t('Areas'), t('Your areas were updated.'));
+      dialog.alert({ title: 'Areas', message: 'Your areas were updated.' });
     } catch (e) {
       console.log('saveHomeownerAreas failed:', e);
     } finally {
@@ -68,28 +68,21 @@ export default function ProfileScreen({ navigation }: Props) {
       await logout();
     } catch (e) {
       console.log('Logout failed:', e);
-      if (Platform.OS === 'web') {
-        window.alert(t('Could not log out. Please try again.'));
-      } else {
-        Alert.alert(t('Error'), t('Could not log out. Please try again.'));
-      }
+      dialog.alert({ title: 'Error', message: 'Could not log out. Please try again.', tone: 'error' });
     } finally {
       setLoggingOut(false);
     }
   }
 
   function confirmLogout() {
-    // react-native-web doesn't render Alert.alert buttons, so use the browser's
-    // native confirm() on web and the RN Alert on native.
-    if (Platform.OS === 'web') {
-      const ok = window.confirm(t('Log out? You can always log back in anytime.'));
-      if (ok) doLogout();
-      return;
-    }
-    Alert.alert(t('Log out?'), t('You can always log back in anytime.'), [
-      { text: t('Cancel'), style: 'cancel' },
-      { text: t('Log Out'), style: 'destructive', onPress: doLogout },
-    ]);
+    dialog
+      .confirm({
+        title: 'Log out?',
+        message: 'You can always log back in anytime.',
+        confirmLabel: 'Log Out',
+        destructive: true,
+      })
+      .then((ok) => ok && doLogout());
   }
 
   return (
