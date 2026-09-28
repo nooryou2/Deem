@@ -232,10 +232,6 @@ export default function BookingScreen({ navigation, route }: Props) {
       setSelectedSlot(null);
     }
   }, [locationId, loadingProviders, selectedProvider?.uid]);
-  useEffect(() => {
-    setAttachments([]);
-  }, [providerId]);
-
   async function handleConfirm() {
     if (
       !user ||
