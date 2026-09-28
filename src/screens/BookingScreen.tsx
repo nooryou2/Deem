@@ -1,8 +1,6 @@
 import LocationPicker from '@/components/LocationPicker';
-import AttachmentPicker from '@/components/attachment-picker';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { fmtNumber } from '@/i18n/locale';
-import type { Attachment } from '@/types';
 import { formatTimeSlot as prettyTime, formatFriendlyDate } from '@/utils/dateCalculations';
 // src/screens/BookingScreen.tsx
 //
@@ -145,8 +143,6 @@ export default function BookingScreen({ navigation, route }: Props) {
 
   // --- Step 3 ---
   const [description, setDescription] = useState('');
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [slotError, setSlotError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -248,7 +244,6 @@ export default function BookingScreen({ navigation, route }: Props) {
       !selectedSlot ||
       !category ||
       !description.trim() ||
-      uploading ||
       submitting
     )
       return;
@@ -267,7 +262,7 @@ export default function BookingScreen({ navigation, route }: Props) {
         locationId,
         location: chosenLocation,
         maintenanceItemId: useExisting ? applianceId : null,
-        attachments,
+        attachments: [],
       });
       setBookedSummary({
         date: selectedDate,
@@ -298,7 +293,7 @@ export default function BookingScreen({ navigation, route }: Props) {
       ? Boolean(locationId && (useExisting ? applianceId : category && applianceName.trim()))
       : step === 1
         ? Boolean(providerId && selectedSlot)
-        : !uploading && Boolean(description.trim());
+        : Boolean(description.trim());
 
   // ---------- Success ----------
   if (done && bookedSummary) {
@@ -837,19 +832,6 @@ export default function BookingScreen({ navigation, route }: Props) {
               numberOfLines={3}
               style={{ minHeight: 84, textAlignVertical: 'top' }}
             />
-            <AttachmentPicker
-              value={attachments}
-              onChange={setAttachments}
-              providerId={providerId ?? undefined}
-              imagesOnly
-              onBusyChange={setUploading}
-            />
-            <View style={styles.card}>
-              <Text style={typography.h3}>{t('Quote pending')}</Text>
-              <Text style={typography.bodySecondary}>
-                {t('The provider will send a quote. Work starts only after you accept the total.')}
-              </Text>
-            </View>
           </>
         )}
       </ScrollView>
@@ -860,7 +842,7 @@ export default function BookingScreen({ navigation, route }: Props) {
           <Button
             label={t('Back')}
             variant="secondary"
-            disabled={uploading || submitting}
+            disabled={submitting}
             onPress={() => {
               setStep((s) => s - 1);
               scrollToTop();
@@ -883,7 +865,7 @@ export default function BookingScreen({ navigation, route }: Props) {
             label={t('Confirm Booking')}
             onPress={handleConfirm}
             loading={submitting}
-            disabled={uploading || !description.trim()}
+            disabled={!description.trim()}
             style={{ flex: 1 }}
           />
         )}
