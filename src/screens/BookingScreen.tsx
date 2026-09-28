@@ -22,7 +22,6 @@ import Text from '@/components/app-text';
 import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import { useAreaFilteredProviders } from '@/hooks/useAreaFilteredProviders';
-import { useAutoAdvance } from '@/hooks/useAutoAdvance';
 import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
 import { createBooking, getAvailableSlots } from '@/services/bookingService';
@@ -33,7 +32,7 @@ import { areaLabel, providerCoversAny } from '@/utils/areas';
 import { CATEGORY_LABELS } from '@/utils/maintenanceTemplates';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -66,6 +65,33 @@ export default function BookingScreen({ navigation, route }: Props) {
   const { items: myAppliances } = useMaintenanceItems();
 
   const [step, setStep] = useState(0);
+
+  // Guided scrolling keeps the customer in control: the app only moves the
+  // viewport to the next relevant section. It never selects an option or
+  // presses Continue / Confirm on the customer's behalf.
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionY = useRef<Record<string, number>>({});
+  const [calendarOpen, setCalendarOpen] = useState(Boolean(route.params?.providerId));
+
+  const rememberSection = (key: string) => (event: any) => {
+    sectionY.current[key] = event.nativeEvent.layout.y;
+  };
+
+  function scrollToSection(key: string, delay = 90) {
+    setTimeout(() => {
+      const y = sectionY.current[key];
+      if (typeof y === 'number') {
+        scrollRef.current?.scrollTo({
+          y: Math.max(y - spacing.md, 0),
+          animated: true,
+        });
+      }
+    }, delay);
+  }
+
+  function scrollToTop() {
+    setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 60);
+  }
 
   // --- Step 1: service + location ---
   const [category, setCategory] = useState<MaintenanceCategory | null>(null);
@@ -136,16 +162,20 @@ export default function BookingScreen({ navigation, route }: Props) {
     };
   }, [providerId, selectedDate]);
 
-  /** Picking a tracked appliance carries its details into the booking. */
+  /** Picking a tracked appliance carries its saved details into the booking. */
   function chooseAppliance(id: string) {
     const found = myAppliances.find((a) => a.id === id);
     if (!found) return;
-    step1Auto.arm();
+
     setApplianceId(id);
     setApplianceName(found.name);
     setCategory(found.category);
     if (found.locationId) setLocationId(found.locationId);
     setAppliancePickerOpen(false);
+
+    // Do not advance the booking step automatically. Guide the customer to
+    // the location section so they can review/change it and press Continue.
+    scrollToSection('location', 140);
   }
 
   useEffect(() => {
@@ -245,23 +275,6 @@ export default function BookingScreen({ navigation, route }: Props) {
         ? Boolean(providerId && selectedSlot)
         : !uploading && Boolean(description.trim());
 
-  // Step 1 completes when an appliance the user already tracks is chosen: that
-  // fills in the service, name and location at once, leaving nothing to type.
-  // Choosing a category for a *new* appliance does not qualify — a name is
-  // still required — so this stays quiet there.
-  const step1Auto = useAutoAdvance({
-    ready: step === 0 && canContinue,
-    advance: () => setStep(1),
-  });
-
-  // Step 2 completes when a time slot is picked. It moves to the review step,
-  // which still needs a description and an explicit Confirm, so nothing can be
-  // booked by accident.
-  const step2Auto = useAutoAdvance({
-    ready: step === 1 && canContinue,
-    advance: () => setStep(2),
-  });
-
   // ---------- Success ----------
   if (done && bookedSummary) {
     return (
@@ -289,7 +302,7 @@ export default function BookingScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.container}>
         <StepIndicator steps={STEPS} current={step} />
 
         {/* ---------- STEP 1: Service + Location ---------- */}
@@ -301,7 +314,11 @@ export default function BookingScreen({ navigation, route }: Props) {
             <TouchableOpacity
               style={[styles.choiceRow, useExisting && styles.choiceRowOn]}
               activeOpacity={0.8}
-              onPress={() => setUseExisting(true)}
+              onPress={() => {
+                setUseExisting(true);
+                setAppliancePickerOpen(true);
+                scrollToSection('appliancePicker', 120);
+              }}
             >
               <Ionicons
                 name={useExisting ? 'radio-button-on' : 'radio-button-off'}
@@ -322,6 +339,13 @@ export default function BookingScreen({ navigation, route }: Props) {
               onPress={() => {
                 setUseExisting(false);
                 setApplianceId(null);
+                setAppliancePickerOpen(false);
+                setCategory(null);
+                setApplianceName('');
+
+                // Keep the customer on Step 1 and simply move them to the next
+                // thing they need to choose.
+                scrollToSection('categories', 120);
               }}
             >
               <Ionicons
@@ -338,7 +362,7 @@ export default function BookingScreen({ navigation, route }: Props) {
             </TouchableOpacity>
 
             {useExisting && (
-              <>
+              <View onLayout={rememberSection('appliancePicker')}>
                 <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
                   {t('Select Appliance')}
                 </Text>
@@ -410,12 +434,13 @@ export default function BookingScreen({ navigation, route }: Props) {
                     )}
                   </>
                 )}
-              </>
+              </View>
             )}
 
-            <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
-              {t('Service Categories')}
-            </Text>
+            <View onLayout={rememberSection('categories')}>
+              <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
+                {t('Service Categories')}
+              </Text>
             <View style={[styles.grid, useExisting && applianceId ? styles.gridLocked : null]}>
               {bookableCategories.map(([value, label]) => {
                 const on = category === value;
@@ -423,7 +448,18 @@ export default function BookingScreen({ navigation, route }: Props) {
                   <TouchableOpacity
                     key={value}
                     style={[styles.tile, on && styles.tileOn]}
-                    onPress={() => setCategory(value as MaintenanceCategory)}
+                    onPress={() => {
+                      const nextCategory = value as MaintenanceCategory;
+                      setCategory(nextCategory);
+
+                      if (!useExisting) {
+                        // Give the new appliance a sensible editable default
+                        // based on the category the customer just selected.
+                        setApplianceName(t(label));
+                        scrollToSection('applianceName', 140);
+                      }
+                    }}
+                    disabled={useExisting && Boolean(applianceId)}
                     activeOpacity={0.8}
                   >
                     <Ionicons
@@ -435,25 +471,35 @@ export default function BookingScreen({ navigation, route }: Props) {
                   </TouchableOpacity>
                 );
               })}
+              </View>
             </View>
 
             {!useExisting && (
-              <>
+              <View onLayout={rememberSection('applianceName')}>
                 <Text style={styles.sectionTitle}>{t('Appliance Name')}</Text>
                 <Text style={styles.fieldHint}>
                   {t('Give it a name so the technician knows which unit, e.g. "Living room AC".')}
                 </Text>
                 <InputField
+                  key={category ?? 'new-appliance'}
                   label=""
                   placeholder={t('e.g. Living room AC')}
                   value={applianceName}
                   onChangeText={setApplianceName}
+                  autoFocus={Boolean(category)}
+                  selectTextOnFocus
+                  returnKeyType="next"
+                  blurOnSubmit
+                  onSubmitEditing={() => scrollToSection('location')}
+                  onBlur={() => scrollToSection('location')}
                 />
-              </>
+              </View>
             )}
 
-            <Text style={styles.sectionTitle}>{t('Service Location')}</Text>
-            <LocationPicker value={locationId} onChange={setLocationId} onLoaded={setLocations} />
+            <View onLayout={rememberSection('location')}>
+              <Text style={styles.sectionTitle}>{t('Service Location')}</Text>
+              <LocationPicker value={locationId} onChange={setLocationId} onLoaded={setLocations} />
+            </View>
           </>
         )}
 
@@ -569,6 +615,8 @@ export default function BookingScreen({ navigation, route }: Props) {
                             setSelectedSlot(null);
                             setProviderQuery('');
                             setProviderListOpen(false);
+                            setCalendarOpen(true);
+                            scrollToSection('calendar', 150);
                           }}
                         >
                           <View style={styles.avatar}>
@@ -615,25 +663,46 @@ export default function BookingScreen({ navigation, route }: Props) {
               </View>
             )}
 
-            <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
-              {t('Choose a Date')}
-            </Text>
-            {!providerId ? (
-              <Text style={styles.emptyNote}>{t('Select a provider to see their calendar.')}</Text>
-            ) : (
-              <Calendar
-                selectedDate={selectedDate}
-                onSelectDate={(d) => {
-                  setProviderListOpen(false);
-                  setSelectedDate(d);
-                }}
-                blockedDates={providerBlockedDates}
-                weeklyOffDays={providerOffDays}
-              />
-            )}
+            <View onLayout={rememberSection('calendar')}>
+              <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
+                {t('Choose a Date')}
+              </Text>
+
+              {!providerId ? (
+                <Text style={styles.emptyNote}>{t('Select a provider to see their calendar.')}</Text>
+              ) : calendarOpen || !selectedDate ? (
+                <Calendar
+                  selectedDate={selectedDate}
+                  onSelectDate={(d) => {
+                    setProviderListOpen(false);
+                    setSelectedDate(d);
+                    setCalendarOpen(false);
+
+                    // Close the calendar after the customer's choice and move
+                    // the viewport to the available-time section.
+                    scrollToSection('slots', 170);
+                  }}
+                  blockedDates={providerBlockedDates}
+                  weeklyOffDays={providerOffDays}
+                />
+              ) : (
+                <TouchableOpacity
+                  style={styles.dateCollapsed}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setCalendarOpen(true);
+                    scrollToSection('calendar');
+                  }}
+                >
+                  <Ionicons name="calendar-outline" size={19} color={colors.primary} />
+                  <Text style={styles.dateCollapsedText}>{formatFriendlyDate(selectedDate)}</Text>
+                  <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
 
             {selectedDate && providerId && (
-              <View style={{ marginTop: spacing.lg }}>
+              <View onLayout={rememberSection('slots')} style={{ marginTop: spacing.lg }}>
                 <Text style={styles.sectionTitle}>{t('Available Times')}</Text>
                 {loadingSlots ? (
                   <ActivityIndicator
@@ -658,10 +727,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                         <TouchableOpacity
                           key={s}
                           style={[styles.slot, on && styles.slotOn]}
-                          onPress={() => {
-                            step2Auto.arm();
-                            setSelectedSlot(s);
-                          }}
+                          onPress={() => setSelectedSlot(s)}
                           activeOpacity={0.8}
                         >
                           <Text style={[styles.slotText, on && styles.slotTextOn]}>
@@ -765,21 +831,20 @@ export default function BookingScreen({ navigation, route }: Props) {
             label={t('Back')}
             variant="secondary"
             disabled={uploading || submitting}
-            onPress={() =>
-              setStep((s) => {
-                // Leaving step 2 for step 1: allow step 2 to auto-advance again
-                // once a new slot is chosen.
-                if (s === 2) step2Auto.reset();
-                return s - 1;
-              })
-            }
+            onPress={() => {
+              setStep((s) => s - 1);
+              scrollToTop();
+            }}
             style={{ flex: 1 }}
           />
         )}
         {step < 2 ? (
           <Button
             label={t('Continue')}
-            onPress={() => setStep((s) => s + 1)}
+            onPress={() => {
+              setStep((s) => s + 1);
+              scrollToTop();
+            }}
             disabled={!canContinue}
             style={{ flex: 1 }}
           />
@@ -951,6 +1016,24 @@ const styles = StyleSheet.create({
   provRating: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
   provRatingText: { ...typography.caption, fontWeight: '600' },
   provNoRating: { ...typography.caption, marginTop: 3 },
+
+  dateCollapsed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    backgroundColor: colors.primaryLight,
+  },
+  dateCollapsedText: {
+    ...typography.body,
+    flex: 1,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
 
   slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   slot: {
