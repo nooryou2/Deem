@@ -89,6 +89,31 @@ export default function BookingScreen({ navigation, route }: Props) {
     }, delay);
   }
 
+  // Use this when the layout is about to change before scrolling. It clears
+  // the old measurement and waits for the section's fresh onLayout position,
+  // preventing the page from jumping past the intended section.
+  function scrollToSectionAfterLayout(key: string) {
+    delete sectionY.current[key];
+
+    let attempts = 0;
+    const tryScroll = () => {
+      const y = sectionY.current[key];
+
+      if (typeof y === 'number') {
+        scrollRef.current?.scrollTo({
+          y: Math.max(y - spacing.md, 0),
+          animated: true,
+        });
+        return;
+      }
+
+      attempts += 1;
+      if (attempts < 10) setTimeout(tryScroll, 50);
+    };
+
+    setTimeout(tryScroll, 50);
+  }
+
   function scrollToTop() {
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 60);
   }
@@ -342,10 +367,12 @@ export default function BookingScreen({ navigation, route }: Props) {
                 setAppliancePickerOpen(false);
                 setCategory(null);
                 setApplianceName('');
+                setLocationId(null);
 
-                // Keep the customer on Step 1 and simply move them to the next
-                // thing they need to choose.
-                scrollToSection('categories', 120);
+                // New appliance is strictly guided one section at a time:
+                // first categories only. Wait for the layout to update after
+                // the existing-appliance section disappears, then scroll.
+                scrollToSectionAfterLayout('categories');
               }}
             >
               <Ionicons
@@ -616,7 +643,10 @@ export default function BookingScreen({ navigation, route }: Props) {
                             setProviderQuery('');
                             setProviderListOpen(false);
                             setCalendarOpen(true);
-                            scrollToSection('calendar', 150);
+
+                            // The provider list is disappearing, so wait for
+                            // the calendar's new position before scrolling.
+                            scrollToSectionAfterLayout('calendar');
                           }}
                         >
                           <View style={styles.avatar}>
