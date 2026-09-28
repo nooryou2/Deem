@@ -491,7 +491,7 @@ export default function BookingScreen({ navigation, route }: Props) {
                   returnKeyType="next"
                   blurOnSubmit
                   onSubmitEditing={() => scrollToSection('location')}
-                  onBlur={() => scrollToSection('location')}
+                  onEndEditing={() => scrollToSection('location')}
                 />
               </View>
             )}
