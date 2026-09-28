@@ -123,7 +123,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
               <Button
                 label={t(pending?.confirmLabel ?? 'Done')}
                 onPress={() => close(true)}
-                style={{ marginTop: spacing.lg }}
+                style={{ marginTop: spacing.lg, alignSelf: 'stretch' }}
               />
             )}
           </View>

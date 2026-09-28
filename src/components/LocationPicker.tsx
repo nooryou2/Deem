@@ -6,7 +6,7 @@ import Text from '@/components/app-text';
 // Picks which of the homeowner's saved places a job is for. Used by both the
 // booking flow and the add-appliance form so the choice looks the same in both.
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, ActivityIndicator, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -37,6 +37,9 @@ export default function LocationPicker({ value, onChange, onLoaded, showMapLink 
   const [loading, setLoading] = useState(true);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  // Ids seen on the previous load, so a newly added place can be spotted.
+  // Null on first load, when nothing is "new".
+  const knownIds = useRef<Set<string> | null>(null);
 
   // Reloads on focus so a place added mid-flow appears on return.
   useFocusEffect(
@@ -44,10 +47,19 @@ export default function LocationPicker({ value, onChange, onLoaded, showMapLink 
       if (!user) return;
       getSavedLocations(user.uid)
         .then((list) => {
+          // A place added while away is almost certainly the one wanted, so
+          // select it rather than making the user find and tap it.
+          const known = knownIds.current;
+          const added = known ? list.find((l) => !known.has(l.id)) : null;
+          knownIds.current = new Set(list.map((l) => l.id));
+
           setLocations(list);
           onLoaded?.(list);
-          // Pre-select the default so the common case needs no extra tap.
-          if (list.length > 0) {
+
+          if (added) {
+            onChange(added.id);
+          } else if (list.length > 0) {
+            // Pre-select the default so the common case needs no extra tap.
             const stillValid = value && list.some((l) => l.id === value);
             if (!stillValid) {
               onChange((list.find((l) => l.isDefault) ?? list[0]).id);

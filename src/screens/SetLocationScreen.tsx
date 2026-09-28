@@ -110,7 +110,12 @@ export default function SetLocationScreen({ navigation, route }: Props) {
       }
 
       await saveSavedLocations(user.uid, next);
-      notify(editingId ? 'Location updated.' : 'Location saved.');
+      dialog.alert({
+        title: editingId ? 'Location Updated!' : 'Location Saved!',
+        message: editingId
+          ? 'Your location has been updated.'
+          : 'Your new location has been successfully added.',
+      });
       navigation.goBack();
     } catch (e) {
       console.log('save location failed:', e);

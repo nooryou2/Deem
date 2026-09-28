@@ -270,6 +270,11 @@ export const ar: Record<string, string> = {
   'Location Saved!': 'تم حفظ الموقع!',
   'Location unavailable': 'تعذّر تحديد الموقع',
   'Could not get your location. Please allow location access, or drop the pin manually.': 'تعذّر تحديد موقعك. يرجى السماح بالوصول إلى الموقع أو تحديده يدويًا على الخريطة.',
+  // ---- Dialogs ----
+  'Location Updated!': 'تم تحديث الموقع!',
+  'Your location has been updated.': 'تم تحديث موقعك بنجاح.',
+  'Your new location has been successfully added.': 'تمت إضافة موقعك الجديد بنجاح.',
+  'Could not get your location. Please allow location access, or drop the pin manually.': 'تعذّر تحديد موقعك. يرجى السماح بالوصول إلى الموقع، أو تحديد نقطة على الخريطة.',
   // ---- Staff sign-in ----
   'Homeowners sign in on the main DEEM page.': 'يسجّل أصحاب المنازل الدخول من صفحة ديم الرئيسية.',
   'Service Provider Sign In': 'تسجيل دخول مزوّد الخدمة',
@@ -579,7 +584,6 @@ Object.assign(ar, {
   'Service date': 'تاريخ الخدمة',
   'Service for': 'صيانة',
   'Service in progress': 'الخدمة قيد التنفيذ',
-  'Awaiting confirmation': 'بانتظار القبول',
   'Serviced by you': 'أجريت الصيانة بنفسك',
   'Services offered': 'الخدمات المتاحة',
   'Services you offer': 'الخدمات التي تقدمها',

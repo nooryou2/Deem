@@ -22,6 +22,7 @@ import Text from '@/components/app-text';
 import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import { useAreaFilteredProviders } from '@/hooks/useAreaFilteredProviders';
+import { useAutoAdvance } from '@/hooks/useAutoAdvance';
 import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
 import { createBooking, getAvailableSlots } from '@/services/bookingService';
@@ -139,6 +140,7 @@ export default function BookingScreen({ navigation, route }: Props) {
   function chooseAppliance(id: string) {
     const found = myAppliances.find((a) => a.id === id);
     if (!found) return;
+    step1Auto.arm();
     setApplianceId(id);
     setApplianceName(found.name);
     setCategory(found.category);
@@ -242,6 +244,23 @@ export default function BookingScreen({ navigation, route }: Props) {
       : step === 1
         ? Boolean(providerId && selectedSlot)
         : !uploading && Boolean(description.trim());
+
+  // Step 1 completes when an appliance the user already tracks is chosen: that
+  // fills in the service, name and location at once, leaving nothing to type.
+  // Choosing a category for a *new* appliance does not qualify — a name is
+  // still required — so this stays quiet there.
+  const step1Auto = useAutoAdvance({
+    ready: step === 0 && canContinue,
+    advance: () => setStep(1),
+  });
+
+  // Step 2 completes when a time slot is picked. It moves to the review step,
+  // which still needs a description and an explicit Confirm, so nothing can be
+  // booked by accident.
+  const step2Auto = useAutoAdvance({
+    ready: step === 1 && canContinue,
+    advance: () => setStep(2),
+  });
 
   // ---------- Success ----------
   if (done && bookedSummary) {
@@ -639,7 +658,10 @@ export default function BookingScreen({ navigation, route }: Props) {
                         <TouchableOpacity
                           key={s}
                           style={[styles.slot, on && styles.slotOn]}
-                          onPress={() => setSelectedSlot(s)}
+                          onPress={() => {
+                            step2Auto.arm();
+                            setSelectedSlot(s);
+                          }}
                           activeOpacity={0.8}
                         >
                           <Text style={[styles.slotText, on && styles.slotTextOn]}>
@@ -743,7 +765,14 @@ export default function BookingScreen({ navigation, route }: Props) {
             label={t('Back')}
             variant="secondary"
             disabled={uploading || submitting}
-            onPress={() => setStep((s) => s - 1)}
+            onPress={() =>
+              setStep((s) => {
+                // Leaving step 2 for step 1: allow step 2 to auto-advance again
+                // once a new slot is chosen.
+                if (s === 2) step2Auto.reset();
+                return s - 1;
+              })
+            }
             style={{ flex: 1 }}
           />
         )}
