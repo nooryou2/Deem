@@ -133,7 +133,7 @@ export interface CreateBookingInput {
 }
 
 export async function createBooking(input: CreateBookingInput): Promise<string> {
-  if (!input.locationId || !input.location || !input.description.trim())
+  if (!input.locationId || !input.location)
     throw new Error('INCOMPLETE_BOOKING');
   const availability = await getAvailability(input.providerId);
   if (
