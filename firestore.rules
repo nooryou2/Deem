@@ -40,7 +40,7 @@ service cloud.firestore {
     }
     match /bookings/{id} {
       allow read: if participant(resource.data);
-      allow create: if owns(request.resource.data.customerId) && request.resource.data.status == 'pending' && request.resource.data.providerId != request.auth.uid && request.resource.data.location is map && request.resource.data.description.size() > 0 && request.resource.data.get('attachments', []).size() <= 4 && getAfter(/databases/$(database)/documents/bookedSlots/$(request.resource.data.providerId + '_' + request.resource.data.date)).data.lastBookingId == id;
+      allow create: if owns(request.resource.data.customerId) && request.resource.data.status == 'pending' && request.resource.data.providerId != request.auth.uid && request.resource.data.location is map && request.resource.data.get('attachments', []).size() <= 4 && getAfter(/databases/$(database)/documents/bookedSlots/$(request.resource.data.providerId + '_' + request.resource.data.date)).data.lastBookingId == id;
       allow update: if updateJob('booking', id);
     }
     match /serviceRequests/{id} {
