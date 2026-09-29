@@ -789,7 +789,11 @@ export default function BookingScreen({ navigation, route }: Props) {
               </View>
 
               <SummaryRow icon="person-outline" label={t('Provider')} value={providerName ?? '—'} />
-              <SummaryRow icon="calendar-outline" label={t('Date')} value={selectedDate ?? '—'} />
+              <SummaryRow
+                icon="calendar-outline"
+                label={t('Date')}
+                value={selectedDate ? formatFriendlyDate(selectedDate) : '—'}
+              />
               <SummaryRow
                 icon="time-outline"
                 label={t('Time Slot')}
