@@ -50,7 +50,7 @@ export function useDialog(): DialogApi {
 
 const TONES: Record<DialogTone, { icon: keyof typeof Ionicons.glyphMap; color: string; tint: string }> = {
   success: { icon: 'checkmark', color: colors.primary, tint: colors.primaryLight },
-  error: { icon: 'close', color: '#D92D20', tint: '#FEE4E2' },
+  error: { icon: 'alert-circle-outline', color: '#D92D20', tint: '#FEE4E2' },
   warning: { icon: 'alert', color: '#B54708', tint: '#FEF0C7' },
   question: { icon: 'help', color: colors.primary, tint: colors.primaryLight },
 };
