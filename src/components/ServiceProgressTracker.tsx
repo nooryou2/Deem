@@ -28,7 +28,7 @@ const ORDER: Record<ServiceRequestStatus, number> = {
 };
 
 export default function ServiceProgressTracker({ status, providerName }: Props) {
-  const { t } = useLanguage();
+  const { t, rtl } = useLanguage();
   // Declined is a dead-end state — show a distinct message instead of the track.
   if (status === 'declined') {
     return (
@@ -46,9 +46,15 @@ export default function ServiceProgressTracker({ status, providerName }: Props) 
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.assignedTo}>
-        {t('Provider')} {providerName}
-      </Text>
+      <View style={[styles.assignedRow, rtl && styles.assignedRowRtl]}>
+        <Text style={[styles.assignedLabel, rtl && styles.textRight]}>{t('Provider')}</Text>
+        <Text
+          style={[styles.assignedName, rtl && styles.textRight]}
+          numberOfLines={1}
+        >
+          {providerName}
+        </Text>
+      </View>
       <View style={styles.track}>
         {STEPS.map((step, i) => {
           const done = i <= currentIndex;
@@ -86,11 +92,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  assignedTo: {
+  assignedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: spacing.md,
+    minWidth: 0,
+  },
+  assignedRowRtl: {
+    flexDirection: 'row-reverse',
+  },
+  assignedLabel: {
     fontSize: 14,
     fontWeight: '700',
     color: colors.textPrimary,
-    marginBottom: spacing.md,
+    flexShrink: 0,
+  },
+  assignedName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  textRight: {
+    textAlign: 'right',
   },
   track: { flexDirection: 'row', alignItems: 'flex-start', width: '100%' },
   stepCol: { alignItems: 'center', flex: 1, minWidth: 0 },
