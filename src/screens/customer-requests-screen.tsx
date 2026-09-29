@@ -118,7 +118,7 @@ export default function CustomerRequestsScreen({
               </View>
             </View>
 
-            <View style={[styles.statusDateRow, rtl && styles.rowReverse]}>
+            <View style={styles.statusDateRow}>
               <View style={[styles.statusPill, { backgroundColor: status.background }]}>
                 <Ionicons name={status.icon} size={17} color={status.color} />
                 <Text style={[styles.statusText, { color: status.color }]}>{t(status.label)}</Text>
@@ -180,8 +180,8 @@ export default function CustomerRequestsScreen({
                       })
                     }
                   >
-                    <Ionicons name="folder-outline" size={20} color={colors.primaryDark} />
-                    <Text style={styles.actionSecondaryText}>{t('Device file')}</Text>
+                    <Ionicons name="time-outline" size={20} color={colors.primaryDark} />
+                    <Text style={styles.actionSecondaryText}>{t('Appliance history')}</Text>
                   </TouchableOpacity>
                 )}
 
@@ -293,6 +293,8 @@ const styles = StyleSheet.create({
   statusDateRow: {
     marginTop: spacing.md,
     gap: spacing.sm,
+    width: '100%',
+    alignItems: 'stretch',
   },
   statusPill: {
     alignSelf: 'flex-start',
@@ -302,10 +304,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radius.pill,
+    maxWidth: '100%',
   },
   statusText: {
     fontSize: 13,
     fontWeight: '700',
+    flexShrink: 1,
   },
   dateTimeWrap: {
     flexDirection: 'row',
@@ -313,15 +317,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginTop: spacing.sm,
+    width: '100%',
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexShrink: 1,
+    minWidth: 0,
   },
   metaText: {
     ...typography.bodySecondary,
     color: colors.textPrimary,
+    flexShrink: 1,
   },
   metaDivider: {
     width: 1,
