@@ -124,6 +124,7 @@ export default function CustomerRequestsScreen({
                   styles.statusPill,
                   { backgroundColor: status.background },
                   rtl && styles.alignEnd,
+                  rtl && styles.rowReverse,
                 ]}
               >
                 <Ionicons name={status.icon} size={17} color={status.color} />
@@ -282,7 +283,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-  },
+    direction: 'ltr',
+  } as any,
   rowReverse: {
     flexDirection: 'row-reverse',
   },
@@ -321,7 +323,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     gap: spacing.sm,
     width: '100%',
-  },
+    direction: 'ltr',
+  } as any,
   statusPill: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
@@ -344,14 +347,16 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.sm,
     width: '100%',
-  },
+    direction: 'ltr',
+  } as any,
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     flexShrink: 1,
     minWidth: 0,
-  },
+    direction: 'ltr',
+  } as any,
   metaText: {
     ...typography.bodySecondary,
     color: colors.textPrimary,
@@ -367,7 +372,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 6,
     marginTop: spacing.md,
-  },
+    direction: 'ltr',
+  } as any,
   locationText: {
     ...typography.caption,
     flex: 1,
