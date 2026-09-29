@@ -103,28 +103,54 @@ export default function CustomerRequestsScreen({
 
         return (
           <View key={`${job.jobType}_${job.id}`} style={styles.card}>
-            <View style={[styles.topRow, !rtl && styles.rowReverse]}>
-              <View style={styles.serviceInfo}>
-                <Text style={[styles.serviceName, rtl && styles.textRight]} numberOfLines={2}>
+            <View style={styles.topRow}>
+              <View
+                style={[
+                  styles.serviceInfo,
+                  rtl ? styles.serviceInfoRtl : styles.serviceInfoLtr,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.serviceName,
+                    rtl ? styles.textRight : styles.textLeft,
+                  ]}
+                  numberOfLines={2}
+                >
                   {job.serviceType}
                 </Text>
-                <Text style={[styles.providerName, rtl && styles.textRight]} numberOfLines={1}>
+                <Text
+                  style={[
+                    styles.providerName,
+                    rtl ? styles.textRight : styles.textLeft,
+                  ]}
+                  numberOfLines={1}
+                >
                   {job.providerName}
                 </Text>
               </View>
 
-              <View style={styles.categoryIcon}>
+              <View
+                style={[
+                  styles.categoryIcon,
+                  rtl ? styles.categoryIconRight : styles.categoryIconLeft,
+                ]}
+              >
                 <Ionicons name={categoryIcon} size={26} color={colors.primaryDark} />
               </View>
             </View>
 
-            <View style={styles.statusDateRow}>
+            <View
+              style={[
+                styles.statusDateRow,
+                rtl ? styles.statusDateRowRtl : styles.statusDateRowLtr,
+              ]}
+            >
               <View
                 style={[
                   styles.statusPill,
                   { backgroundColor: status.background },
-                  rtl && styles.alignEnd,
-                  rtl && styles.rowReverse,
+                  rtl && styles.statusPillRtl,
                 ]}
               >
                 <Ionicons name={status.icon} size={17} color={status.color} />
@@ -132,14 +158,8 @@ export default function CustomerRequestsScreen({
               </View>
 
               {!!job.preferredDate && (
-                <View
-                  style={[
-                    styles.dateTimeWrap,
-                    rtl && styles.rowReverse,
-                    rtl && styles.justifyEnd,
-                  ]}
-                >
-                  <View style={[styles.metaItem, rtl && styles.rowReverse]}>
+                <View style={styles.dateTimeWrap}>
+                  <View style={styles.metaItem}>
                     <Ionicons name="calendar-outline" size={16} color={colors.primaryDark} />
                     <Text style={styles.metaText}>{formatFriendlyDate(job.preferredDate)}</Text>
                   </View>
@@ -147,7 +167,7 @@ export default function CustomerRequestsScreen({
                   {!!job.timeSlot && (
                     <>
                       <View style={styles.metaDivider} />
-                      <View style={[styles.metaItem, rtl && styles.rowReverse]}>
+                      <View style={styles.metaItem}>
                         <Ionicons name="time-outline" size={16} color={colors.primaryDark} />
                         <Text style={styles.metaText}>{formatTimeSlot(job.timeSlot)}</Text>
                       </View>
@@ -280,9 +300,9 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+    position: 'relative',
+    minHeight: 54,
+    width: '100%',
     direction: 'ltr',
   } as any,
   rowReverse: {
@@ -295,8 +315,16 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   serviceInfo: {
-    flex: 1,
     minWidth: 0,
+    justifyContent: 'center',
+  },
+  serviceInfoRtl: {
+    paddingRight: 70,
+    width: '100%',
+  },
+  serviceInfoLtr: {
+    paddingLeft: 70,
+    width: '100%',
   },
   serviceName: {
     ...typography.h3,
@@ -311,7 +339,12 @@ const styles = StyleSheet.create({
   textRight: {
     textAlign: 'right',
   },
+  textLeft: {
+    textAlign: 'left',
+  },
   categoryIcon: {
+    position: 'absolute',
+    top: 0,
     width: 54,
     height: 54,
     borderRadius: radius.md,
@@ -319,14 +352,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  categoryIconRight: {
+    right: 0,
+  },
+  categoryIconLeft: {
+    left: 0,
+  },
   statusDateRow: {
     marginTop: spacing.md,
     gap: spacing.sm,
     width: '100%',
+    flexDirection: 'column',
     direction: 'ltr',
   } as any,
+  statusDateRowRtl: {
+    alignItems: 'flex-end',
+  },
+  statusDateRowLtr: {
+    alignItems: 'flex-start',
+  },
   statusPill: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -334,6 +379,10 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: radius.pill,
     maxWidth: '100%',
+    direction: 'ltr',
+  } as any,
+  statusPillRtl: {
+    flexDirection: 'row-reverse',
   },
   statusText: {
     fontSize: 13,
@@ -346,7 +395,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginTop: spacing.sm,
-    width: '100%',
+    maxWidth: '100%',
     direction: 'ltr',
   } as any,
   metaItem: {
