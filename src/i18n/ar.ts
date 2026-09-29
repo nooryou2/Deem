@@ -155,6 +155,7 @@ export const ar: Record<string, string> = {
   'Uploading…': 'جارٍ الرفع…',
   Open: 'فتح',
   'Device file': 'ملف الجهاز',
+  'Appliance history': 'سجل الجهاز',
   'Brand and model': 'الشركة والطراز',
   'Serial number': 'الرقم التسلسلي',
   'Warranty expiry': 'انتهاء الضمان',
