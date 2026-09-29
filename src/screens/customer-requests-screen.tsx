@@ -103,7 +103,7 @@ export default function CustomerRequestsScreen({
 
         return (
           <View key={`${job.jobType}_${job.id}`} style={styles.card}>
-            <View style={[styles.topRow, rtl && styles.rowReverse]}>
+            <View style={[styles.topRow, !rtl && styles.rowReverse]}>
               <View style={styles.serviceInfo}>
                 <Text style={[styles.serviceName, rtl && styles.textRight]} numberOfLines={2}>
                   {job.serviceType}
