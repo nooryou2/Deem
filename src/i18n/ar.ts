@@ -457,6 +457,7 @@ Object.assign(ar, {
   'Describe the other appliance…': 'صف الجهاز الآخر…',
   'Describe the other service': 'صف الخدمة الأخرى',
   'Describe the problem': 'صف المشكلة',
+  'Describe the problem (optional)': 'صف المشكلة (اختياري)',
   Distance: 'المسافة',
   'Distance from:': 'المسافة من:',
   'Drop a pin so technicians know exactly where to come.':
