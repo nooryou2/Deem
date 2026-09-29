@@ -55,7 +55,7 @@ export default function ServiceProgressTracker({ status, providerName }: Props) 
           {providerName}
         </Text>
       </View>
-      <View style={styles.track}>
+      <View style={[styles.track, rtl && styles.trackRtl]}>
         {STEPS.map((step, i) => {
           const done = i <= currentIndex;
           const isLast = i === STEPS.length - 1;
@@ -98,9 +98,11 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: spacing.md,
     minWidth: 0,
-  },
+    width: '100%',
+    direction: 'ltr',
+  } as any,
   assignedRowRtl: {
-    flexDirection: 'row-reverse',
+    justifyContent: 'flex-end',
   },
   assignedLabel: {
     fontSize: 14,
@@ -118,7 +120,15 @@ const styles = StyleSheet.create({
   textRight: {
     textAlign: 'right',
   },
-  track: { flexDirection: 'row', alignItems: 'flex-start', width: '100%' },
+  track: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    width: '100%',
+    direction: 'ltr',
+  } as any,
+  trackRtl: {
+    flexDirection: 'row-reverse',
+  },
   stepCol: { alignItems: 'center', flex: 1, minWidth: 0 },
   dot: {
     width: 26,
