@@ -119,13 +119,25 @@ export default function CustomerRequestsScreen({
             </View>
 
             <View style={styles.statusDateRow}>
-              <View style={[styles.statusPill, { backgroundColor: status.background }]}>
+              <View
+                style={[
+                  styles.statusPill,
+                  { backgroundColor: status.background },
+                  rtl && styles.alignEnd,
+                ]}
+              >
                 <Ionicons name={status.icon} size={17} color={status.color} />
                 <Text style={[styles.statusText, { color: status.color }]}>{t(status.label)}</Text>
               </View>
 
               {!!job.preferredDate && (
-                <View style={[styles.dateTimeWrap, rtl && styles.rowReverse]}>
+                <View
+                  style={[
+                    styles.dateTimeWrap,
+                    rtl && styles.rowReverse,
+                    rtl && styles.justifyEnd,
+                  ]}
+                >
                   <View style={[styles.metaItem, rtl && styles.rowReverse]}>
                     <Ionicons name="calendar-outline" size={16} color={colors.primaryDark} />
                     <Text style={styles.metaText}>{formatFriendlyDate(job.preferredDate)}</Text>
@@ -145,7 +157,13 @@ export default function CustomerRequestsScreen({
             </View>
 
             {!!job.location && (
-              <View style={[styles.locationRow, rtl && styles.rowReverse]}>
+              <View
+                style={[
+                  styles.locationRow,
+                  rtl && styles.rowReverse,
+                  rtl && styles.justifyEnd,
+                ]}
+              >
                 <Ionicons name="location-outline" size={17} color={colors.primaryDark} />
                 <Text style={[styles.locationText, rtl && styles.textRight]} numberOfLines={2}>
                   {job.location.label}
@@ -268,16 +286,25 @@ const styles = StyleSheet.create({
   rowReverse: {
     flexDirection: 'row-reverse',
   },
+  alignEnd: {
+    alignSelf: 'flex-end',
+  },
+  justifyEnd: {
+    justifyContent: 'flex-end',
+  },
   serviceInfo: {
     flex: 1,
+    minWidth: 0,
   },
   serviceName: {
     ...typography.h3,
     fontWeight: '700',
+    flexShrink: 1,
   },
   providerName: {
     ...typography.bodySecondary,
     marginTop: 2,
+    flexShrink: 1,
   },
   textRight: {
     textAlign: 'right',
@@ -294,7 +321,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     gap: spacing.sm,
     width: '100%',
-    alignItems: 'stretch',
   },
   statusPill: {
     alignSelf: 'flex-start',
@@ -345,6 +371,8 @@ const styles = StyleSheet.create({
   locationText: {
     ...typography.caption,
     flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
     color: colors.textSecondary,
   },
   notes: {
@@ -385,6 +413,8 @@ const styles = StyleSheet.create({
   actionSecondaryText: {
     ...typography.button,
     color: colors.primaryDark,
+    flexShrink: 1,
+    textAlign: 'center',
   },
   actionPrimaryText: {
     ...typography.button,
