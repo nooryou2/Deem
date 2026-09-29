@@ -46,14 +46,22 @@ export default function ServiceProgressTracker({ status, providerName }: Props) 
 
   return (
     <View style={styles.wrap}>
-      <View style={[styles.assignedRow, rtl && styles.assignedRowRtl]}>
-        <Text style={[styles.assignedLabel, rtl && styles.textRight]}>{t('Provider')}</Text>
-        <Text
-          style={[styles.assignedName, rtl && styles.textRight]}
-          numberOfLines={1}
-        >
-          {providerName}
-        </Text>
+      <View style={[styles.assignedRow, rtl ? styles.assignedRowRtl : styles.assignedRowLtr]}>
+        {rtl ? (
+          <>
+            <Text style={styles.assignedName} numberOfLines={1}>
+              {providerName}
+            </Text>
+            <Text style={styles.assignedLabel}>{t('Provider')}</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.assignedLabel}>{t('Provider')}</Text>
+            <Text style={styles.assignedName} numberOfLines={1}>
+              {providerName}
+            </Text>
+          </>
+        )}
       </View>
       <View style={[styles.track, rtl && styles.trackRtl]}>
         {STEPS.map((step, i) => {
@@ -103,6 +111,9 @@ const styles = StyleSheet.create({
   } as any,
   assignedRowRtl: {
     justifyContent: 'flex-end',
+  },
+  assignedRowLtr: {
+    justifyContent: 'flex-start',
   },
   assignedLabel: {
     fontSize: 14,
