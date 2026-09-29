@@ -239,7 +239,6 @@ export default function BookingScreen({ navigation, route }: Props) {
       !selectedDate ||
       !selectedSlot ||
       !category ||
-      !description.trim() ||
       submitting
     )
       return;
@@ -289,7 +288,7 @@ export default function BookingScreen({ navigation, route }: Props) {
       ? Boolean(locationId && (useExisting ? applianceId : category && applianceName.trim()))
       : step === 1
         ? Boolean(providerId && selectedSlot)
-        : Boolean(description.trim());
+        : true;
 
   // ---------- Success ----------
   if (done && bookedSummary) {
@@ -822,7 +821,7 @@ export default function BookingScreen({ navigation, route }: Props) {
               )}
             </View>
 
-            <Text style={styles.sectionTitle}>{t('Describe the problem')}</Text>
+            <Text style={styles.sectionTitle}>{t('Describe the problem (optional)')}</Text>
             <InputField
               label=""
               placeholder={t('e.g. AC not cooling, strange noise…')}
@@ -865,7 +864,7 @@ export default function BookingScreen({ navigation, route }: Props) {
             label={t('Confirm Booking')}
             onPress={handleConfirm}
             loading={submitting}
-            disabled={!description.trim()}
+            disabled={submitting}
             style={{ flex: 1 }}
           />
         )}
