@@ -204,8 +204,8 @@ export default function BookingScreen({ navigation, route }: Props) {
       chooseAppliance(route.params.itemId);
   }, [route.params?.itemId, myAppliances.length]);
 
-  function notify(msg: string) {
-    dialog.alert(msg);
+  function notify(msg: string, tone: 'error' | 'warning' = 'error') {
+    dialog.alert({ message: msg, tone });
   }
 
   // 'custom' is a catch-all used elsewhere in the app; it isn't a bookable
@@ -267,9 +267,9 @@ export default function BookingScreen({ navigation, route }: Props) {
       setDone(true);
     } catch (e: any) {
       if (e?.message === 'APPLIANCE_BUSY') {
-        notify(t('This appliance already has an active request.'));
+        notify(t('This appliance already has an active request.'), 'warning');
       } else if (e?.message === 'SLOT_TAKEN') {
-        notify(t('Sorry, that slot was just taken. Please pick another.'));
+        notify(t('Sorry, that slot was just taken. Please pick another.'), 'warning');
         const res = await getAvailableSlots(providerId, selectedDate);
         setSlots(res.slots);
         setSelectedSlot(null);
