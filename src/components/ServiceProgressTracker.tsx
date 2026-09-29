@@ -92,8 +92,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
-  track: { flexDirection: 'row', alignItems: 'flex-start' },
-  stepCol: { alignItems: 'center', width: 66 },
+  track: { flexDirection: 'row', alignItems: 'flex-start', width: '100%' },
+  stepCol: { alignItems: 'center', flex: 1, minWidth: 0 },
   dot: {
     width: 26,
     height: 26,
@@ -105,9 +105,15 @@ const styles = StyleSheet.create({
   dotDone: { backgroundColor: DONE, borderColor: DONE },
   dotTodo: { backgroundColor: colors.surface, borderColor: TODO },
   check: { color: colors.white, fontSize: 13, fontWeight: '800' },
-  stepLabel: { fontSize: 11, color: colors.textMuted, marginTop: 6, textAlign: 'center' },
+  stepLabel: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 6,
+    textAlign: 'center',
+    flexShrink: 1,
+  },
   stepLabelDone: { color: colors.textPrimary, fontWeight: '600' },
-  line: { height: 2, flex: 1, marginTop: 13, borderRadius: 1 },
+  line: { height: 2, flex: 0.55, marginTop: 13, borderRadius: 1, minWidth: 8 },
   lineDone: { backgroundColor: DONE },
   lineTodo: { backgroundColor: TODO },
   declinedBox: {
