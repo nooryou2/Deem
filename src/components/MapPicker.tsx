@@ -138,6 +138,7 @@ function buildMapHtml(
 
   function place(lat, lng) {
     marker.setLatLng([lat, lng]);
+    if (!map.hasLayer(marker)) marker.addTo(map);
     if (circle) circle.setLatLng([lat, lng]);
     send(lat, lng);
   }
@@ -158,7 +159,9 @@ function buildMapHtml(
       var data = JSON.parse(typeof event.data === 'string' ? event.data : '{}');
       if (data.type === 'setLocation') {
         map.setView([data.lat, data.lng], data.zoom || 15);
-        place(data.lat, data.lng);
+        marker.setLatLng([data.lat, data.lng]);
+        if (!map.hasLayer(marker)) marker.addTo(map);
+        if (circle) circle.setLatLng([data.lat, data.lng]);
       }
       if (data.type === 'setRadius' && circle) {
         circle.setRadius(data.km * 1000);
@@ -221,6 +224,16 @@ export default function MapPicker({
   useEffect(() => {
     if (radiusKm) postToMap({ type: 'setRadius', km: radiusKm });
   }, [radiusKm, postToMap]);
+
+  // Keep the map marker in sync when a saved location is loaded after the
+  // iframe has already been created (for example when editing a location).
+  useEffect(() => {
+    if (!value) return;
+    const send = () => postToMap({ type: 'setLocation', lat: value.lat, lng: value.lng, zoom: 15 });
+    send();
+    const timer = setTimeout(send, 600);
+    return () => clearTimeout(timer);
+  }, [value?.lat, value?.lng, postToMap]);
 
   // Re-plot pins when they change. The delayed repeat covers the first render,
   // before the iframe has finished loading Leaflet.
