@@ -11,7 +11,7 @@ service cloud.firestore {
     }
     function job(type, id) { return type == 'booking' ? get(/databases/$(database)/documents/bookings/$(id)).data : get(/databases/$(database)/documents/serviceRequests/$(id)).data; }
     function validStatus(old, next, quoteKey) {
-      return (old == 'pending' && next in ['accepted', 'declined']) || (old == 'accepted' && (next == 'declined' || (next == 'in_progress' && get(/databases/$(database)/documents/quotes/$(quoteKey)).data.status == 'accepted'))) || (old == 'in_progress' && next == 'completed');
+      return (old == 'pending' && next in ['accepted', 'declined']) || (old == 'accepted' && next in ['declined', 'in_progress']) || (old == 'in_progress' && next == 'completed');
     }
     function updateJob(type, id) {
       let data = resource.data;
