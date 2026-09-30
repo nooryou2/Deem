@@ -51,8 +51,8 @@ export const AREAS: Area[] = [
   { id: 'arad', label: 'Arad', governorate: 'Muharraq', lat: 26.2531, lng: 50.63 },
   { id: 'busaiteen', label: 'Busaiteen', governorate: 'Muharraq', lat: 26.2647, lng: 50.618 },
   { id: 'galali', label: 'Galali', governorate: 'Muharraq', lat: 26.2695, lng: 50.6367 },
-  { id: 'dair', label: 'Dair', governorate: 'Muharraq', lat: 26.2811, lng: 50.6349 },
-  { id: 'samaheej', label: 'Samaheej', governorate: 'Muharraq', lat: 26.2769, lng: 50.6208 },
+  { id: 'dair', label: 'Dair', governorate: 'Muharraq', lat: 26.285, lng: 50.624 },
+  { id: 'samaheej', label: 'Samaheej', governorate: 'Muharraq', lat: 26.28298, lng: 50.63348 },
   { id: 'amwaj', label: 'Amwaj Islands', governorate: 'Muharraq', lat: 26.2887, lng: 50.6614 },
   { id: 'diyar', label: 'Diyar Al Muharraq', governorate: 'Muharraq', lat: 26.3097, lng: 50.5931 },
 
