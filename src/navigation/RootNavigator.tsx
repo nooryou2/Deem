@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Text from '@/components/app-text';
 import Button from '@/components/Button';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { readInviteFromUrl } from '@/services/inviteService';
+import { readInviteFromUrl, readStaffLoginFromUrl } from '@/services/inviteService';
 import { useAuth } from '@/context/AuthContext';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
@@ -20,16 +20,26 @@ import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
  * The sign-up page is only for signed-out visitors, so without this the link
  * would quietly drop them into their existing account instead.
  */
-function InviteWhileSignedIn() {
+function SignedInNotice({ reason }: { reason: 'invite' | 'staffLogin' }) {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
+  const invite = reason === 'invite';
   return (
     <View style={styles.loading}>
       <View style={styles.noticeCard}>
-        <Ionicons name="mail-open-outline" size={36} color={colors.primary} style={{ alignSelf: 'center' }} />
-        <Text style={styles.noticeTitle}>{t('Provider invitation')}</Text>
+        <Ionicons
+          name={invite ? 'mail-open-outline' : 'log-in-outline'}
+          size={36}
+          color={colors.primary}
+          style={{ alignSelf: 'center' }}
+        />
+        <Text style={styles.noticeTitle}>
+          {t(invite ? 'Provider invitation' : 'Already signed in')}
+        </Text>
         <Text style={styles.noticeBody}>
-          {t('You are signed in as {email}. To accept this invitation and create a service provider account, log out first.', { email: user?.email ?? '' })}
+          {invite
+            ? t('You are signed in as {email}. To accept this invitation and create a service provider account, log out first.', { email: user?.email ?? '' })
+            : t('You are signed in as {email}. To sign in with a different account, log out first.', { email: user?.email ?? '' })}
         </Text>
         <Button label={t('Log out and continue')} onPress={logout} style={{ marginTop: spacing.lg }} />
         <Button
@@ -65,7 +75,19 @@ export default function RootNavigator() {
   const isManager = role === 'employee' && privilege === 'manager';
 
   if (user && !providerSignupActive && role !== 'provider' && readInviteFromUrl() !== null) {
-    return <InviteWhileSignedIn />;
+    return <SignedInNotice reason="invite" />;
+  }
+
+  // The staff sign-in pages live in the signed-out part of the app, so opening
+  // one while signed in would otherwise drop the user straight into whichever
+  // account they already have — e.g. landing in the admin console after
+  // opening the provider sign-in page.
+  const staffMode = readStaffLoginFromUrl();
+  if (user && staffMode) {
+    const allowed = staffMode === 'admin' ? ['admin'] : ['provider', 'employee'];
+    if (!role || !allowed.includes(role)) {
+      return <SignedInNotice reason="staffLogin" />;
+    }
   }
 
   return (

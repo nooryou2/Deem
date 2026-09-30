@@ -188,6 +188,14 @@ export const ar: Record<string, string> = {
   'Request sent': 'تم إرسال الطلب',
   'Your provider will confirm the appointment.': 'سيؤكد مزوّد الخدمة الموعد بعد مراجعة الطلب.',
 
+  'Already signed in': 'أنت مسجّل الدخول بالفعل',
+  'You are signed in as {email}. To sign in with a different account, log out first.': 'أنت مسجّل الدخول باسم {email}. لتسجيل الدخول بحساب آخر، سجّل الخروج أولًا.',
+  // ---- Service visit details ----
+  'Service details': 'تفاصيل الخدمة',
+  'Serviced by': 'نُفذت بواسطة',
+  'How it was recorded': 'طريقة التسجيل',
+  'From a booking': 'من حجز',
+  'Marked as serviced': 'تم تعليمها كمنجزة',
   // ---- Messages, dialogs and counts ----
   '"{name}" and its history will be permanently removed.': 'سيُحذف "{name}" وسجله نهائيًا.',
   'Add a Location': 'إضافة موقع',

@@ -14,7 +14,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db, auth } from '@/config/firebase';
-import { MaintenanceItem, ServiceFrequency, MaintenanceCategory } from '@/types';
+import { MaintenanceItem, ServiceFrequency, MaintenanceCategory, HistoryEntry } from '@/types';
 import { calculateNextServiceDate } from '@/utils/dateCalculations';
 import { cancelMaintenanceReminders, scheduleMaintenanceReminders } from './notificationService';
 
@@ -326,7 +326,7 @@ export async function fetchHistory(itemId: string): Promise<HistoryEntry[]> {
 
 export function subscribeToHistory(
   maintenanceItemId: string,
-  onChange: (entries: { id: string; completedDate: string }[]) => void
+  onChange: (entries: HistoryEntry[]) => void
 ): () => void {
   // Query by maintenanceItemId only (no orderBy) so this needs no composite
   // index. We sort newest-first in JS below.
@@ -336,10 +336,20 @@ export function subscribeToHistory(
   );
 
   return onSnapshot(q, (snapshot) => {
-    const entries = snapshot.docs.map((d) => ({
-      id: d.id,
-      completedDate: tsToISO(d.data().completedDate) ?? new Date().toISOString(),
-    }));
+    const entries = snapshot.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        maintenanceItemId,
+        completedDate: tsToISO(data.completedDate) ?? new Date().toISOString(),
+        notes: data.notes ?? '',
+        // Saved when a provider performed the visit; absent when self-logged.
+        providerId: data.providerId ?? null,
+        providerName: data.providerName ?? null,
+        bookingId: data.bookingId ?? null,
+        createdAt: tsToISO(data.createdAt) ?? '',
+      } as HistoryEntry;
+    });
     // Most recent completion first.
     entries.sort((a, b) => b.completedDate.localeCompare(a.completedDate));
     onChange(entries);

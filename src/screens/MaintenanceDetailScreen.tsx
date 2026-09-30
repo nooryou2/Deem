@@ -1,5 +1,7 @@
 import AttachmentPicker from '@/components/attachment-picker';
 import { useDialog } from '@/components/AppDialog';
+import DirectionalArrow from '@/components/DirectionalArrow';
+import ServiceVisitSheet from '@/components/ServiceVisitSheet';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useItemName } from '@/hooks/useItemName';
 import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
@@ -25,7 +27,7 @@ import { fetchRequestsForHomeowner } from '@/services/requestService';
 import { fetchReviewedJobIds } from '@/services/reviewService';
 import { getSavedLocations } from '@/services/roleService';
 import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
-import { Booking,MaintenanceItem,SavedLocation,ServiceRequest } from '@/types';
+import { Booking,HistoryEntry,MaintenanceItem,SavedLocation,ServiceRequest } from '@/types';
 import { areaLabel } from '@/utils/areas';
 import { formatFriendlyDate,getMaintenanceStatus } from '@/utils/dateCalculations';
 import { CATEGORY_ICONS,CATEGORY_LABELS,FREQUENCY_LABELS } from '@/utils/maintenanceTemplates';
@@ -57,11 +59,17 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
   // Keep a local copy so the screen doesn't flash "removed" during refetches,
   // and so we can update it in place right after marking complete.
   const [localItem, setLocalItem] = useState<MaintenanceItem | null>(itemFromList ?? null);
-  const [history, setHistory] = useState<{ id: string; completedDate: string }[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [jobLocation, setJobLocation] = useState<SavedLocation | null>(null);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [reviewedJobs, setReviewedJobs] = useState<string[]>([]);
+  // The visit whose details are open, with the wording already worked out.
+  const [openVisit, setOpenVisit] = useState<{
+    entry: HistoryEntry;
+    gapLabel: string;
+    isLatest: boolean;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [serviceDate, setServiceDate] = useState<Date>(new Date());
@@ -458,7 +466,13 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
             gapLabel = 'First recorded service';
           }
           return (
-            <View key={entry.id} style={styles.historyRow}>
+            <TouchableOpacity
+              key={entry.id}
+              style={styles.historyRow}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              onPress={() => setOpenVisit({ entry, gapLabel, isLatest: index === 0 })}
+            >
               <View style={styles.historyDot} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.historyDate}>{formatFriendlyDate(entry.completedDate)}</Text>
@@ -469,10 +483,40 @@ export default function MaintenanceDetailScreen({ navigation, route }: Props) {
                   <Text style={styles.latestBadgeText}>{t('Latest')}</Text>
                 </View>
               ) : null}
-            </View>
+              <DirectionalArrow
+                kind="forward"
+                shape="chevron"
+                size={18}
+                color={colors.textMuted}
+              />
+            </TouchableOpacity>
           );
         })
       )}
+
+      <ServiceVisitSheet
+        visit={openVisit?.entry ?? null}
+        isLatest={openVisit?.isLatest}
+        gapLabel={openVisit?.gapLabel}
+        // Rating is offered only for a provider's visit that hasn't been rated.
+        onRate={
+          openVisit?.entry.providerId && !reviewedJobs.includes(openVisit.entry.id)
+            ? () => {
+                const entry = openVisit.entry;
+                setOpenVisit(null);
+                navigation.navigate('WriteReview', {
+                  providerId: entry.providerId!,
+                  providerName: entry.providerName ?? '',
+                  jobId: entry.id,
+                  jobType: 'request',
+                  serviceName: item.name,
+                  servicedDate: entry.completedDate,
+                });
+              }
+            : undefined
+        }
+        onClose={() => setOpenVisit(null)}
+      />
     </ScrollView>
   );
 }

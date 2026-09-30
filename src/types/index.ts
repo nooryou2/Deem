@@ -70,6 +70,10 @@ export interface HistoryEntry {
   maintenanceItemId: string;
   completedDate: string; // ISO date string
   notes?: string;
+  /** Set when a provider performed the visit; null when logged by the owner. */
+  providerId?: string | null;
+  providerName?: string | null;
+  bookingId?: string | null;
   createdAt: string;
 }
 
