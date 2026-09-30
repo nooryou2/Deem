@@ -218,7 +218,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
         </View>
       )}
 
-      <Text style={styles.label}>{t('Address details')}</Text>
+      <Text style={[styles.label, styles.addressLabel]}>{t('Address details')}</Text>
       <InputField
         label=""
         placeholder={t('Building 123, Road 45, Flat 2')}
@@ -251,6 +251,7 @@ const styles = StyleSheet.create({
   title: { ...typography.h2 },
   subtitle: { ...typography.bodySecondary, marginTop: 2, marginBottom: spacing.md },
   label: { ...typography.bodySecondary, fontWeight: '700' },
+  addressLabel: { marginTop: spacing.md },
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
