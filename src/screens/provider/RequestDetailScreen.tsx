@@ -86,8 +86,8 @@ export default function RequestDetailScreen({ route }: Props) {
         .catch(() => {});
   }, [canManage, user, role, route.params.request.providerId]);
 
-  function notify(msg: string) {
-    dialog.alert(msg);
+  function notify(msg: string, tone: 'success' | 'error' | 'warning' = 'success') {
+    dialog.alert({ message: msg, tone });
   }
 
   async function setStatus(status: ServiceRequestStatus) {
@@ -102,7 +102,7 @@ export default function RequestDetailScreen({ route }: Props) {
       }
       setReq((r) => ({ ...r, status }));
     } catch (e) {
-      notify(t('Could not update status.'));
+      notify(t('Could not update status.'), 'error');
     } finally {
       setBusy(false);
     }
@@ -119,9 +119,9 @@ export default function RequestDetailScreen({ route }: Props) {
       }
       setReq((r) => ({ ...r, assignedEmployeeId: emp.uid, assignedEmployeeName: emp.name }));
       setAssignOpen(false);
-      notify(t('Assigned to {name}.', { name: emp.name }));
+      notify(t('Assigned to {name}.', { name: emp.name }), 'success');
     } catch (e) {
-      notify(t('Could not assign employee.'));
+      notify(t('Could not assign employee.'), 'error');
     } finally {
       setBusy(false);
     }
