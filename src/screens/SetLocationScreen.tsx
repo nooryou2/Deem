@@ -10,6 +10,7 @@ import MapPicker,{ LatLng } from '@/components/MapPicker';
 import Text from '@/components/app-text';
 import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
+import useUnsavedChangesGuard from '@/hooks/useUnsavedChangesGuard';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
 import { getSavedLocations,saveSavedLocations } from '@/services/roleService';
 import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
@@ -35,12 +36,15 @@ export default function SetLocationScreen({ navigation, route }: Props) {
   const [areaQuery, setAreaQuery] = useState('');
   const [showAreaList, setShowAreaList] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const allowNextNavigation = useUnsavedChangesGuard(navigation, dirty);
   // True when the area was filled in from the pin rather than chosen by hand.
   const [areaAutoPicked, setAreaAutoPicked] = useState(false);
 
   // Dropping a pin auto-selects the closest area, so the user rarely has to
   // pick one manually. They can still override it from the list below.
   function handleCoordsChange(next: LatLng) {
+    setDirty(true);
     setCoords(next);
     const match = nearestArea(next);
     if (match) {
@@ -116,6 +120,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
           ? 'Your location has been updated.'
           : 'Your new location has been successfully added.',
       });
+      allowNextNavigation();
       navigation.goBack();
     } catch (e) {
       console.log('save location failed:', e);
@@ -141,7 +146,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
         label=""
         placeholder={t('Home, Chalet, Office…')}
         value={label}
-        onChangeText={setLabel}
+        onChangeText={(value) => { setLabel(value); setDirty(true); }}
       />
 
       <MapPicker value={coords} onChange={handleCoordsChange} height={280} />
@@ -186,6 +191,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
                 key={a.id}
                 style={styles.areaRow}
                 onPress={() => {
+                  setDirty(true);
                   setArea(a.id);
                   setAreaAutoPicked(false);
                   setShowAreaList(false);
@@ -211,7 +217,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
         label=""
         placeholder={t('Building 123, Road 45, Flat 2')}
         value={address}
-        onChangeText={setAddress}
+        onChangeText={(value) => { setAddress(value); setDirty(true); }}
         multiline
         numberOfLines={2}
         style={{ minHeight: 64, textAlignVertical: 'top' }}
