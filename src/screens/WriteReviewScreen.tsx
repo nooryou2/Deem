@@ -12,6 +12,7 @@ import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
 import { submitReview } from '@/services/reviewService';
+import useUnsavedChangesGuard from '@/hooks/useUnsavedChangesGuard';
 import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React,{ useState } from 'react';
@@ -46,6 +47,10 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const allowNextNavigation = useUnsavedChangesGuard(
+    navigation,
+    stars > 0 || comment.trim().length > 0,
+  );
 
   function notify(msg: string) {
     dialog.alert(msg);
@@ -74,6 +79,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
         servicedDate: route.params.servicedDate,
       });
       notify(t('Thanks for your review!'));
+      allowNextNavigation();
       navigation.goBack();
     } catch (e) {
       console.log('submitReview failed:', e);
