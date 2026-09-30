@@ -9,6 +9,7 @@ import MapPicker,{ LatLng } from '@/components/MapPicker';
 import Text from '@/components/app-text';
 import { useDialog } from '@/components/AppDialog';
 import { useAuth } from '@/context/AuthContext';
+import useUnsavedChangesGuard from '@/hooks/useUnsavedChangesGuard';
 import type { ProviderStackParamList } from '@/navigation/ProviderNavigator';
 import { getProviderProfile,saveProviderServiceAreas } from '@/services/roleService';
 import { colors,radius,shadow,spacing,typography } from '@/theme/theme';
@@ -39,6 +40,8 @@ export default function ProviderAreasScreen({ navigation }: Props) {
   const [address, setAddress] = useState('');
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [dirty, setDirty] = useState(false);
+  const allowNextNavigation = useUnsavedChangesGuard(navigation, dirty);
 
   useEffect(() => {
     if (!user) return;
@@ -60,6 +63,7 @@ export default function ProviderAreasScreen({ navigation }: Props) {
   // Dropping a pin suggests the surrounding area — the provider still confirms,
   // since where they're based isn't necessarily all they cover.
   function handleCoords(next: LatLng) {
+    setDirty(true);
     setCoords(next);
     const match = nearestArea(next);
     if (match && !areas.includes(match.id)) {
@@ -77,10 +81,12 @@ export default function ProviderAreasScreen({ navigation }: Props) {
   }, [query]);
 
   function toggleArea(id: string) {
+    setDirty(true);
     setAreas((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
   function toggleGovernorate(ids: string[], allOn: boolean) {
+    setDirty(true);
     setAreas((prev) =>
       allOn ? prev.filter((a) => !ids.includes(a)) : Array.from(new Set([...prev, ...ids])),
     );
@@ -97,6 +103,7 @@ export default function ProviderAreasScreen({ navigation }: Props) {
         coords ? { lat: coords.lat, lng: coords.lng } : null,
       );
       notify(t('Your coverage was saved.'));
+      allowNextNavigation();
       navigation.goBack();
     } catch {
       notify(t('Could not save. Please try again.'));
