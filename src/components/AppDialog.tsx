@@ -16,7 +16,7 @@ import Button from '@/components/Button';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { colors, radius, spacing, shadow, typography } from '@/theme/theme';
 
-type DialogTone = 'success' | 'error' | 'warning' | 'question';
+type DialogTone = 'success' | 'accepted' | 'assigned' | 'started' | 'completed' | 'error' | 'warning' | 'question';
 
 interface DialogOptions {
   title?: string;
@@ -50,6 +50,10 @@ export function useDialog(): DialogApi {
 
 const TONES: Record<DialogTone, { icon: keyof typeof Ionicons.glyphMap; color: string; tint: string }> = {
   success: { icon: 'checkmark-circle-outline', color: '#15803D', tint: '#DCFCE7' },
+  accepted: { icon: 'checkmark-circle', color: '#15803D', tint: '#DCFCE7' },
+  assigned: { icon: 'person-add', color: '#6D5BD0', tint: '#EEEAFE' },
+  started: { icon: 'play-circle', color: '#2563EB', tint: '#DBEAFE' },
+  completed: { icon: 'checkmark-done-circle', color: '#15803D', tint: '#DCFCE7' },
   error: { icon: 'close-circle', color: '#C62828', tint: '#FDECEC' },
   warning: { icon: 'warning-outline', color: '#B45309', tint: '#FFF3CD' },
   question: { icon: 'help-circle-outline', color: colors.primary, tint: colors.primaryLight },
