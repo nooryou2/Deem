@@ -147,7 +147,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
         {t('Drop a pin so technicians know exactly where to come.')}
       </Text>
 
-      <Text style={[styles.label, { marginTop: spacing.md }]}>{t('Name this place')}</Text>
+      <Text style={[styles.label, styles.firstFieldLabel]}>{t('Name this place')}</Text>
       <InputField
         label=""
         placeholder={t('Home, Chalet, Office…')}
@@ -230,7 +230,7 @@ export default function SetLocationScreen({ navigation, route }: Props) {
       />
 
       <Button
-        label={editingId ? 'Update Location' : 'Save Location'}
+        label={t(editingId ? 'Update Location' : 'Save Location')}
         onPress={handleSave}
         loading={saving}
         style={{ marginTop: spacing.md }}
@@ -251,6 +251,7 @@ const styles = StyleSheet.create({
   title: { ...typography.h2 },
   subtitle: { ...typography.bodySecondary, marginTop: 2, marginBottom: spacing.md },
   label: { ...typography.bodySecondary, fontWeight: '700' },
+  firstFieldLabel: { marginTop: spacing.lg },
   addressLabel: { marginTop: spacing.md },
   labelRow: {
     flexDirection: 'row',
