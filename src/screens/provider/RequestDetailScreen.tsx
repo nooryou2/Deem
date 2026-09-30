@@ -1,5 +1,4 @@
 import AttachmentPicker from '@/components/attachment-picker';
-import QuoteCard from '@/components/quote-card';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { formatTimeSlot as prettyTime } from '@/utils/dateCalculations';
 // src/screens/provider/RequestDetailScreen.tsx
@@ -103,11 +102,7 @@ export default function RequestDetailScreen({ route }: Props) {
       }
       setReq((r) => ({ ...r, status }));
     } catch (e) {
-      notify(
-        e instanceof Error && e.message === 'QUOTE_REQUIRED'
-          ? t('The customer must accept the quote before work starts.')
-          : t('Could not update status.'),
-      );
+      notify(t('Could not update status.'));
     } finally {
       setBusy(false);
     }
@@ -253,13 +248,6 @@ export default function RequestDetailScreen({ route }: Props) {
 
       <View style={{ paddingHorizontal: spacing.lg }}>
         <AttachmentPicker value={req.attachments ?? []} readonly />
-        <QuoteCard
-          jobId={req.id}
-          jobType={req.isBooking ? 'booking' : 'request'}
-          providerId={req.providerId}
-          customerId={req.homeownerId}
-          canOffer={canManage && ['pending', 'accepted'].includes(req.status)}
-        />
       </View>
       <View style={styles.actionsWrap}>
         {/* Provider / manager actions */}
