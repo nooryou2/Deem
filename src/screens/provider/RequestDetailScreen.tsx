@@ -101,6 +101,16 @@ export default function RequestDetailScreen({ route }: Props) {
         await updateRequestStatus(req.id, status);
       }
       setReq((r) => ({ ...r, status }));
+
+      if (status === 'accepted') {
+        notify(t('Request accepted.'), 'success');
+      } else if (status === 'declined') {
+        notify(t('Request declined.'), 'error');
+      } else if (status === 'in_progress') {
+        notify(t('Work started.'), 'success');
+      } else if (status === 'completed') {
+        notify(t('Request completed.'), 'success');
+      }
     } catch (e) {
       notify(t('Could not update status.'), 'error');
     } finally {
