@@ -2,7 +2,6 @@ import { db } from '@/config/firebase';
 import type { ServiceRequestStatus } from '@/types';
 import { calculateNextServiceDate } from '@/utils/dateCalculations';
 import { Timestamp,arrayRemove,doc,runTransaction,serverTimestamp } from 'firebase/firestore';
-import { quoteId } from './quoteService';
 
 const NEXT: Record<ServiceRequestStatus, ServiceRequestStatus[]> = {
   pending: ['accepted', 'declined'],
@@ -25,10 +24,6 @@ export async function changeJobStatus(
     if (job.status === status) return;
     if (!NEXT[job.status as ServiceRequestStatus]?.includes(status))
       throw new Error('INVALID_TRANSITION');
-    const quote =
-      status === 'in_progress' ? await tx.get(doc(db, 'quotes', quoteId(type, id))) : null;
-    if (status === 'in_progress' && quote?.data()?.status !== 'accepted')
-      throw new Error('QUOTE_REQUIRED');
     const itemRef =
       job.maintenanceItemId && (type === 'booking' || job.hasLinkedItem)
         ? doc(db, 'maintenanceItems', job.maintenanceItemId)
