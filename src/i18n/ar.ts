@@ -420,6 +420,9 @@ export const ar: Record<string, string> = {
   'Request declined.': 'تم رفض الطلب.',
   'Work started.': 'تم بدء العمل.',
   'Request completed.': 'تم إكمال الطلب.',
+  'Leave without saving?': 'الخروج بدون حفظ؟',
+  'You have unsaved changes. Do you want to leave without saving?': 'لديك تغييرات غير محفوظة. هل تريد الخروج بدون حفظ؟',
+  'Leave': 'خروج',
 };
 
 Object.assign(ar, {
