@@ -62,7 +62,7 @@ type RankedProvider = ProviderProfile & { distance: number | null };
 export default function ProvidersScreen({ navigation }: Props) {
   const { t, tp } = useLanguage();
   const { user } = useAuth();
-  const { providers, loading } = useAreaFilteredProviders();
+  const { providers, loading, reload } = useAreaFilteredProviders();
 
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('best');
@@ -80,6 +80,14 @@ export default function ProvidersScreen({ navigation }: Props) {
 
   // Distances are measured from whichever saved place the user has chosen.
   const home = locations.find((l) => l.id === homeId) ?? null;
+
+  // Refresh provider data (including review ratings) whenever this tab regains
+  // focus, so a newly submitted review appears immediately.
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload]),
+  );
 
   // Reloads on focus so a location added from the picker appears right away.
   useFocusEffect(
