@@ -34,7 +34,15 @@ export default function ProviderDetailScreen({ route }: Props) {
       .finally(() => setLoading(false));
   }, [provider.uid]);
 
-  const rating = provider.rating;
+  const rating =
+    reviews.length > 0
+      ? {
+          averageStars: reviews.reduce((sum, review) => sum + review.stars, 0) / reviews.length,
+          averageScore:
+            (reviews.reduce((sum, review) => sum + review.stars, 0) / reviews.length) * 2,
+          count: reviews.length,
+        }
+      : provider.rating;
   const appliances = provider.appliances ?? [];
   const areas = provider.serviceAreas ?? [];
 
