@@ -8,6 +8,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
+import { getProviderRating } from '@/services/reviewService';
 import {
   UserRole,
   ProviderProfile,
@@ -70,20 +71,25 @@ export async function getUserRole(uid: string): Promise<UserRole | null> {
 export async function listProviders(): Promise<ProviderProfile[]> {
   try {
     const snap = await getDocs(collection(db, PROVIDERS));
-    return snap.docs.map((d) => {
-      const data = d.data();
-      return {
-        uid: data.uid ?? d.id,
-        name: data.name ?? 'Service Provider',
-        category: data.category,
-        description: data.description,
-        appliances: data.appliances ?? [],
-        otherAppliance: data.otherAppliance ?? '',
-        address: data.address ?? '',
-        serviceAreas: data.serviceAreas ?? [],
-        location: data.location ?? null,
-      };
-    });
+    return Promise.all(
+      snap.docs.map(async (d) => {
+        const data = d.data();
+        const uid = data.uid ?? d.id;
+        const rating = await getProviderRating(uid).catch(() => null);
+        return {
+          uid,
+          name: data.name ?? 'Service Provider',
+          category: data.category,
+          description: data.description,
+          appliances: data.appliances ?? [],
+          otherAppliance: data.otherAppliance ?? '',
+          address: data.address ?? '',
+          serviceAreas: data.serviceAreas ?? [],
+          location: data.location ?? null,
+          rating,
+        };
+      }),
+    );
   } catch (e) {
     console.log('listProviders failed:', e);
     return [];
