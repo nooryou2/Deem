@@ -49,10 +49,10 @@ export function useDialog(): DialogApi {
 }
 
 const TONES: Record<DialogTone, { icon: keyof typeof Ionicons.glyphMap; color: string; tint: string }> = {
-  success: { icon: 'checkmark', color: colors.primary, tint: colors.primaryLight },
-  error: { icon: 'alert-circle-outline', color: '#D92D20', tint: '#FEE4E2' },
-  warning: { icon: 'alert', color: '#B54708', tint: '#FEF0C7' },
-  question: { icon: 'help', color: colors.primary, tint: colors.primaryLight },
+  success: { icon: 'checkmark-circle-outline', color: '#15803D', tint: '#DCFCE7' },
+  error: { icon: 'close-circle', color: '#C62828', tint: '#FDECEC' },
+  warning: { icon: 'warning-outline', color: '#B45309', tint: '#FFF3CD' },
+  question: { icon: 'help-circle-outline', color: colors.primary, tint: colors.primaryLight },
 };
 
 export function DialogProvider({ children }: { children: React.ReactNode }) {
@@ -122,6 +122,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
             ) : (
               <Button
                 label={t(pending?.confirmLabel ?? 'Done')}
+                variant={tone === 'error' ? 'danger' : 'primary'}
                 onPress={() => close(true)}
                 style={{ marginTop: spacing.lg, alignSelf: 'stretch' }}
               />
