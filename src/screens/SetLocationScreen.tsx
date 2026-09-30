@@ -131,7 +131,13 @@ export default function SetLocationScreen({ navigation, route }: Props) {
   }
 
   const filteredAreas = areaQuery.trim()
-    ? AREAS.filter((a) => a.label.toLowerCase().includes(areaQuery.trim().toLowerCase()))
+    ? AREAS.filter((a) => {
+        const query = areaQuery.trim().toLowerCase();
+        return (
+          a.label.toLowerCase().includes(query) ||
+          t(a.label).toLowerCase().includes(query)
+        );
+      })
     : AREAS;
 
   return (
