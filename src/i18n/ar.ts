@@ -415,6 +415,11 @@ export const ar: Record<string, string> = {
   'Could not delete the template.': 'تعذّر حذف القالب.',
   'Log out?': 'تسجيل الخروج؟',
   'Reminder timing is set per user on their own device, so it is not configured here.': 'يُضبط توقيت التذكير لكل مستخدم على جهازه، لذلك لا يُضبط هنا.',
+
+  'Request accepted.': 'تم قبول الطلب.',
+  'Request declined.': 'تم رفض الطلب.',
+  'Work started.': 'تم بدء العمل.',
+  'Request completed.': 'تم إكمال الطلب.',
 };
 
 Object.assign(ar, {
