@@ -96,8 +96,9 @@ export default function MaintenanceCard({ item, onPress }: Props) {
         )}
       </View>
 
-      {/* Booking state, when this task came from a calendar booking */}
-      {bookMeta && (
+      {/* The top-right Pending badge already represents an unconfirmed booking,
+          so don't repeat "Awaiting confirmation" underneath the card. */}
+      {bookMeta && item.bookingStatus !== 'pending' && (
         <View style={[styles.reqBadge, { backgroundColor: bookMeta.tint }]}>
           <Text style={[styles.reqBadgeText, { color: bookMeta.color }]}>{bookMeta.icon} {t(bookMeta.label)}</Text>
         </View>
