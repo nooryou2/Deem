@@ -86,7 +86,7 @@ export default function RequestDetailScreen({ route }: Props) {
         .catch(() => {});
   }, [canManage, user, role, route.params.request.providerId]);
 
-  function notify(msg: string, tone: 'success' | 'error' | 'warning' = 'success') {
+  function notify(msg: string, tone: 'success' | 'accepted' | 'assigned' | 'started' | 'completed' | 'error' | 'warning' = 'success') {
     dialog.alert({ message: msg, tone });
   }
 
@@ -103,13 +103,13 @@ export default function RequestDetailScreen({ route }: Props) {
       setReq((r) => ({ ...r, status }));
 
       if (status === 'accepted') {
-        notify(t('Request accepted.'), 'success');
+        notify(t('Request accepted.'), 'accepted');
       } else if (status === 'declined') {
         notify(t('Request declined.'), 'error');
       } else if (status === 'in_progress') {
-        notify(t('Work started.'), 'success');
+        notify(t('Work started.'), 'started');
       } else if (status === 'completed') {
-        notify(t('Request completed.'), 'success');
+        notify(t('Request completed.'), 'completed');
       }
     } catch (e) {
       notify(t('Could not update status.'), 'error');
@@ -129,7 +129,7 @@ export default function RequestDetailScreen({ route }: Props) {
       }
       setReq((r) => ({ ...r, assignedEmployeeId: emp.uid, assignedEmployeeName: emp.name }));
       setAssignOpen(false);
-      notify(t('Assigned to {name}.', { name: emp.name }), 'success');
+      notify(t('Assigned to {name}.', { name: emp.name }), 'assigned');
     } catch (e) {
       notify(t('Could not assign employee.'), 'error');
     } finally {
