@@ -28,10 +28,10 @@ export default function useUnsavedChangesGuard(
       event.preventDefault();
       dialog
         .confirm({
-          title: 'Unsaved changes',
+          title: 'Leave without saving?',
           message: 'You have unsaved changes. Do you want to leave without saving?',
           tone: 'warning',
-          confirmLabel: 'Leave without saving',
+          confirmLabel: 'Leave',
           cancelLabel: 'Keep editing',
           destructive: true,
         })
