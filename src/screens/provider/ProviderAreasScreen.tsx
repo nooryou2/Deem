@@ -76,9 +76,14 @@ export default function ProviderAreasScreen({ navigation }: Props) {
     const all = areasByGovernorate();
     if (!q) return all;
     return all
-      .map((g) => ({ ...g, areas: g.areas.filter((a) => a.label.toLowerCase().includes(q)) }))
+      .map((g) => ({
+        ...g,
+        areas: g.areas.filter(
+          (a) => a.label.toLowerCase().includes(q) || t(a.label).toLowerCase().includes(q),
+        ),
+      }))
       .filter((g) => g.areas.length > 0);
-  }, [query]);
+  }, [query, t]);
 
   function toggleArea(id: string) {
     setDirty(true);
