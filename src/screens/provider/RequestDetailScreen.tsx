@@ -237,7 +237,7 @@ export default function RequestDetailScreen({ route }: Props) {
         <Row label={t('Requested on')} value={formatFriendlyDate(req.createdAt)} />
         <Row
           label={t('Assigned to')}
-          value={req.assignedEmployeeName || t('Not assigned yet')}
+          value={req.assignedEmployeeName || t('Not assigned')}
           last
         />
       </View>
