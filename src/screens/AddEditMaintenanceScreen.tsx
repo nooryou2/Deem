@@ -1,5 +1,4 @@
 import AttachmentPicker from '@/components/attachment-picker';
-import { useDialog } from '@/components/AppDialog';
 import { useLanguage } from '@/i18n/LanguageContext';
 import type { Attachment } from '@/types';
 import { isISODate } from '@/utils/bookingValidation';
@@ -12,6 +11,7 @@ import LocationPicker from '@/components/LocationPicker';
 import Text from '@/components/app-text';
 import { useAuth } from '@/context/AuthContext';
 import { useMaintenanceItems } from '@/hooks/useMaintenanceItems';
+import useUnsavedChangesGuard from '@/hooks/useUnsavedChangesGuard';
 import type { MainStackParamList } from '@/navigation/MainNavigator';
 import { createMaintenanceItem, updateMaintenanceItem } from '@/services/maintenanceService';
 import { colors, spacing, typography } from '@/theme/theme';
@@ -41,7 +41,6 @@ const FREQUENCY_OPTIONS = Object.entries(FREQUENCY_LABELS).map(([value, label]) 
 
 export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
   const { t } = useLanguage();
-  const dialog = useDialog();
   const { user } = useAuth();
   const { items } = useMaintenanceItems();
   const editingId = route.params?.itemId;
@@ -63,6 +62,8 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
   const [lastServiceDate, setLastServiceDate] = useState<Date>(new Date());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [dirty, setDirty] = useState(false);
+  const allowNextNavigation = useUnsavedChangesGuard(navigation, dirty);
 
   const isEditing = Boolean(editingItem);
 
@@ -86,6 +87,7 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
   }, [editingItem]);
 
   function applyTemplate(templateIndex: number) {
+    setDirty(true);
     const template = MAINTENANCE_TEMPLATES[templateIndex];
     setName(`${t(template.itemName)} – ${t(template.taskName)}`);
     setCategory(template.category);
@@ -149,6 +151,7 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
           attachments,
         });
       }
+      allowNextNavigation();
       navigation.goBack();
     } catch (e) {
       // Surface the real reason so configuration issues (e.g. Firestore rules,
@@ -172,19 +175,7 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
   }
 
   function confirmDiscard() {
-    if (name.trim() && !isEditing) {
-      dialog
-        .confirm({
-          title: 'Discard changes?',
-          message: 'Your unsaved item will be lost.',
-          confirmLabel: 'Discard',
-          cancelLabel: 'Keep editing',
-          destructive: true,
-        })
-        .then((ok) => ok && navigation.goBack());
-    } else {
-      navigation.goBack();
-    }
+    navigation.goBack();
   }
 
   return (
@@ -216,14 +207,14 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
           label={t('Item Name')}
           placeholder={t('e.g. AC Unit – Filter Cleaning')}
           value={name}
-          onChangeText={setName}
+          onChangeText={(value) => { setName(value); setDirty(true); }}
         />
 
         <Text style={styles.sectionLabel}>{t('Category')}</Text>
         <ChipSelector
           options={CATEGORY_OPTIONS}
           selectedValue={category}
-          onSelect={(v) => setCategory(v as MaintenanceCategory)}
+          onSelect={(v) => { setCategory(v as MaintenanceCategory); setDirty(true); }}
         />
 
         <Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>
@@ -232,7 +223,7 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
         <ChipSelector
           options={FREQUENCY_OPTIONS}
           selectedValue={frequency}
-          onSelect={(v) => setFrequency(v as ServiceFrequency)}
+          onSelect={(v) => { setFrequency(v as ServiceFrequency); setDirty(true); }}
         />
 
         {frequency === 'custom' && (
@@ -240,7 +231,7 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
             label={t('Repeat every (days)')}
             keyboardType="number-pad"
             value={customDays}
-            onChangeText={setCustomDays}
+            onChangeText={(value) => { setCustomDays(value); setDirty(true); }}
             style={{ marginTop: spacing.md }}
           />
         )}
@@ -249,7 +240,7 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
           <DatePickerField
             label={t('Last serviced on')}
             value={lastServiceDate}
-            onChange={setLastServiceDate}
+            onChange={(value) => { setLastServiceDate(value); setDirty(true); }}
           />
           <Text style={styles.dateHint}>
             {t('The next service date is calculated from this. Defaults to today.')}
@@ -260,7 +251,13 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
         <Text style={styles.locationHint}>
           {t('Pick which of your saved places this appliance is at.')}
         </Text>
-        <LocationPicker value={locationId} onChange={setLocationId} />
+        <LocationPicker
+          value={locationId}
+          onChange={(value) => {
+            if (locationId !== null || isEditing) setDirty(true);
+            setLocationId(value);
+          }}
+        />
 
         <InputField
           label={t('Notes (optional)')}
@@ -268,32 +265,32 @@ export default function AddEditMaintenanceScreen({ navigation, route }: Props) {
           multiline
           numberOfLines={3}
           value={notes}
-          onChangeText={setNotes}
+          onChangeText={(value) => { setNotes(value); setDirty(true); }}
           style={{ minHeight: 80, textAlignVertical: 'top', marginTop: spacing.md }}
         />
 
         <Text style={styles.sectionLabel}>{t('Device file')}</Text>
-        <InputField label={t('Brand and model')} value={brandModel} onChangeText={setBrandModel} />
+        <InputField label={t('Brand and model')} value={brandModel} onChangeText={(value) => { setBrandModel(value); setDirty(true); }} />
         <InputField
           label={t('Serial number')}
           value={serialNumber}
-          onChangeText={setSerialNumber}
+          onChangeText={(value) => { setSerialNumber(value); setDirty(true); }}
         />
         <InputField
           label={t('Warranty expiry')}
           placeholder="YYYY-MM-DD"
           value={warrantyExpiry}
-          onChangeText={setWarrantyExpiry}
+          onChangeText={(value) => { setWarrantyExpiry(value); setDirty(true); }}
         />
         <InputField
           label={t('Warranty notes')}
           value={warrantyNotes}
-          onChangeText={setWarrantyNotes}
+          onChangeText={(value) => { setWarrantyNotes(value); setDirty(true); }}
           multiline
         />
         <AttachmentPicker
           value={attachments}
-          onChange={setAttachments}
+          onChange={(value) => { setAttachments(value); setDirty(true); }}
           onBusyChange={setUploading}
         />
         {error ? <Text style={styles.error}>{t(error)}</Text> : null}
