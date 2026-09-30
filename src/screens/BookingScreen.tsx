@@ -31,6 +31,7 @@ import { CATEGORY_LABELS } from '@/utils/maintenanceTemplates';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import useUnsavedChangesGuard from '@/hooks/useUnsavedChangesGuard';
 import {
   ActivityIndicator,
   ScrollView,
@@ -146,6 +147,18 @@ export default function BookingScreen({ navigation, route }: Props) {
   const [slotError, setSlotError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const hasUnsavedChanges =
+    !done &&
+    (step > 0 ||
+      !useExisting ||
+      Boolean(category) ||
+      Boolean(applianceName.trim()) ||
+      Boolean(applianceId) ||
+      Boolean(selectedDate) ||
+      Boolean(selectedSlot) ||
+      Boolean(description.trim()) ||
+      Boolean(providerId && providerId !== (route.params?.providerId ?? null)));
+  useUnsavedChangesGuard(navigation, hasUnsavedChanges);
   const [bookedSummary, setBookedSummary] = useState<{
     date: string;
     slot: string;
