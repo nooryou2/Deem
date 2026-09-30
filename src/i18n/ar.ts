@@ -423,6 +423,8 @@ export const ar: Record<string, string> = {
   'Leave without saving?': 'الخروج بدون حفظ؟',
   'You have unsaved changes. Do you want to leave without saving?': 'لديك تغييرات غير محفوظة. هل تريد الخروج بدون حفظ؟',
   'Leave': 'خروج',
+  'Update Location': 'تحديث الموقع',
+  'Save Location': 'حفظ الموقع',
 };
 
 Object.assign(ar, {
