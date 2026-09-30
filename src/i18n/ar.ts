@@ -105,7 +105,7 @@ export const ar: Record<string, string> = {
   Customer: 'العميل',
   'Requested on': 'تاريخ الطلب',
   'Assigned to': 'الفني المسؤول',
-  'Not assigned yet': 'لم يُعيّن فني بعد',
+  'Not assigned': 'لم يُعيّن فني',
   'Customer notes': 'ملاحظات العميل',
   'Assign Employee': 'تعيين فني',
   'Reassign Employee': 'تغيير الفني',
