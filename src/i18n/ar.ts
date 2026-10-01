@@ -896,3 +896,9 @@ Object.assign(ar, {
   'New Location': 'موقع جديد',
   'Saved locations': 'المواقع المحفوظة',
 });
+
+Object.assign(ar, {
+  'Admin account': 'حساب المسؤول',
+  'Admin accounts are managed in the DEEM admin console, not in this app.': 'تُدار حسابات المسؤولين من لوحة إدارة ديم المنفصلة، وليس من هذا التطبيق.',
+  'This is an admin account. Please use the DEEM admin console.': 'هذا حساب مسؤول. يرجى استخدام لوحة إدارة ديم.',
+});
