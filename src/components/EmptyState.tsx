@@ -11,17 +11,24 @@ interface Props {
   title: string;
   subtitle?: string;
   variant?: 'default' | 'success';
+  compact?: boolean;
 }
 
-export default function EmptyState({ icon = '🏠', title, subtitle, variant = 'default' }: Props) {
+export default function EmptyState({
+  icon = '🏠',
+  title,
+  subtitle,
+  variant = 'default',
+  compact = false,
+}: Props) {
   const { t } = useLanguage();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, compact && styles.compactContainer]}>
       {variant === 'success' ? (
         <View style={styles.successIconWrap}>
           <View style={[styles.ray, styles.rayTop]} />
           <View style={[styles.ray, styles.rayTopRight]} />
-          <View style={[styles.ray, styles.rayRight, styles.rayGreen]} />
+          <View style={[styles.ray, styles.rayRight]} />
           <View style={[styles.ray, styles.rayBottomRight]} />
           <View style={[styles.ray, styles.rayBottom]} />
           <View style={[styles.ray, styles.rayBottomLeft]} />
@@ -46,6 +53,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.lg,
+  },
+  compactContainer: {
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
   },
   icon: {
     fontSize: 40,
@@ -74,7 +85,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: colors.primary,
   },
-  rayGreen: { backgroundColor: '#7FA23A' },
   rayTop: { top: 0, left: 40 },
   rayTopRight: { top: 10, right: 10, transform: [{ rotate: '45deg' }] },
   rayRight: { right: 0, top: 36, transform: [{ rotate: '90deg' }] },
