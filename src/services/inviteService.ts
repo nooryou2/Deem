@@ -98,17 +98,15 @@ export function inviteLink(token: string): string {
  * invitation links are ordinary https links that open in the browser.
  */
 export const PROVIDER_LOGIN_PATH = 'provider/login';
-export const ADMIN_LOGIN_PATH = 'admin/login';
 
 /**
  * Which staff sign-in page the app was opened on, if any. Web only — these are
  * ordinary links, kept out of the public UI on purpose.
  */
-export function readStaffLoginFromUrl(): 'provider' | 'admin' | null {
+export function readStaffLoginFromUrl(): 'provider' | null {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
   const path = window.location.pathname.replace(/\/+$/, '');
   if (path === `/${PROVIDER_LOGIN_PATH}`) return 'provider';
-  if (path === `/${ADMIN_LOGIN_PATH}`) return 'admin';
   return null;
 }
 
