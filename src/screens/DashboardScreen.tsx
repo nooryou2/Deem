@@ -44,6 +44,9 @@ export default function DashboardScreen({ navigation }: Props) {
     )[0];
   const { items, summary, loading, error: itemsError, refresh } = useMaintenanceItems();
   const [refreshing, setRefreshing] = React.useState(false);
+  const [viewportHeight, setViewportHeight] = React.useState(0);
+  const [contentHeight, setContentHeight] = React.useState(0);
+  const canScroll = contentHeight > viewportHeight + 2;
 
   const priorityItems = items
     .filter(
@@ -61,6 +64,12 @@ export default function DashboardScreen({ navigation }: Props) {
       style={styles.flex}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
+      scrollEnabled={canScroll}
+      bounces={canScroll}
+      alwaysBounceVertical={false}
+      overScrollMode="never"
+      onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
+      onContentSizeChange={(_, height) => setContentHeight(height)}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -80,7 +89,6 @@ export default function DashboardScreen({ navigation }: Props) {
           <Text style={styles.greeting}>
             {t('Hi,')} {firstName}
           </Text>
-          <Ionicons name="hand-left-outline" size={16} color={colors.primary} style={styles.waveIcon} />
         </View>
         <Text style={styles.mainTitle}>{t('Your home at a glance')}</Text>
       </View>
@@ -221,9 +229,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
-  },
-  waveIcon: {
-    marginStart: 6,
   },
   mainTitle: {
     fontSize: 26,
