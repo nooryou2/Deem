@@ -17,8 +17,8 @@ export type AuthStackParamList = {
   ForgotPassword: undefined;
   /** Invite-only. Reached solely through an admin's invitation link. */
   ProviderSignup: { invite?: string };
-  /** Staff entrance: 'provider' or 'admin'. Reached by URL only. */
-  StaffLogin: { mode?: 'provider' | 'admin' };
+  /** Staff entrance for providers and their employees. Reached by URL only. */
+  StaffLogin: { mode?: 'provider' };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
