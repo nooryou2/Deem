@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#6B6257' },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
