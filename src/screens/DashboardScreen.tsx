@@ -244,12 +244,12 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: '#6B6257',
   },
   mainTitle: {
     fontSize: 26,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: '#B45309',
     letterSpacing: -0.5,
   },
 
