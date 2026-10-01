@@ -61,7 +61,7 @@ export default function MaintenanceCard({ item, onPress }: Props) {
         </View>
 
         <View style={styles.content}>
-          <Text style={typography.h3} numberOfLines={1}>
+          <Text style={styles.applianceTitle} numberOfLines={1}>
             {itemName(item.name)}
           </Text>
           <Text style={styles.meta}>
@@ -141,6 +141,12 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     marginRight: spacing.sm,
+  },
+  applianceTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#5B534B',
+    letterSpacing: -0.1,
   },
   meta: {
     ...typography.caption,
