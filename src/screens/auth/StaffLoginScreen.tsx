@@ -1,11 +1,9 @@
 // src/screens/auth/StaffLoginScreen.tsx
 //
-// Sign-in for service providers, their employees, and admins. Kept separate
-// from the homeowner page so each role has its own entrance: a provider's
-// credentials do not work on the homeowner page and vice versa.
+// Sign-in for service providers and their employees. Kept separate from the
+// homeowner page so each role has its own entrance.
 //
-// Reached only by URL (…/provider/login or …/admin/login); nothing in the
-// public app links here.
+// Reached only by URL (…/provider/login); nothing in the public app links here.
 
 import React, { useState } from 'react';
 import {
@@ -32,24 +30,16 @@ import type { AuthStackParamList } from '@/navigation/AuthNavigator';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'StaffLogin'>;
 
-/** Which roles each entrance accepts, and how it describes itself. */
-const MODES: Record<string, { title: string; subtitle: string; allowed: UserRole[] }> = {
-  provider: {
-    title: 'Service Provider Sign In',
-    subtitle: 'For service providers and their team members.',
-    allowed: ['provider', 'employee'],
-  },
-  admin: {
-    title: 'Admin Sign In',
-    subtitle: 'For DEEM administrators.',
-    allowed: ['admin'],
-  },
+const MODE: { title: string; subtitle: string; allowed: UserRole[] } = {
+  title: 'Service Provider Sign In',
+  subtitle: 'For service providers and their team members.',
+  allowed: ['provider', 'employee'],
 };
 
-export default function StaffLoginScreen({ route, navigation }: Props) {
+export default function StaffLoginScreen({ navigation }: Props) {
   const { login } = useAuth();
   const { t } = useLanguage();
-  const mode = MODES[route.params?.mode ?? 'provider'] ?? MODES.provider;
+  const mode = MODE;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -121,7 +111,7 @@ export default function StaffLoginScreen({ route, navigation }: Props) {
         <View style={styles.card}>
           <View style={styles.badge}>
             <Ionicons
-              name={mode.allowed.includes('admin') ? 'shield-checkmark-outline' : 'construct-outline'}
+              name="construct-outline"
               size={16}
               color={colors.primary}
             />
