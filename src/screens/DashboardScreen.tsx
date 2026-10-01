@@ -170,14 +170,7 @@ export default function DashboardScreen({ navigation }: Props) {
       {!!itemsError && (
         <Text style={{ color: colors.danger }}>{t('Could not load. Please try again.')}</Text>
       )}
-      {/* Priority Needs Section */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{t('Needs Attention')}</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{fmtNumber(priorityItems.length)}</Text>
-        </View>
-      </View>
-
+      {/* Priority maintenance list */}
       <View style={styles.listContainer}>
         {!loading && priorityItems.length === 0 ? (
           <EmptyState
@@ -269,30 +262,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginBottom: 12,
-  },
-
-  // Section
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  badge: {
-    backgroundColor: '#FAF5EA',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#7A4100',
   },
 
   listContainer: {
