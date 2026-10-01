@@ -32,7 +32,7 @@ interface AuthContextValue {
   companyName: string | null;
   /**
    * `allowed` restricts which roles may sign in here, keeping the homeowner,
-   * provider and admin entrances separate. An account with the wrong role is
+   * homeowner and provider entrances separate. An account with the wrong role is
    * signed straight back out and ROLE_NOT_ALLOWED is thrown.
    */
   login: (email: string, password: string, allowed?: UserRole[]) => Promise<void>;
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             stored === 'homeowner'
               ? 'This is a homeowner account. Please sign in on the main DEEM page.'
               : stored === 'admin'
-                ? 'This is an admin account. Please use the admin sign-in page.'
+                ? 'This is an admin account. Please use the DEEM admin console.'
                 : 'This is a service provider account. Please use the service provider sign-in page.'
           );
         }
