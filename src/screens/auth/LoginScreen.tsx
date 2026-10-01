@@ -58,7 +58,7 @@ export default function LoginScreen({ navigation }: Props) {
       setFormError(
         error?.message === 'ROLE_NOT_ALLOWED'
           ? error.actualRole === 'admin'
-            ? 'This is an admin account. Please use the admin sign-in page.'
+            ? 'This is an admin account. Please use the DEEM admin console.'
             : 'This is a service provider account. Please use the service provider sign-in page.'
           : getAuthErrorMessage(error, 'login')
       );
@@ -89,7 +89,7 @@ export default function LoginScreen({ navigation }: Props) {
       setFormError(
         error?.message === 'ROLE_NOT_ALLOWED'
           ? error.actualRole === 'admin'
-            ? 'This is an admin account. Please use the admin sign-in page.'
+            ? 'This is an admin account. Please use the DEEM admin console.'
             : 'This is a service provider account. Please use the service provider sign-in page.'
           : getAuthErrorMessage(error, 'login')
       );
