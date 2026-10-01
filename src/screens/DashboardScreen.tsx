@@ -174,7 +174,7 @@ export default function DashboardScreen({ navigation }: Props) {
       <View style={styles.listContainer}>
         {!loading && priorityItems.length === 0 ? (
           <EmptyState
-            icon="✨"
+            variant="success"
             title={t("You're all caught up!")}
             subtitle={t('Nothing overdue or due soon right now. Enjoy your day.')}
           />
