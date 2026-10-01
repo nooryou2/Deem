@@ -7,7 +7,7 @@ import { BookingStatus,MaintenanceItem,MaintenanceStatus,ServiceRequestStatus } 
 import { daysUntil,formatFriendlyDate } from '@/utils/dateCalculations';
 import { CATEGORY_ICONS,FREQUENCY_LABELS } from '@/utils/maintenanceTemplates';
 import React from 'react';
-import { StyleSheet,TouchableOpacity,View } from 'react-native';
+import { Platform,StyleSheet,TouchableOpacity,View } from 'react-native';
 import StatusBadge from './StatusBadge';
 
 interface Props {
@@ -143,10 +143,17 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   applianceTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#5B534B',
-    letterSpacing: -0.1,
+    fontFamily: Platform.select({
+      web: 'Trebuchet MS, Arial, sans-serif',
+      ios: 'Avenir Next',
+      android: 'sans-serif-medium',
+      default: undefined,
+    }),
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#5A524A',
+    lineHeight: 22,
+    letterSpacing: -0.2,
   },
   meta: {
     ...typography.caption,
