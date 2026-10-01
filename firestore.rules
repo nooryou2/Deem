@@ -3,6 +3,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function owns(uid) { return signedIn() && request.auth.uid == uid; }
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin';
+    }
+    function redeemable(inv) {
+      return inv.used == false
+        && inv.get('revoked', false) == false
+        && inv.expiresAt > request.time
+        && (inv.get('email', null) == null || inv.email == request.auth.token.email.lower());
+    }
     function manager(providerId) {
       return signedIn() && (owns(providerId) || (exists(/databases/$(database)/documents/employees/$(request.auth.uid)) && get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.providerId == providerId && get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.privilege == 'manager'));
     }
@@ -20,13 +30,25 @@ service cloud.firestore {
         || ((manager(data.providerId) || owns(data.get('assignedEmployeeId', ''))) && changed.hasOnly(['status', 'updatedAt']) && validStatus(data.status, request.resource.data.status, type + '_' + id) && (manager(data.providerId) || request.resource.data.status in ['in_progress', 'completed']));
     }
     match /users/{uid} {
-      allow read: if owns(uid) || (resource.data.get('role', '') == 'employee' && manager(resource.data.providerId));
-      allow create: if (owns(uid) && request.resource.data.role in ['homeowner', 'provider'] && !request.resource.data.keys().hasAny(['privilege', 'providerId'])) || (request.resource.data.role == 'employee' && owns(request.resource.data.providerId) && get(/databases/$(database)/documents/employees/$(uid)).data.providerId == request.auth.uid);
-      allow update: if (owns(uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'privilege', 'providerId'])) || (owns(resource.data.get('providerId', '')) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'privilege', 'role', 'updatedAt']));
+      allow read: if owns(uid) || isAdmin() || (resource.data.get('role', '') == 'employee' && manager(resource.data.providerId));
+      allow create: if (owns(uid) && request.resource.data.role == 'homeowner' && !request.resource.data.keys().hasAny(['privilege', 'providerId', 'inviteId']))
+        || (owns(uid) && request.resource.data.role == 'provider'
+            && !request.resource.data.keys().hasAny(['privilege', 'providerId'])
+            && request.resource.data.inviteId is string
+            && redeemable(get(/databases/$(database)/documents/providerInvites/$(request.resource.data.inviteId)).data)
+            && getAfter(/databases/$(database)/documents/providerInvites/$(request.resource.data.inviteId)).data.usedBy == uid)
+        || (request.resource.data.role == 'employee' && owns(request.resource.data.providerId) && get(/databases/$(database)/documents/employees/$(uid)).data.providerId == request.auth.uid);
+      allow update: if (owns(uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'privilege', 'providerId']))
+        || (owns(resource.data.get('providerId', ''))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'privilege', 'role', 'updatedAt'])
+            && request.resource.data.get('role', '') in ['employee', 'disabled']);
     }
     match /providers/{uid} {
       allow read: if signedIn();
-      allow create, update: if owns(uid) && request.resource.data.uid == uid && !request.resource.data.diff(resource == null ? {} : resource.data).affectedKeys().hasAny(['rating']);
+      allow create, update: if owns(uid)
+        && request.resource.data.uid == uid
+        && !request.resource.data.diff(resource == null ? {} : resource.data).affectedKeys().hasAny(['rating'])
+        && getAfter(/databases/$(database)/documents/users/$(uid)).data.role == 'provider';
     }
     match /employees/{uid} {
       allow read: if owns(uid) || manager(resource.data.providerId);
@@ -63,14 +85,44 @@ service cloud.firestore {
       return data.get('requestId', null) != null ? get(/databases/$(database)/documents/serviceRequests/$(data.requestId)).data : get(/databases/$(database)/documents/bookings/$(data.bookingId)).data;
     }
     function hasLinkedJob(data) { return data.get('bookingId', null) != null || data.get('requestId', null) != null; }
+    // Provider invitations are created/revoked only by the standalone admin console.
+    match /providerInvites/{token} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        && token.size() >= 32
+        && request.resource.data.used == false
+        && request.resource.data.get('revoked', false) == false
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if (isAdmin()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revoked', 'revokedAt'])
+            && request.resource.data.revoked == true)
+        || (signedIn()
+            && redeemable(resource.data)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy', 'usedAt'])
+            && request.resource.data.used == true
+            && request.resource.data.usedBy == request.auth.uid
+            && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'provider'
+            && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.inviteId == token);
+      allow delete: if isAdmin();
+    }
+
+    // Defaults managed from the standalone admin console.
+    match /adminTemplates/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
     match /maintenanceItems/{id} {
-      allow read: if owns(resource.data.userId) || (hasLinkedJob(resource.data) && participant(linkedJob(resource.data)));
+      allow read: if owns(resource.data.userId) || isAdmin() || (hasLinkedJob(resource.data) && participant(linkedJob(resource.data)));
       allow create: if owns(request.resource.data.userId);
       allow update: if (owns(resource.data.userId) && request.resource.data.userId == resource.data.userId) || (hasLinkedJob(resource.data) && participant(linkedJob(resource.data)) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookingStatus', 'lastServiceDate', 'nextServiceDate', 'updatedAt']));
       allow delete: if owns(resource.data.userId);
     }
     match /maintenanceHistory/{id} {
-      allow read: if owns(resource.data.get('userId', '')) || (resource.data.get('maintenanceItemId', null) != null && owns(get(/databases/$(database)/documents/maintenanceItems/$(resource.data.maintenanceItemId)).data.userId));
+      allow read: if owns(resource.data.get('userId', '')) || isAdmin() || (resource.data.get('maintenanceItemId', null) != null && owns(get(/databases/$(database)/documents/maintenanceItems/$(resource.data.maintenanceItemId)).data.userId));
       allow create: if owns(request.resource.data.userId) || (request.resource.data.get('jobId', null) != null && participant(job(request.resource.data.jobType, request.resource.data.jobId)) && request.resource.data.userId == job(request.resource.data.jobType, request.resource.data.jobId).get('customerId', job(request.resource.data.jobType, request.resource.data.jobId).get('homeownerId', '')));
       allow update, delete: if false;
     }
