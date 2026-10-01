@@ -80,7 +80,7 @@ export default function DashboardScreen({ navigation }: Props) {
           <Text style={styles.greeting}>
             {t('Hi,')} {firstName}
           </Text>
-          <Text style={styles.wave}>👋</Text>
+          <Ionicons name="hand-left-outline" size={16} color={colors.primary} style={styles.waveIcon} />
         </View>
         <Text style={styles.mainTitle}>{t('Your home at a glance')}</Text>
       </View>
@@ -175,6 +175,7 @@ export default function DashboardScreen({ navigation }: Props) {
         {!loading && priorityItems.length === 0 ? (
           <EmptyState
             variant="success"
+            compact
             title={t("You're all caught up!")}
             subtitle={t('Nothing overdue or due soon right now. Enjoy your day.')}
           />
@@ -221,8 +222,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textSecondary,
   },
-  wave: {
-    fontSize: 16,
+  waveIcon: {
     marginStart: 6,
   },
   mainTitle: {
