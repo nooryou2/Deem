@@ -35,7 +35,7 @@ export default function EmptyState({
           <View style={[styles.ray, styles.rayLeft]} />
           <View style={[styles.ray, styles.rayTopLeft]} />
           <View style={styles.successCircle}>
-            <Ionicons name="checkmark" size={30} color={colors.primaryDark} />
+            <Ionicons name="checkmark-sharp" size={34} color={colors.primaryDark} />
           </View>
         </View>
       ) : (
