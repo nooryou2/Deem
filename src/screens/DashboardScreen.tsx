@@ -17,7 +17,7 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
-import { RefreshControl,ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
+import { Platform,RefreshControl,ScrollView,StyleSheet,TouchableOpacity,View } from 'react-native';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<MainStackParamList, 'Dashboard'>,
@@ -46,7 +46,11 @@ export default function DashboardScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = React.useState(false);
   const [viewportHeight, setViewportHeight] = React.useState(0);
   const [contentHeight, setContentHeight] = React.useState(0);
-  const canScroll = contentHeight > viewportHeight + 2;
+  // Ignore tiny layout/padding differences. The dashboard should only scroll
+  // when there is genuinely more content than fits on screen.
+  const canScroll =
+    viewportHeight > 0 &&
+    contentHeight > viewportHeight + 48;
 
   const priorityItems = items
     .filter(
@@ -61,8 +65,14 @@ export default function DashboardScreen({ navigation }: Props) {
 
   return (
     <ScrollView
-      style={styles.flex}
-      contentContainerStyle={styles.container}
+      style={[
+        styles.flex,
+        Platform.OS === 'web' && !canScroll ? styles.noWebScroll : null,
+      ]}
+      contentContainerStyle={[
+        styles.container,
+        priorityItems.length === 0 && styles.compactContainer,
+      ]}
       showsVerticalScrollIndicator={false}
       scrollEnabled={canScroll}
       bounces={canScroll}
@@ -214,6 +224,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 40,
   },
+  compactContainer: {
+    paddingBottom: 8,
+  },
+  noWebScroll: {
+    overflow: 'hidden',
+  } as any,
 
   // Header
   headerBlock: {
